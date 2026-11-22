@@ -128,4 +128,4 @@ replaces the static catalogue with an automated pipeline (`scripts/fetch_kalshi_
 - **Source branch:** `arena/cd42444b-tradebot3` → `main`
 - **PR:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/20
 - **Merge:** MERGED 2026-11-22T08:08:36Z, merge commit `244502da0f33de3fcba881c637ae1c8f2bc9baaa` (`gh pr merge 20 --merge`, no approval wait per instructions)
-- **Pages deploy:** CONFIRMED — Pages build for `244502d` reported `built` at 2026-11-22T08:08:37Z; https://kanlerxz87-cyber.github.io/Tradebot3/ serves the live-data dashboard (40 events, 171 markets, 30 alerts from snapshot 2026-11-22T08:04Z). A follow-up fix (UTC time rendering, this record) was merged separately and is recorded below.
+- **Pages deploy:** CONFIRMED — Pages build for `244502d` reported `built` at 2026-11-22T08:08:37Z; https://kanlerxz87-cyber.github.io/Tradebot3/ serves the live-data dashboard (40 events, 171 markets, 30 alerts from snapshot 2026-11-22T08:04Z). A follow-up fix (PR #21, UTC time rendering) merged 2026-11-22T08:09:47Z as `55209ee8f803294db70d84dccbe052b3a93850d0`; Pages build for that commit reported `built`. This line is carried by PR #22, a docs-only record update.
