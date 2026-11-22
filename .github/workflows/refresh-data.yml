@@ -9,7 +9,8 @@ on:
     - cron: "*/20 * * * *"      # every 20 minutes (UTC)
   workflow_dispatch:
   push:
-    branches: [main]
+    # Any branch, so the pipeline can be exercised before it is merged.
+    branches: ["**"]
     paths:
       - "scripts/fetch_kalshi_data.py"
       - "scripts/legacy_claims.json"
