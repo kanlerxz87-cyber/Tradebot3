@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Culture — Kalshi Demo Category Dashboard · Tradebot3</title>
+  <link rel="stylesheet" href="../assets/css/styles.css" />
+</head>
+<body data-root-depth="1" data-topic="culture">
+  <div id="site-header"></div>
+
+  <main class="page-main container">
+    <section class="page-hero">
+      <div>
+        <h1 id="topic-hero-title">Culture — Kalshi Live &amp; Resolved Events</h1>
+        <p id="topic-hero-desc">Oscars, Rotten Tomatoes Tomatometer scores, and The Game Awards Kalshi markets.</p>
+      </div>
+      <div class="hero-controls">
+        <button id="cat-trigger-swing" class="btn btn-primary">Trigger &gt;= $0.10 Swing</button>
+        <a class="btn" href="../index.html">← All 5 Topics</a>
+      </div>
+    </section>
+
+    <section id="topic-kpi-strip" class="kpi-grid"></section>
+
+    <section class="card">
+      <div class="card-header">
+        <h2>Interactive Price Chart &amp; Orderbook Liquidity (Culture)</h2>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <select id="cat-market-select" style="width:auto;min-width:280px;" aria-label="Select Culture Market"></select>
+          <div class="seg-group">
+            <button class="seg-btn" data-timeframe="seconds">Seconds</button>
+            <button class="seg-btn active" data-timeframe="minutes">Minutes</button>
+            <button class="seg-btn" data-timeframe="hours">Hours</button>
+          </div>
+        </div>
+      </div>
+      <div id="cat-chart-meta" style="margin-bottom:10px;"></div>
+      <div class="grid-chart-ob">
+        <div>
+          <div class="chart-canvas-wrap">
+            <canvas id="cat-price-chart"></canvas>
+          </div>
+          <div id="cat-catalysts" class="catalyst-box"></div>
+        </div>
+        <div>
+          <div id="cat-orderbook-panel"></div>
+          <form id="cat-trade-form" style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;">
+            <strong class="small">Quick Demo Trade (Culture)</strong>
+            <div class="form-grid" style="margin-top:6px;">
+              <div>
+                <label class="field-label" for="cat-qt-side">Side</label>
+                <select id="cat-qt-side"><option value="YES">Buy YES</option><option value="NO">Buy NO</option></select>
+              </div>
+              <div>
+                <label class="field-label" for="cat-qt-contracts">Contracts</label>
+                <input id="cat-qt-contracts" type="number" min="1" max="500" value="25" required />
+              </div>
+              <div>
+                <label class="field-label" for="cat-qt-price">Price ($)</label>
+                <input id="cat-qt-price" type="number" step="0.01" min="0.01" max="0.99" value="0.91" required />
+              </div>
+              <div>
+                <label class="field-label" for="cat-qt-category">Category</label>
+                <select id="cat-qt-category"></select>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Execute Demo Order</button>
+            <div id="cat-qt-feedback" style="margin-top:8px;"></div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid-2" style="margin-bottom:18px;">
+      <div class="card" style="margin-bottom:0;">
+        <div class="card-header"><h2>Culture &gt;= $0.10 Swing Alerts (All)</h2></div>
+        <div id="cat-chat-all" class="chat-feed" style="height:260px;"></div>
+      </div>
+      <div class="card" style="margin-bottom:0;">
+        <div class="card-header"><h2>Culture High-ROI Model Alerts</h2></div>
+        <div id="cat-chat-roi" class="chat-feed" style="height:260px;"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <h2>Verified Culture Events Table</h2>
+        <span class="tiny muted">Sorted by verified dollar volume · Blank fields flagged as Unverified</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Ticker</th>
+              <th>Event &amp; Contract</th>
+              <th>Verified Dollar Volume</th>
+              <th>Live Demo Price</th>
+              <th>Verified Observed</th>
+              <th>Resolution</th>
+              <th>Settlement Source</th>
+              <th>Close Window</th>
+              <th>Official Source Link</th>
+            </tr>
+          </thead>
+          <tbody id="cat-markets-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+  <script type="module" src="../assets/js/category-page.js"></script>
+</body>
+</html>
