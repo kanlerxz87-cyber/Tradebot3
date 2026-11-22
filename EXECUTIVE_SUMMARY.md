@@ -1,75 +1,116 @@
-# Executive Summary — Tradebot3 Kalshi Demo Dashboard & Trading System
+# Executive Summary — Tradebot3 Kalshi Demo Dashboard & Paper Strategy Lab
 
-**Date:** 2026-11-22 (UTC)  
-**Repository:** `kanlerxz87-cyber/Tradebot3`  
-**Live GitHub Pages Site:** https://kanlerxz87-cyber.github.io/Tradebot3/  
-**Branch:** `arena/3716ae8d-tradebot3`
-
----
-
-## 1. Project Objective & Strict Topic Scope
-Tradebot3 collects, organizes, verifies, and analyzes high-dollar Kalshi prediction market events across **five strictly isolated topics**:
-1. **Gas Prices** (AAA national & state regular gasoline threshold markets)
-2. **Elections** (U.S. Senate control, 2028 Presidential & nomination markets)
-3. **Culture** (Oscars, Rotten Tomatoes Tomatometer scores, The Game Awards)
-4. **Crypto** (Bitcoin, Ethereum, and Solana year-end & downside milestone markets)
-5. **Golf** (PGA Tour Majors & live tournament winners including The RSM Classic and The Masters)
-
-Topics are maintained in separate views and subpages while events within each topic are organized together, ordered by verified dollar trading volume.
+**Date:** 2026-11-22 (UTC)
+**Repository:** `kanlerxz87-cyber/Tradebot3`
+**Site:** https://kanlerxz87-cyber.github.io/Tradebot3/ (static GitHub Pages)
+**Branch:** `arena/e9a6c584-tradebot3`
 
 ---
 
-## 2. Verified Kalshi Demo API Architecture
-Every API endpoint and schema was verified line by line against Kalshi's official documentation ([Demo Environment](https://docs.kalshi.com/getting_started/demo_env), [API Environments](https://docs.kalshi.com/getting_started/api_environments), [Orderbook Responses](https://docs.kalshi.com/getting_started/orderbook_responses), [WebSockets Quick Start](https://docs.kalshi.com/getting_started/quick_start_websockets), [Rate Limits](https://docs.kalshi.com/getting_started/rate_limits)):
+## 1. Objective & Strict Topic Scope
 
-| Surface | Recommended Demo Endpoint | Also Supported (Legacy Shared) | Official Source |
+Tradebot3 organizes and analyzes a fixed catalog of Kalshi prediction markets across **five strictly
+isolated topics**:
+
+1. **Gas Prices** — AAA national and California/New York regular gasoline threshold markets
+2. **Elections** — Senate control, 2028 presidential party, and 2028 nomination markets
+3. **Culture** — Oscars, Rotten Tomatoes Tomatometer, and The Game Awards markets
+4. **Crypto** — Bitcoin, Ethereum, and Solana year-end range and downside milestones
+5. **Golf** — PGA Tour major and tournament-winner markets
+
+Topics have separate pages and are never mixed in a table or KPI. Within a topic, rows are sorted by a
+dated production **event-volume** snapshot, not by Demo liquidity.
+
+## 2. Data Boundaries (post-audit)
+
+| Data | Source | What it is not |
+| --- | --- | --- |
+| Catalog rows (ticker, event, contract, close window, settlement source) | Official Kalshi event pages, snapshot `2026-11-22` | Not a live market feed |
+| Volume cell | Production event-page dollar volume, dated per row | Not contract volume, not Demo liquidity |
+| Price / swing cells | Blank until a runtime Kalshi Demo REST read succeeds | Not production prices; no backfill or second-level history |
+| Chart series | Best-effort Demo REST observations collected while the page is open | Not a WebSocket tick stream |
+| Orderbook | One Demo REST `orderbook_fp` snapshot when the read succeeds | Not resting depth claims from a static file |
+| Portfolio, trades, strategies, settlements | Local `localStorage` paper simulation | Not exchange fills or account positions |
+| Article links | Context only | Not evidence of price causation |
+
+Removed in the factual audit: all static `observedPrice` / `observedSwing` values, all model
+`fairValue` inputs, all seeded catalyst swing markers, and the unused order-submission client method.
+
+## 3. Verified Kalshi Demo API Architecture
+
+Every endpoint and schema below was checked against Kalshi's official documentation
+([Demo Environment](https://docs.kalshi.com/getting_started/demo_env),
+[API Environments](https://docs.kalshi.com/getting_started/api_environments),
+[Orderbook Responses](https://docs.kalshi.com/getting_started/orderbook_responses),
+[WebSockets Quick Start](https://docs.kalshi.com/getting_started/quick_start_websockets),
+[Rate Limits](https://docs.kalshi.com/getting_started/rate_limits)).
+
+| Surface | Recommended demo endpoint | Also supported | Official source |
 | --- | --- | --- | --- |
-| **REST Trade API** | `https://external-api.demo.kalshi.co/trade-api/v2` | `https://demo-api.kalshi.co/trade-api/v2` | [Kalshi Demo Env](https://docs.kalshi.com/getting_started/demo_env) |
-| **WebSocket API** | `wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2` | `wss://demo-api.kalshi.co/trade-api/ws/v2` | [Kalshi Demo Env](https://docs.kalshi.com/getting_started/demo_env) |
-| **User Fill/Order WS** | `wss://user-ws.demo.kalshi.co/trade-api/ws/v2` | *(dedicated user stream)* | [API Environments](https://docs.kalshi.com/getting_started/api_environments) |
-| **Demo Web App** | `https://demo.kalshi.co/` | — | [Kalshi Demo Env](https://docs.kalshi.com/getting_started/demo_env) |
+| **REST Trade API** | `https://external-api.demo.kalshi.co/trade-api/v2` | `https://demo-api.kalshi.co/trade-api/v2` | [Demo Env](https://docs.kalshi.com/getting_started/demo_env) |
+| **WebSocket API** | `wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2` | `wss://demo-api.kalshi.co/trade-api/ws/v2` | [Demo Env](https://docs.kalshi.com/getting_started/demo_env) |
+| **User Fill/Order WS** | `wss://user-ws.demo.kalshi.co/trade-api/ws/v2` | — | [API Environments](https://docs.kalshi.com/getting_started/api_environments) |
+| **Demo Web App** | `https://demo.kalshi.co/` | — | [Demo Env](https://docs.kalshi.com/getting_started/demo_env) |
 
-### Key Verified Technical Details
-- **Authentication:** Public market-data REST endpoints (`GET /events`, `GET /markets`, `GET /markets/{ticker}/orderbook`) require no authentication. Trading, portfolio, and **all WebSocket handshakes** require three headers: `KALSHI-ACCESS-KEY`, `KALSHI-ACCESS-TIMESTAMP` (Unix ms), and `KALSHI-ACCESS-SIGNATURE` (Base64 signature of `timestamp + METHOD + path_without_query` using RSA-PSS SHA-256 with salt length = digest length, or Ed25519).
-- **Orderbook Mechanics (`orderbook_fp`):** Returns `yes_dollars` and `no_dollars` arrays of `[price_dollars, count_fp]` string pairs (bids only, ascending order; highest bid is last element). Because binary contracts sum to `$1.00`, a YES bid at price `X` equals a NO ask at `$1.00 - X`, and a NO bid at `Y` equals a YES ask at `$1.00 - Y`.
-- **Candlesticks & Timeframes:** `GET /series/{series_ticker}/markets/{ticker}/candlesticks` supports `period_interval` values of `1` (1 minute), `60` (1 hour), and `1440` (1 day) only. **Seconds-level charts** must be aggregated client-side from live `ticker` / `trade` stream updates.
-- **Rate Limits:** Concurrent WebSocket limits range from `200` (Basic/Advanced) to `1,000` (Prime). Basic tier users receive access to batch order endpoints in the Demo environment ([API Changelog](https://docs.kalshi.com/changelog)).
+### Key verified technical details
 
----
+- **Authentication:** public market-data REST endpoints need no auth. Private endpoints and **all**
+  WebSocket handshakes require `KALSHI-ACCESS-KEY`, `KALSHI-ACCESS-TIMESTAMP` (Unix ms), and
+  `KALSHI-ACCESS-SIGNATURE` — a Base64 RSA-PSS SHA-256 signature (salt length = digest length) or Ed25519
+  over `timestamp + METHOD + path_without_query`.
+- **Orderbook (`orderbook_fp`):** `yes_dollars` and `no_dollars` are arrays of `[price_dollars, count_fp]`
+  string pairs containing **bids only**. A YES bid at `X` implies a NO ask at `$1.00 - X`, and vice versa.
+  Unknown tickers return HTTP `200` with empty arrays.
+- **Candlesticks:** `GET /series/{series_ticker}/markets/{ticker}/candlesticks` supports
+  `period_interval` `1`, `60`, and `1440` minutes only. There is no native one-second REST candle.
+- **Rate limits:** concurrent WebSocket connections range from `200` (Basic/Advanced) to `1,000` (Prime).
+- **Demo fidelity:** Kalshi warns that Demo prices and market behavior do not reflect production markets.
 
-## 3. Core Dashboard & Trading Capabilities Delivered
-1. **Live >= $0.10 Swing Alerting System (Dual Scrolling Chats):**
-   - **All Events Feed:** Real-time scrolling chat alerting whenever any tracked market moves `>= $0.10` in either direction (up or down), showing ticker, direction, price delta, timestamp, and verified catalyst link.
-   - **High-ROI Model Selective Feed:** Filtered chat surfacing only swings passing our quantitative High-ROI model criteria (positive model edge `>= 5%`, favorable expected ROI, spread efficiency, and liquidity score), with transparent reasoning on every alert.
-2. **Interactive Price Chart + Liquidity Orderbook + Catalyst Markers:**
-   - **X-axis:** Time with selectable **Seconds**, **Minutes**, and **Hours** granularity.
-   - **Y-axis:** Current contract price (`$0.00` to `$1.00`).
-   - **Jump Markers:** Events with `>= $0.10` sharp price jumps are plotted directly on the chart with clickable catalyst details and verified external source links (CNBC, EIA, Emerson College Polling, PGA Tour, Wccftech/Game Awards).
-   - **Orderbook Liquidity View:** Displays resting contract counts and dollar liquidity at each price level (YES bids, NO bids, and implied YES asks + spread calculation).
-3. **Full Lifecycle & Resolution Tracking:**
-   - Tracks open high-dollar markets alongside resolved 2026 events, explicitly displaying settlement status (**Open**, **Resolved YES**, or **Resolved NO**) and payout rules.
-4. **Kalshi Demo Portfolio, Trade Execution & Automated Strategy Lab:**
-   - Supports direct browser REST signing against Kalshi Demo API (when a user supplies their own Demo Key ID + RSA private key locally in browser memory — never stored in git) AND a ready-to-use **Paper Demo Account** (`$10,000` mock balance) with full trade execution (Buy/Sell YES/NO, Limit/Market).
-   - Includes **Automated Strategy Simulators** (Swing Mean Reversion `>= $0.10`, Swing Momentum Breakout, High-ROI Model Auto-Trader, Liquidity Spread Capture), **Trade Categorization & Performance Analytics**, and a **Custom Strategy Builder** derived from trade category outcomes.
+## 4. What the Site Provides
 
----
+1. **Dashboard (`index.html`)** — topic KPIs, dated event-volume ranking, a general `>= $0.10` change feed
+   that separates observed Demo REST snapshot changes from explicitly labeled paper tests, a Demo REST
+   price chart, and a single-snapshot orderbook ladder (YES bids, NO bids, implied YES asks, spread).
+2. **Five topic pages** — isolated catalog tables with lifecycle badges, per-topic chart/orderbook, and
+   paper quick-trade controls.
+3. **Paper portfolio and strategy lab (`portfolio.html`)** — `$10,000` simulated balance, paper
+   buy/sell ledger with YES/NO settlement payouts, category analytics, and paper-only strategy rules
+   (mean reversion, momentum, spread capture, disabled model-edge rule). An optional read-only
+   `GET /portfolio/balance` check uses a demo key the user pastes in page memory; nothing is persisted.
+4. **Lifecycle tracking** — catalog rows carry Open / Finalized / Needs Review status; unresolved or
+   unreconciled markets stay blank and are listed on `flagged-for-review.html`.
+5. **Verification surface** — `verification.html` documents the API schemas, the repository audit, and
+   concrete upgrade paths; `flagged-for-review.html` lists every known gap.
 
-## 4. Flagged Irregularities Summary (Published on Flagged for Review)
-All irregularities and unverified fields are documented transparently on `flagged-for-review.html` and do not block deployment:
-- **IRREG-01:** Standard browser `WebSocket` cannot attach Kalshi's required handshake auth headers (`KALSHI-ACCESS-*`); real authenticated WS streaming requires a server/worker relay proxy.
-- **IRREG-02:** Static GitHub Pages browser `fetch()` requests to Kalshi Demo API may encounter CORS restrictions and require user-owned demo credentials for private endpoints; simulated ticks and paper fills are explicitly labeled.
-- **IRREG-03:** Kalshi officially warns that Demo environment market prices and liquidity do not reflect production markets ([source](https://docs.kalshi.com/getting_started/demo_env)).
-- **IRREG-04:** Kalshi REST candlestick API does not provide 1-second bars (`1m`, `60m`, `1440m` only); seconds-level charts rely on live client-side tick aggregation.
-- **IRREG-05:** `GET /markets/{ticker}/orderbook` returns HTTP `200` with empty arrays for unknown tickers instead of `404` ([source](https://docs.kalshi.com/getting_started/orderbook_responses)).
-- **IRREG-06:** User prompt included both recommended (`external-api.demo.kalshi.co`) and legacy shared (`demo-api.kalshi.co`) demo hostnames; both are officially supported, with `external-api` recommended.
-- **IRREG-07:** Specific market volumes and static resting contract depth that were not published in official static snapshots are left **blank** and tagged `Unverified` in verified tables.
-- **IRREG-08:** Initial repository audit (`62713af`) found only an 11-byte `README.md` with no code, tests, or `COORDINATION.md`.
+## 5. Flagged Irregularities (published on `flagged-for-review.html`)
 
----
+- **IRREG-01 (High):** browsers cannot attach Kalshi's required handshake headers to a WebSocket upgrade;
+  authenticated streaming needs a server or edge relay.
+- **IRREG-02 (High):** static-page REST reads may be blocked by CORS, cached, or unmatched to catalog
+  contracts; private calls need user-owned demo credentials. No keys are stored in git.
+- **IRREG-03 (Medium):** Demo prices and liquidity are not production prices or liquidity.
+- **IRREG-04 (Medium):** no native one-second REST candlesticks; no streaming or backfill here.
+- **IRREG-05 (Medium):** `GET /markets/{ticker}/orderbook` returns HTTP `200` with empty arrays for
+  unknown tickers instead of `404`.
+- **IRREG-06 (Low):** both the recommended dedicated and legacy shared demo hostnames are officially supported.
+- **IRREG-07 (Medium):** static quote/swing fields and resting depth are blank unless observed at runtime.
+- **IRREG-08 (Low):** the initial repository contained only an 11-byte `README.md`.
+- **IRREG-09 (Medium):** the RSM Classic contract's ticker, lifecycle, price, and event volume remain
+  unreconciled; the row is `Needs Review`.
+- **IRREG-10 (Medium):** volume cells are dated event snapshots, not contract volume or Demo liquidity;
+  three events still publish no volume and stay blank.
+- **IRREG-11 (Low):** order submission is documented for reference but not implemented; every trade is paper.
 
-## 5. Recommendations to Make the Site More Live & Interactive
-Detailed in `verification.html`, top architectural upgrades include:
-1. Deploy a lightweight Cloudflare Worker / Node.js WebSocket-to-SSE/WS relay signing `GET /trade-api/ws/v2` server-side so browsers receive genuine sub-second `ticker`, `trade`, `orderbook_delta`, and `market_lifecycle_v2` streams without exposing API private keys.
-2. Subscribe to `market_lifecycle_v2` and `fill` channels (plus `wss://user-ws.demo.kalshi.co/trade-api/ws/v2`) for instant settlement notifications and zero-latency execution confirmations.
-3. Add automated RSS/news webhook ingestion (AAA Daily Fuel Gauge, EIA Weekly Petroleum Status, AP/Reuters Election Calls, PGA Tour ShotLink, Crypto spot feeds) to auto-pin verified catalyst URLs onto `>= $0.10` price jumps in real time.
-4. Enable browser Web Notifications + audio ping toggles for High-ROI `>= $0.10` alerts and one-click orderbook ladder limit order entry directly from depth rows.
+## 6. Recommended Next Steps
+
+1. Deploy a small authenticated relay (Cloudflare Worker or Node service) that signs the Kalshi WS
+   handshake server-side and fans out `ticker`, `trade`, `orderbook_delta`, and `market_lifecycle_v2`
+   messages to the static site.
+2. Backfill charts from the official historical candlestick and trade endpoints instead of in-page observations.
+3. Pin verified news and official-release links to observed `>= $0.10` moves, with explicit timestamps and
+   no causal claims.
+4. Reconcile the remaining blank fields (RSM Classic, three events without published volume) against
+   fresh official event pages before showing any value.
+5. If a model feed is ever enabled, publish the fair-value methodology and source data first; until then
+   the model-edge feed stays empty.
+6. Add browser notification and threshold controls for the general change feed.

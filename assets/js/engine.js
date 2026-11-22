@@ -1,23 +1,22 @@
 /**
- * Tradebot3 Live Alerting, Orderbook, Portfolio & Automated Strategy Engine
- * - Enforces >= $0.10 swing alerts in either direction into TWO scrolling chats:
- *   1) All Events Feed
- *   2) High-ROI Model Selective Feed
- * - Generates Seconds / Minutes / Hours chart histories + pinned >= $0.10 catalyst markers
- * - Tracks Demo Portfolio positions, realized/unrealized P&L, trade categorization,
- *   automated simulated strategies, and custom category-based strategies.
+ * Tradebot3 data, alerts, orderbook, paper portfolio, and strategy engine.
+ *
+ * Public market reads are best-effort Kalshi Demo REST snapshots (not production prices and not a
+ * WebSocket stream). All portfolio trades and strategy executions are local paper simulations.
+ * Random prices/depth are generated only after an explicit simulation action.
  */
 
-import { VERIFIED_MARKETS, TOPICS, ALLOWED_TOPICS } from './data.js';
+import { VERIFIED_MARKETS, ALLOWED_TOPICS } from './data.js';
 import { KalshiDemoClient } from './kalshi-client.js';
 
-const STORAGE_KEY = 'tradebot3_demo_state_v1';
-export const SWING_ALERT_THRESHOLD = 0.10; // >= $0.10 in either direction
+const STORAGE_KEY = 'tradebot3_paper_state_v2';
+export const SWING_ALERT_THRESHOLD = 0.10;
+export const REST_REFRESH_INTERVAL_MS = 60_000;
 
 export const TRADE_CATEGORIES = [
   'Swing Mean-Reversion',
   'Momentum Breakout',
-  'High-ROI Model',
+  'Model-Edge Rule',
   'News Catalyst',
   'Spread Capture',
   'Manual'
@@ -34,11 +33,11 @@ export const DEFAULT_STRATEGIES = [
     minExpectedRoi: 8,
     maxContracts: 25,
     rule: 'fade',
-    description: 'Automatically fades sudden >= $0.10 price spikes/drops expecting short-term orderbook mean reversion.'
+    description: 'Paper-only strategy test that fades an observed or explicitly simulated >= $0.10 move.'
   },
   {
     id: 'strat-momentum',
-    name: 'Catalyst Momentum Breakout (>= $0.10)',
+    name: 'Momentum Breakout (>= $0.10)',
     category: 'Momentum Breakout',
     topicFilter: 'all',
     enabled: true,
@@ -46,23 +45,23 @@ export const DEFAULT_STRATEGIES = [
     minExpectedRoi: 10,
     maxContracts: 20,
     rule: 'follow',
-    description: 'Follows sharp >= $0.10 breakouts when accompanied by verified news/data catalysts.'
+    description: 'Paper-only strategy test that follows an observed or explicitly simulated >= $0.10 move.'
   },
   {
     id: 'strat-high-roi',
-    name: 'High-ROI Model Selective Auto-Trader',
-    category: 'High-ROI Model',
+    name: 'Model-Edge Rule Test (needs sourced fair value)',
+    category: 'Model-Edge Rule',
     topicFilter: 'all',
-    enabled: true,
+    enabled: false,
     minSwing: 0.10,
     minExpectedRoi: 15,
     maxContracts: 35,
     rule: 'model-edge',
-    description: 'Executes automatically only on alerts passing the High-ROI Model selective chat filter (edge >= $0.06, Exp ROI >= 15%).'
+    description: 'Disabled by default: no independently sourced fair-value estimates are supplied, so this rule cannot produce a valid model signal.'
   },
   {
     id: 'strat-spread-capture',
-    name: 'Liquidity Spread Capture',
+    name: 'Liquidity Spread Capture (paper test)',
     category: 'Spread Capture',
     topicFilter: 'elections',
     enabled: false,
@@ -70,337 +69,226 @@ export const DEFAULT_STRATEGIES = [
     minExpectedRoi: 6,
     maxContracts: 30,
     rule: 'spread',
-    description: 'Captures bid-ask spread on high-volume contracts when best bid/ask spread widens >= $0.03.'
+    description: 'Paper-only spread rule; requires a successfully fetched Demo REST orderbook and never submits an exchange order.'
   }
 ];
 
-function clampPrice(p) {
-  return Math.max(0.01, Math.min(0.99, +Number(p).toFixed(2)));
+function clampPrice(value) {
+  return Math.max(0.01, Math.min(0.99, +Number(value).toFixed(2)));
 }
 
-function seededRand(seed) {
-  let x = Math.sin(seed) * 10000;
+function validApiPrice(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0 || number > 1) return null;
+  return +number.toFixed(4);
+}
+
+function roundedDelta(next, previous) {
+  return +Number(next - previous).toFixed(4);
+}
+
+function normalizeContractText(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function findContractMarket(catalogMarket, apiMarkets) {
+  if (!Array.isArray(apiMarkets) || !apiMarkets.length) return null;
+
+  const tickerMatch = catalogMarket.ticker !== catalogMarket.eventTicker
+    ? apiMarkets.find((item) => item.ticker === catalogMarket.ticker)
+    : null;
+  if (tickerMatch) return tickerMatch;
+
+  const selectors = Array.isArray(catalogMarket.contractMatch)
+    ? catalogMarket.contractMatch
+    : [catalogMarket.contractMatch];
+  const targets = selectors.map(normalizeContractText).filter(Boolean);
+  if (!targets.length) return null;
+
+  const matches = apiMarkets.filter((item) => {
+    const fields = [item.yes_sub_title, item.subtitle, item.title, item.ticker];
+    return fields.some((field) => targets.includes(normalizeContractText(field)));
+  });
+  return matches.length === 1 ? matches[0] : null;
+}
+
+function statusFromApi(rawStatus) {
+  const status = String(rawStatus || '').toLowerCase();
+  if (status === 'active') return 'Open';
+  if (status === 'finalized' || status === 'settled') return 'Resolved';
+  if (status === 'determined') return 'Determined';
+  if (status === 'closed') return 'Closed';
+  if (status === 'initialized' || status === 'unopened') return 'Upcoming';
+  if (status === 'inactive' || status === 'deprecated') return 'Inactive';
+  return rawStatus ? String(rawStatus) : 'Needs Review';
+}
+
+function resolutionFromApi(rawStatus, result) {
+  const status = String(rawStatus || '').toLowerCase();
+  const normalizedResult = String(result || '').toUpperCase();
+  if (normalizedResult === 'YES' || normalizedResult === 'NO') return normalizedResult;
+  if (status === 'active' || status === 'initialized' || status === 'unopened') return 'OPEN';
+  return null;
+}
+
+function seedRandom(seed) {
+  const x = Math.sin(seed) * 10000;
   return x - Math.floor(x);
 }
 
 /**
- * Build deterministic simulated orderbook depth centered on current contract price.
- * Clearly labeled in UI as simulated when live Kalshi Demo REST orderbook is unavailable.
+ * Construct deliberately synthetic depth for a user-triggered paper simulation only.
+ * Never used as a fallback for missing Demo REST orderbook data.
  */
-export function buildSimulatedOrderbook(price, volumeUsd, tickerSeed = 1) {
+export function buildSimulatedOrderbook(price, volumeUsd = null, tickerSeed = 1) {
   const p = clampPrice(price);
-  const volFactor = volumeUsd ? Math.min(25, Math.max(2, Math.log10(volumeUsd + 10) * 3)) : 4;
-  const spread = volumeUsd && volumeUsd > 10000000 ? 0.01 : volumeUsd && volumeUsd > 500000 ? 0.02 : 0.03;
+  const volumeFactor = volumeUsd
+    ? Math.min(25, Math.max(2, Math.log10(volumeUsd + 10) * 3))
+    : 4;
+  const spread = volumeUsd && volumeUsd > 10_000_000 ? 0.01 : volumeUsd && volumeUsd > 500_000 ? 0.02 : 0.03;
   const bestYesBid = clampPrice(p - spread / 2);
   const bestYesAsk = clampPrice(Math.max(bestYesBid + 0.01, p + spread / 2));
   const bestNoBid = clampPrice(1 - bestYesAsk);
-
   const yesBids = [];
   const noBids = [];
 
-  for (let i = 0; i < 6; i += 1) {
-    const ybPrice = clampPrice(bestYesBid - i * 0.01);
-    const ybCount = Math.round((40 + seededRand(tickerSeed + i * 7.1) * 180) * volFactor);
-    if (ybPrice > 0.01 && (!yesBids.length || ybPrice < yesBids[yesBids.length - 1].price)) {
-      yesBids.push({ price: ybPrice, count: ybCount, dollars: +(ybPrice * ybCount).toFixed(2) });
+  for (let level = 0; level < 6; level += 1) {
+    const yesPrice = clampPrice(bestYesBid - level * 0.01);
+    const yesCount = Math.round((40 + seedRandom(tickerSeed + level * 7.1) * 180) * volumeFactor);
+    if (yesPrice > 0.01 && (!yesBids.length || yesPrice < yesBids[yesBids.length - 1].price)) {
+      yesBids.push({ price: yesPrice, count: yesCount, dollars: +(yesPrice * yesCount).toFixed(2) });
     }
 
-    const nbPrice = clampPrice(bestNoBid - i * 0.01);
-    const nbCount = Math.round((40 + seededRand(tickerSeed + i * 11.3 + 50) * 180) * volFactor);
-    if (nbPrice > 0.01 && (!noBids.length || nbPrice < noBids[noBids.length - 1].price)) {
-      noBids.push({ price: nbPrice, count: nbCount, dollars: +(nbPrice * nbCount).toFixed(2) });
+    const noPrice = clampPrice(bestNoBid - level * 0.01);
+    const noCount = Math.round((40 + seedRandom(tickerSeed + level * 11.3 + 50) * 180) * volumeFactor);
+    if (noPrice > 0.01 && (!noBids.length || noPrice < noBids[noBids.length - 1].price)) {
+      noBids.push({ price: noPrice, count: noCount, dollars: +(noPrice * noCount).toFixed(2) });
     }
   }
 
   const impliedYesAsks = noBids
-    .map((lvl) => {
-      const askPrice = clampPrice(1 - lvl.price);
-      return {
-        price: askPrice,
-        noBidPrice: lvl.price,
-        count: lvl.count,
-        dollars: +(askPrice * lvl.count).toFixed(2)
-      };
-    })
+    .map((level) => ({
+      price: +Math.max(0, 1 - level.price).toFixed(4),
+      noBidPrice: level.price,
+      count: level.count,
+      dollars: +((1 - level.price) * level.count).toFixed(2)
+    }))
     .sort((a, b) => a.price - b.price);
-
-  const totalYesContracts = yesBids.reduce((s, l) => s + l.count, 0);
-  const totalNoContracts = noBids.reduce((s, l) => s + l.count, 0);
+  const totalYesContracts = yesBids.reduce((sum, level) => sum + level.count, 0);
+  const totalNoContracts = noBids.reduce((sum, level) => sum + level.count, 0);
   const totalDollarLiquidity = +(
-    yesBids.reduce((s, l) => s + l.dollars, 0) +
-    impliedYesAsks.reduce((s, l) => s + l.dollars, 0)
+    yesBids.reduce((sum, level) => sum + level.dollars, 0) +
+    impliedYesAsks.reduce((sum, level) => sum + level.dollars, 0)
   ).toFixed(2);
+  const bestAsk = impliedYesAsks.length ? impliedYesAsks[0].price : clampPrice(p + 0.02);
+  const bestBid = yesBids.length ? yesBids[0].price : p;
 
   return {
     simulated: true,
+    source: 'paper-simulation',
     yesBids,
     noBids,
     impliedYesAsks,
-    bestYesBid: yesBids.length ? yesBids[0].price : p,
-    bestYesAsk: impliedYesAsks.length ? impliedYesAsks[0].price : clampPrice(p + 0.02),
-    spread: +(
-      (impliedYesAsks.length ? impliedYesAsks[0].price : clampPrice(p + 0.02)) -
-      (yesBids.length ? yesBids[0].price : p)
-    ).toFixed(2),
+    bestYesBid: bestBid,
+    bestYesAsk: bestAsk,
+    spread: +(bestAsk - bestBid).toFixed(4),
     totalYesContracts,
     totalNoContracts,
     totalDollarLiquidity
   };
 }
 
-/**
- * Evaluate whether an event/swing qualifies for the High-ROI Model Selective Feed.
- */
-export function evaluateHighRoi(market, currentPrice, delta = 0, orderbook = null) {
-  if (market.status === 'Resolved') {
-    return { qualified: false, edge: 0, expectedRoiPct: 0, side: 'NONE', liquidityScore: 0, reason: 'Market settled' };
+/** No model fair value is supplied; the function must not invent one from the market quote. */
+export function evaluateModelEdge(market, currentPrice, _delta = 0, _orderbook = null) {
+  if (!market || market.status === 'Resolved') {
+    return { qualified: false, side: 'NONE', expectedRoiPct: null, reason: 'Market is resolved or unavailable.' };
   }
-  const fair = market.modelFairValue ?? currentPrice;
-  const rawEdge = +(fair - currentPrice).toFixed(3);
-  const side = rawEdge >= 0 ? 'YES' : 'NO';
-  const entryCost = side === 'YES' ? currentPrice : +(1 - currentPrice).toFixed(2);
-  const absEdge = Math.abs(rawEdge);
-  const spread = orderbook && orderbook.spread !== null ? orderbook.spread : 0.02;
-  const netEdge = +(absEdge - spread * 0.5).toFixed(3);
-  const expectedRoiPct = entryCost > 0.01 ? +((netEdge / entryCost) * 100).toFixed(1) : 0;
-  const liquidityScore = orderbook
-    ? Math.min(99, Math.round(Math.log10(orderbook.totalDollarLiquidity + 10) * 18))
-    : 70;
-
-  const qualified = netEdge >= 0.05 && expectedRoiPct >= 15 && liquidityScore >= 55;
-  const swingNote = Math.abs(delta) >= SWING_ALERT_THRESHOLD ? `Post-swing ${delta > 0 ? '+' : ''}$${delta.toFixed(2)}` : 'Live valuation';
-
-  return {
-    qualified,
-    side,
-    entryCost,
-    fairValue: fair,
-    edge: +netEdge.toFixed(2),
-    expectedRoiPct,
-    liquidityScore,
-    reason: `${swingNote} · Model Fair $${fair.toFixed(2)} vs $${currentPrice.toFixed(2)} -> Buy ${side} (Net Edge $${netEdge.toFixed(2)}, Exp ROI +${expectedRoiPct}%, Liq ${liquidityScore}/100)`
-  };
+  if (validApiPrice(currentPrice) === null) {
+    return { qualified: false, side: 'NONE', expectedRoiPct: null, reason: 'No valid Demo REST quote is loaded.' };
+  }
+  if (!Number.isFinite(market.modelFairValue)) {
+    return {
+      qualified: false,
+      side: 'NONE',
+      expectedRoiPct: null,
+      reason: 'No independently sourced fair value is available; this is not a forecast or ROI recommendation.'
+    };
+  }
+  return { qualified: false, side: 'NONE', expectedRoiPct: null, reason: 'Model signal disabled pending a sourced fair-value methodology.' };
 }
 
-function generateInitialSeries(market, nowMs) {
-  const seed = market.ticker.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-  const basePrice = market.observedPrice;
-  const isResolved = market.status === 'Resolved';
-
-  const makePoints = (count, stepMs) => {
-    const pts = [];
-    let p = isResolved ? (market.resolution === 'YES' ? 0.68 : 0.32) : clampPrice(basePrice - (market.observedSwing || 0));
-    for (let i = count - 1; i >= 0; i -= 1) {
-      const ts = nowMs - i * stepMs;
-      const progress = 1 - i / Math.max(1, count - 1);
-      if (i === 0) {
-        p = basePrice;
-      } else {
-        const noise = (seededRand(seed + i * 13.7 + stepMs) - 0.5) * (isResolved ? 0.05 : 0.035);
-        const target = isResolved
-          ? market.resolution === 'YES'
-            ? 0.65 + progress * 0.35
-            : 0.35 - progress * 0.35
-          : basePrice - (market.observedSwing || 0) * (1 - progress);
-        p = isResolved && progress > 0.85 ? basePrice : clampPrice(p * 0.55 + target * 0.45 + noise);
-      }
-      pts.push({ ts, price: +p.toFixed(2) });
-    }
-    return pts;
+function freshPaperState() {
+  const now = Date.now();
+  return {
+    cashBalance: 10_000,
+    startingBalance: 10_000,
+    positions: {},
+    trades: [],
+    strategies: JSON.parse(JSON.stringify(DEFAULT_STRATEGIES)),
+    equityCurve: [{ ts: now, equity: 10_000 }]
   };
-
-  const hours = makePoints(36, 3600 * 1000);
-  const minutes = makePoints(45, 60 * 1000);
-  const seconds = makePoints(50, 1000);
-
-  // Pin verified >= $0.10 catalyst jumps onto the series
-  const jumpMarkers = [];
-  (market.catalysts || []).forEach((cat, idx) => {
-    if (Math.abs(cat.delta) >= SWING_ALERT_THRESHOLD) {
-      const tsMin = nowMs - Math.min(35, Math.max(5, Math.round(cat.timeOffsetMin / 6))) * 60 * 1000;
-      const tsHr = nowMs - Math.min(28, Math.max(3, Math.round(cat.timeOffsetMin / 15))) * 3600 * 1000;
-      const tsSec = nowMs - Math.min(40, 10 + idx * 12) * 1000;
-      // Reflect jump cleanly in minute & hour series near marker
-      const applyJump = (arr, targetTs) => {
-        let bestIdx = 0;
-        let bestDiff = Infinity;
-        arr.forEach((pt, i) => {
-          const d = Math.abs(pt.ts - targetTs);
-          if (d < bestDiff) {
-            bestDiff = d;
-            bestIdx = i;
-          }
-        });
-        if (bestIdx > 1) {
-          arr[bestIdx - 1].price = clampPrice(arr[bestIdx].price - cat.delta);
-        }
-        return arr[bestIdx];
-      };
-      const mPt = applyJump(minutes, tsMin);
-      const hPt = applyJump(hours, tsHr);
-      const sPt = applyJump(seconds, tsSec);
-      jumpMarkers.push({
-        id: `${market.ticker}-cat-${idx}`,
-        ticker: market.ticker,
-        label: cat.label,
-        delta: cat.delta,
-        url: cat.url,
-        sourceName: cat.sourceName,
-        timestamps: { seconds: sPt.ts, minutes: mPt.ts, hours: hPt.ts },
-        prices: { seconds: sPt.price, minutes: mPt.price, hours: hPt.price }
-      });
-    }
-  });
-
-  return { seconds, minutes, hours, jumpMarkers };
 }
 
 export class TradebotEngine {
-  constructor() {
-    this.client = new KalshiDemoClient();
+  constructor(options = {}) {
+    this.client = options.client || new KalshiDemoClient();
     this.listeners = new Set();
-    this.running = true;
-    this.tickTimer = null;
-    this.tickCount = 0;
+    this.running = false;
+    this.refreshTimer = null;
+    this.refreshPromise = null;
+    this.simulationCount = 0;
     this.markets = [];
     this.allAlerts = [];
-    this.highRoiAlerts = [];
+    this.modelEdgeAlerts = [];
+    this.marketDataStatus = {
+      connected: false,
+      refreshing: false,
+      fetched: 0,
+      total: 0,
+      failed: 0,
+      unmatched: 0,
+      endpoint: this.client.baseUrl,
+      lastChecked: null,
+      message: 'No tracked Kalshi Demo REST snapshot has loaded. REST quotes stay blank until a request succeeds.'
+    };
     this.portfolio = this.loadState();
     this.initMarkets();
-    this.seedInitialAlerts();
   }
 
   loadState() {
-    const fallback = {
-      cashBalance: 10000.0,
-      startingBalance: 10000.0,
-      positions: {},
-      trades: [
-        {
-          id: 'TRD-1001',
-          ts: Date.now() - 1000 * 60 * 140,
-          ticker: 'KXAAAGASMIN-26DEC31',
-          topic: 'gas-prices',
-          action: 'BUY',
-          side: 'YES',
-          contracts: 40,
-          price: 0.45,
-          exitPrice: 0.55,
-          status: 'CLOSED',
-          pnl: 4.0,
-          roiPct: 22.2,
-          category: 'News Catalyst',
-          strategyId: 'strat-momentum',
-          mode: 'Paper Demo',
-          note: 'Entered on AAA national average dropping under $4/gal (+10¢ jump)'
-        },
-        {
-          id: 'TRD-1002',
-          ts: Date.now() - 1000 * 60 * 110,
-          ticker: 'KXETHMINY-27JAN01',
-          topic: 'crypto',
-          action: 'BUY',
-          side: 'YES',
-          contracts: 50,
-          price: 0.25,
-          exitPrice: 0.42,
-          status: 'CLOSED',
-          pnl: 8.5,
-          roiPct: 68.0,
-          category: 'High-ROI Model',
-          strategyId: 'strat-high-roi',
-          mode: 'Paper Demo',
-          note: 'Model flagged ETH downside mispricing after Waller 50bp hike remarks'
-        },
-        {
-          id: 'TRD-1003',
-          ts: Date.now() - 1000 * 60 * 80,
-          ticker: 'KXPGATOUR-THRC26-MTHO',
-          topic: 'golf',
-          action: 'BUY',
-          side: 'YES',
-          contracts: 60,
-          price: 0.13,
-          exitPrice: null,
-          status: 'OPEN',
-          pnl: 0,
-          roiPct: 0,
-          category: 'Momentum Breakout',
-          strategyId: 'strat-momentum',
-          mode: 'Paper Demo',
-          note: 'RSM Classic Round 1-2 surge to T1 (+10¢ breakout)'
-        },
-        {
-          id: 'TRD-1004',
-          ts: Date.now() - 1000 * 60 * 50,
-          ticker: 'KXPRESNOMD-28',
-          topic: 'elections',
-          action: 'BUY',
-          side: 'YES',
-          contracts: 50,
-          price: 0.26,
-          exitPrice: null,
-          status: 'OPEN',
-          pnl: 0,
-          roiPct: 0,
-          category: 'High-ROI Model',
-          strategyId: 'strat-high-roi',
-          mode: 'Paper Demo',
-          note: 'Emerson poll surge + Model Fair Value $0.34 vs $0.26'
-        }
-      ],
-      strategies: JSON.parse(JSON.stringify(DEFAULT_STRATEGIES)),
-      equityCurve: [
-        { ts: Date.now() - 1000 * 60 * 180, equity: 10000.0 },
-        { ts: Date.now() - 1000 * 60 * 130, equity: 10004.0 },
-        { ts: Date.now() - 1000 * 60 * 95, equity: 10012.5 },
-        { ts: Date.now() - 1000 * 60 * 40, equity: 10014.1 },
-        { ts: Date.now(), equity: 10012.5 }
-      ]
-    };
-
-    // Build initial positions map from open seeded trades
-    fallback.cashBalance = 9991.7; // 10000 + 4.0 + 8.5 - (60*0.13) - (50*0.26)
-    fallback.positions = {
-      'KXPGATOUR-THRC26-MTHO:YES': {
-        ticker: 'KXPGATOUR-THRC26-MTHO',
-        topic: 'golf',
-        side: 'YES',
-        contracts: 60,
-        avgPrice: 0.13,
-        category: 'Momentum Breakout'
-      },
-      'KXPRESNOMD-28:YES': {
-        ticker: 'KXPRESNOMD-28',
-        topic: 'elections',
-        side: 'YES',
-        contracts: 50,
-        avgPrice: 0.26,
-        category: 'High-ROI Model'
-      }
-    };
-
+    const fallback = freshPaperState();
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return fallback;
       const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed.cashBalance === 'number' && Array.isArray(parsed.trades)) {
-        if (!Array.isArray(parsed.strategies) || !parsed.strategies.length) {
-          parsed.strategies = JSON.parse(JSON.stringify(DEFAULT_STRATEGIES));
-        }
-        return parsed;
-      }
+      if (!parsed || typeof parsed.cashBalance !== 'number' || !Array.isArray(parsed.trades)) return fallback;
+      if (!parsed.positions || typeof parsed.positions !== 'object') parsed.positions = {};
+      // T-06 migration: the retired "High-ROI Model" label implied a fair-value model that does not exist.
+      const renameCategory = (row) => {
+        if (row && row.category === 'High-ROI Model') row.category = 'Model-Edge Rule';
+      };
+      parsed.trades.forEach(renameCategory);
+      if (Array.isArray(parsed.strategies)) parsed.strategies.forEach(renameCategory);
+      Object.values(parsed.positions).forEach(renameCategory);
+      if (!Array.isArray(parsed.strategies)) parsed.strategies = fallback.strategies;
+      if (!Array.isArray(parsed.equityCurve)) parsed.equityCurve = fallback.equityCurve;
+      if (typeof parsed.startingBalance !== 'number') parsed.startingBalance = 10_000;
+      return parsed;
     } catch (_) {
-      // Ignore storage errors
+      return fallback;
     }
-    return fallback;
   }
 
   saveState() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.portfolio));
     } catch (_) {
-      // Ignore storage errors
+      // Storage may be disabled in private browsing; the current page still works in memory.
     }
   }
 
@@ -408,107 +296,78 @@ export class TradebotEngine {
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch (_) {
-      // Ignore
+      // Ignore storage errors.
     }
-    this.portfolio = this.loadState();
+    this.portfolio = freshPaperState();
     this.notify('portfolio');
   }
 
   initMarkets() {
-    const now = Date.now();
-    this.markets = VERIFIED_MARKETS.filter((m) => ALLOWED_TOPICS.includes(m.topic)).map((m, idx) => {
-      const series = generateInitialSeries(m, now);
-      const orderbook = buildSimulatedOrderbook(m.observedPrice, m.volumeUsd, idx + 11);
-      const currentPrice = m.observedPrice;
-      const roi = evaluateHighRoi(m, currentPrice, m.observedSwing || 0, orderbook);
-      return {
-        ...m,
-        currentPrice,
-        prevPrice: clampPrice(currentPrice - (m.observedSwing || 0)),
-        lastDelta: m.observedSwing || 0,
-        orderbook,
-        series,
-        roi,
-        lastUpdated: now
-      };
-    });
+    this.markets = VERIFIED_MARKETS
+      .filter((market) => ALLOWED_TOPICS.includes(market.topic))
+      .map((catalogMarket) => ({
+        ...catalogMarket,
+        catalogStatus: catalogMarket.status,
+        catalogResolution: catalogMarket.resolution,
+        dataStatus: 'catalog',
+        dataError: '',
+        marketTicker: catalogMarket.ticker !== catalogMarket.eventTicker ? catalogMarket.ticker : null,
+        apiStatus: null,
+        currentPrice: null,
+        prevPrice: null,
+        lastDelta: null,
+        lastFetchedAt: null,
+        dataSourceUrl: null,
+        orderbook: null,
+        simulatedOrderbook: null,
+        simulationPrice: null,
+        series: { snapshots: [], simulationSnapshots: [], jumpMarkers: [] },
+        roi: evaluateModelEdge(catalogMarket, null),
+        lastUpdated: null
+      }));
   }
 
-  seedInitialAlerts() {
-    const now = Date.now();
-    const initialSwings = this.markets.filter(
-      (m) => m.status === 'Open' && (Math.abs(m.observedSwing || 0) >= SWING_ALERT_THRESHOLD || (m.catalysts && m.catalysts.some((c) => Math.abs(c.delta) >= SWING_ALERT_THRESHOLD)))
-    );
-
-    initialSwings.forEach((m, idx) => {
-      const primaryCat = (m.catalysts || []).find((c) => Math.abs(c.delta) >= SWING_ALERT_THRESHOLD);
-      const delta = Math.abs(m.observedSwing || 0) >= SWING_ALERT_THRESHOLD
-        ? m.observedSwing
-        : primaryCat
-        ? primaryCat.delta
-        : 0.10;
-      const fromPrice = clampPrice(m.currentPrice - delta);
-      const alert = {
-        id: `ALT-SEED-${idx + 1}`,
-        ts: now - (initialSwings.length - idx) * 1000 * 42,
-        ticker: m.ticker,
-        title: m.title,
-        topic: m.topic,
-        fromPrice,
-        toPrice: m.currentPrice,
-        delta: +delta.toFixed(2),
-        direction: delta >= 0 ? 'UP' : 'DOWN',
-        catalystLabel: primaryCat ? primaryCat.label : 'Verified Kalshi >= $0.10 price swing observed',
-        catalystUrl: primaryCat ? primaryCat.url : m.sourceUrl,
-        catalystSource: primaryCat ? primaryCat.sourceName : m.sourceLabel,
-        verifiedSourceUrl: m.sourceUrl,
-        roi: evaluateHighRoi(m, m.currentPrice, delta, m.orderbook),
-        simulated: false
-      };
-      this.allAlerts.unshift(alert);
-      if (alert.roi.qualified) {
-        this.highRoiAlerts.unshift(alert);
-      }
-    });
-  }
-
-  subscribe(fn) {
-    this.listeners.add(fn);
-    return () => this.listeners.delete(fn);
+  subscribe(listener) {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
   }
 
   notify(eventType = 'tick', payload = null) {
-    this.listeners.forEach((fn) => {
+    this.listeners.forEach((listener) => {
       try {
-        fn(eventType, payload);
-      } catch (err) {
-        console.error('TradebotEngine listener error:', err);
+        listener(eventType, payload);
+      } catch (error) {
+        console.error('TradebotEngine listener error:', error);
       }
     });
   }
 
   getMarket(ticker) {
-    return this.markets.find((m) => m.ticker === ticker) || this.markets[0];
+    if (!ticker) return undefined;
+    return this.markets.find((market) =>
+      market.ticker === ticker || market.eventTicker === ticker || market.marketTicker === ticker
+    );
   }
 
   getMarketsByTopic(topic) {
     return this.markets
-      .filter((m) => topic === 'all' || m.topic === topic)
+      .filter((market) => topic === 'all' || market.topic === topic)
       .sort((a, b) => (b.volumeUsd || 0) - (a.volumeUsd || 0));
   }
 
   start() {
-    if (this.tickTimer) return;
+    if (this.refreshTimer) return;
     this.running = true;
-    this.tickTimer = setInterval(() => this.runTick(), 2200);
+    void this.refreshMarketData();
+    this.refreshTimer = setInterval(() => void this.refreshMarketData(), REST_REFRESH_INTERVAL_MS);
     this.notify('status');
   }
 
   stop() {
     this.running = false;
-    if (this.tickTimer) {
-      clearInterval(this.tickTimer);
-      this.tickTimer = null;
+    if (this.refreshTimer) {
+      clearInterval(this.refreshTimer);
+      this.refreshTimer = null;
     }
     this.notify('status');
   }
@@ -519,202 +378,339 @@ export class TradebotEngine {
     return this.running;
   }
 
-  /**
-   * Simulate a real-time tick across open markets; periodically produces a >= $0.10 swing alert.
-   */
-  runTick(forceSwingTicker = null) {
-    this.tickCount += 1;
-    const now = Date.now();
-    const openMarkets = this.markets.filter((m) => m.status === 'Open');
-    if (!openMarkets.length) return;
+  async refreshMarketData() {
+    if (this.refreshPromise) return this.refreshPromise;
 
-    const triggerBigSwing = Boolean(forceSwingTicker) || this.tickCount % 4 === 0;
-    const targetMarket = forceSwingTicker
-      ? this.getMarket(forceSwingTicker)
-      : openMarkets[Math.floor(Math.random() * openMarkets.length)];
+    this.marketDataStatus = {
+      ...this.marketDataStatus,
+      refreshing: true,
+      endpoint: this.client.baseUrl,
+      message: 'Fetching tracked event snapshots from Kalshi Demo REST. This is best-effort polling, not a live WebSocket stream.'
+    };
+    this.notify('data-status', this.marketDataStatus);
 
-    openMarkets.forEach((m, idx) => {
-      let delta = (Math.random() - 0.5) * 0.02;
-      let isBigSwing = false;
+    this.refreshPromise = (async () => {
+      let cursor = 0;
+      let fetched = 0;
+      let failed = 0;
+      let unmatched = 0;
+      const workers = Math.min(5, this.markets.length);
 
-      if (triggerBigSwing && m.ticker === targetMarket.ticker) {
-        const dir = Math.random() > 0.45 ? 1 : -1;
-        const mag = +(0.10 + Math.random() * 0.07).toFixed(2);
-        delta = dir * mag;
-        if (m.currentPrice + delta > 0.96 || m.currentPrice + delta < 0.04) {
-          delta = -delta;
+      const fetchNext = async () => {
+        while (cursor < this.markets.length) {
+          const market = this.markets[cursor];
+          cursor += 1;
+          try {
+            if (!market.eventTicker || !market.contractMatch) {
+              unmatched += 1;
+              market.dataStatus = 'unmatched';
+              market.dataError = 'Catalog row lacks a verified event or contract selector.';
+              continue;
+            }
+            const payload = await this.client.getEvent(market.eventTicker);
+            const apiMarket = findContractMarket(market, payload.markets);
+            if (!apiMarket) {
+              unmatched += 1;
+              market.dataStatus = 'unmatched';
+              market.dataError = 'The event response did not contain one unambiguous matching contract.';
+              market.dataSourceUrl = this.client.getEventUrl(market.eventTicker);
+              continue;
+            }
+
+            const now = Date.now();
+            const previousPrice = market.currentPrice;
+            const currentPrice = validApiPrice(apiMarket.last_price_dollars);
+            market.marketTicker = apiMarket.ticker || market.marketTicker;
+            market.apiStatus = apiMarket.status || null;
+            market.status = statusFromApi(apiMarket.status);
+            market.resolution = resolutionFromApi(apiMarket.status, apiMarket.result);
+            market.dataStatus = 'demo-rest';
+            market.dataError = '';
+            market.dataSourceUrl = this.client.getEventUrl(market.eventTicker);
+            market.lastFetchedAt = now;
+            market.lastUpdated = now;
+
+            if (currentPrice !== null) {
+              market.prevPrice = previousPrice;
+              market.currentPrice = currentPrice;
+              market.lastDelta = previousPrice === null ? null : roundedDelta(currentPrice, previousPrice);
+              market.series.snapshots.push({ ts: now, price: currentPrice });
+              if (market.series.snapshots.length > 1440) market.series.snapshots.shift();
+              market.roi = evaluateModelEdge(market, currentPrice, market.lastDelta || 0, market.orderbook);
+
+              if (previousPrice !== null && Math.abs(market.lastDelta) >= SWING_ALERT_THRESHOLD) {
+                this.addRestSnapshotAlert(market, previousPrice, currentPrice, market.lastDelta, now);
+              }
+            }
+            fetched += 1;
+          } catch (error) {
+            failed += 1;
+            market.dataError = error && error.message ? error.message : 'Unknown REST request error';
+            market.dataStatus = market.lastFetchedAt ? 'stale' : 'unavailable';
+          }
         }
-        isBigSwing = Math.abs(delta) >= SWING_ALERT_THRESHOLD;
-      }
+      };
 
-      const prev = m.currentPrice;
-      const next = clampPrice(prev + delta);
-      const actualDelta = +(next - prev).toFixed(2);
+      await Promise.all(Array.from({ length: workers }, () => fetchNext()));
+      const checkedAt = Date.now();
+      const currentCount = this.markets.filter((market) => market.dataStatus === 'demo-rest').length;
+      const staleCount = this.markets.filter((market) => market.dataStatus === 'stale').length;
+      const messages = [];
+      if (fetched) messages.push(`${fetched}/${this.markets.length} tracked contracts matched in this response batch`);
+      if (unmatched) messages.push(`${unmatched} contract selectors unmatched`);
+      if (failed) messages.push(`${failed} REST requests failed`);
+      if (staleCount) messages.push(`${staleCount} prior snapshots are stale`);
+      if (!fetched && !staleCount) messages.push('No tracked Demo REST market data loaded; dated catalog rows remain separate');
 
-      m.prevPrice = prev;
-      m.currentPrice = next;
-      m.lastDelta = actualDelta;
-      m.lastUpdated = now;
-      m.orderbook = buildSimulatedOrderbook(next, m.volumeUsd, idx + this.tickCount);
-      m.roi = evaluateHighRoi(m, next, actualDelta, m.orderbook);
-
-      // Append to seconds series
-      m.series.seconds.push({ ts: now, price: next });
-      if (m.series.seconds.length > 90) m.series.seconds.shift();
-
-      // Update latest minute & hour bar
-      const lastMin = m.series.minutes[m.series.minutes.length - 1];
-      if (!lastMin || now - lastMin.ts >= 60000) {
-        m.series.minutes.push({ ts: now, price: next });
-        if (m.series.minutes.length > 90) m.series.minutes.shift();
-      } else {
-        lastMin.price = next;
-      }
-
-      const lastHr = m.series.hours[m.series.hours.length - 1];
-      if (!lastHr || now - lastHr.ts >= 3600000) {
-        m.series.hours.push({ ts: now, price: next });
-        if (m.series.hours.length > 72) m.series.hours.shift();
-      } else {
-        lastHr.price = next;
-      }
-
-      if (isBigSwing && Math.abs(actualDelta) >= SWING_ALERT_THRESHOLD) {
-        const cat = (m.catalysts && m.catalysts[0]) || null;
-        const alert = {
-          id: `ALT-${now}-${idx}`,
-          ts: now,
-          ticker: m.ticker,
-          title: m.title,
-          topic: m.topic,
-          fromPrice: prev,
-          toPrice: next,
-          delta: actualDelta,
-          direction: actualDelta >= 0 ? 'UP' : 'DOWN',
-          catalystLabel: cat
-            ? `Simulated Demo Tick (${cat.sourceName} reference): ${cat.label}`
-            : `Simulated Demo Tick: Rapid orderbook repricing (${actualDelta >= 0 ? '+' : ''}$${actualDelta.toFixed(2)})`,
-          catalystUrl: cat ? cat.url : m.sourceUrl,
-          catalystSource: cat ? cat.sourceName : m.sourceLabel,
-          verifiedSourceUrl: m.sourceUrl,
-          roi: m.roi,
-          simulated: true
+      const connected = currentCount > 0 || staleCount > 0;
+      this.marketDataStatus = {
+        connected,
+        refreshing: false,
+        fetched,
+        total: this.markets.length,
+        failed,
+        unmatched,
+        endpoint: this.client.baseUrl,
+        lastChecked: checkedAt,
+        message: `${messages.join(' · ')}. REST is best-effort and may be cached; no WebSocket stream is active.`
+      };
+      if (fetched > 0) {
+        this.client.lastStatus = {
+          connected: true,
+          mode: 'demo-public-rest',
+          endpoint: this.client.baseUrl,
+          message: this.marketDataStatus.message,
+          lastChecked: new Date(checkedAt).toISOString()
         };
-
-        // Pin marker onto live chart
-        m.series.jumpMarkers.push({
-          id: alert.id,
-          ticker: m.ticker,
-          label: alert.catalystLabel,
-          delta: actualDelta,
-          url: alert.catalystUrl,
-          sourceName: alert.catalystSource,
-          timestamps: { seconds: now, minutes: m.series.minutes[m.series.minutes.length - 1].ts, hours: m.series.hours[m.series.hours.length - 1].ts },
-          prices: { seconds: next, minutes: next, hours: next }
-        });
-        if (m.series.jumpMarkers.length > 8) m.series.jumpMarkers.shift();
-
-        this.allAlerts.unshift(alert);
-        if (this.allAlerts.length > 60) this.allAlerts.pop();
-
-        if (m.roi.qualified) {
-          this.highRoiAlerts.unshift(alert);
-          if (this.highRoiAlerts.length > 60) this.highRoiAlerts.pop();
-        }
-
-        // Trigger automated simulated strategies
-        this.runAutomatedStrategiesOnSwing(m, alert);
       }
-    });
+      this.notify('data-status', this.marketDataStatus);
+      this.notify('market-data', { status: this.marketDataStatus });
+      return this.marketDataStatus;
+    })();
 
-    this.recordEquitySnapshot(now);
-    this.notify('tick', { tickCount: this.tickCount, now });
+    try {
+      return await this.refreshPromise;
+    } finally {
+      this.refreshPromise = null;
+    }
   }
 
-  runAutomatedStrategiesOnSwing(market, alert) {
-    const enabledStrategies = this.portfolio.strategies.filter((s) => s.enabled);
-    enabledStrategies.forEach((strat) => {
-      if (strat.topicFilter !== 'all' && strat.topicFilter !== market.topic) return;
-      if (Math.abs(alert.delta) < (strat.minSwing || SWING_ALERT_THRESHOLD)) return;
+  addRestSnapshotAlert(market, fromPrice, toPrice, delta, ts) {
+    const alert = {
+      id: `REST-${market.marketTicker}-${ts}`,
+      ts,
+      ticker: market.ticker,
+      title: market.title,
+      topic: market.topic,
+      fromPrice,
+      toPrice,
+      delta,
+      direction: delta >= 0 ? 'UP' : 'DOWN',
+      catalystLabel: 'YES last-price change between separate Kalshi Demo REST snapshots; not a streaming tick.',
+      catalystUrl: market.dataSourceUrl || market.sourceUrl,
+      catalystSource: 'Kalshi Demo REST',
+      verifiedSourceUrl: market.sourceUrl,
+      roi: evaluateModelEdge(market, toPrice, delta, market.orderbook),
+      simulated: false,
+      sourceMode: 'demo-rest'
+    };
+    this.allAlerts.unshift(alert);
+    if (this.allAlerts.length > 100) this.allAlerts.pop();
+    if (alert.roi.qualified) {
+      this.modelEdgeAlerts.unshift(alert);
+      if (this.modelEdgeAlerts.length > 100) this.modelEdgeAlerts.pop();
+    }
+
+    market.series.jumpMarkers.push({
+      id: alert.id,
+      ticker: market.ticker,
+      label: alert.catalystLabel,
+      delta,
+      url: alert.catalystUrl,
+      sourceName: alert.catalystSource,
+      ts,
+      price: toPrice,
+      simulated: false
+    });
+    if (market.series.jumpMarkers.length > 100) market.series.jumpMarkers.shift();
+    this.runAutomatedStrategiesOnSwing(market, alert, 'Demo REST snapshot change');
+    this.notify('alert', alert);
+  }
+
+  /** Explicitly create one synthetic swing for UI/testing; never changes REST/catalog prices. */
+  simulateSwing(forceTicker = null) {
+    const openMarkets = this.markets.filter((market) => market.status === 'Open');
+    const market = forceTicker
+      ? this.getMarket(forceTicker)
+      : openMarkets[Math.floor(Math.random() * openMarkets.length)];
+    if (!market || market.status !== 'Open' || market.catalogStatus === 'Needs Review') return null;
+
+    this.simulationCount += 1;
+    const basePrice = market.simulationPrice ?? market.currentPrice ?? 0.5;
+    let delta = (Math.random() > 0.5 ? 1 : -1) * +(0.10 + Math.random() * 0.07).toFixed(2);
+    if (basePrice + delta > 0.96 || basePrice + delta < 0.04) delta = -delta;
+    const nextPrice = clampPrice(basePrice + delta);
+    const actualDelta = roundedDelta(nextPrice, basePrice);
+    const now = Date.now();
+    market.simulationPrice = nextPrice;
+    market.simulatedOrderbook = buildSimulatedOrderbook(nextPrice, market.volumeUsd, this.simulationCount + 11);
+    market.series.simulationSnapshots.push({ ts: now, price: nextPrice });
+    if (market.series.simulationSnapshots.length > 120) market.series.simulationSnapshots.shift();
+
+    const alert = {
+      id: `SIM-${now}-${this.simulationCount}`,
+      ts: now,
+      ticker: market.ticker,
+      title: market.title,
+      topic: market.topic,
+      fromPrice: basePrice,
+      toPrice: nextPrice,
+      delta: actualDelta,
+      direction: actualDelta >= 0 ? 'UP' : 'DOWN',
+      catalystLabel: 'Synthetic paper-simulation swing. Not an observed Kalshi price move.',
+      catalystUrl: market.sourceUrl,
+      catalystSource: 'Paper Simulation',
+      verifiedSourceUrl: market.sourceUrl,
+      roi: evaluateModelEdge(market, market.currentPrice, actualDelta, market.simulatedOrderbook),
+      simulated: true,
+      sourceMode: 'paper-simulation'
+    };
+    this.allAlerts.unshift(alert);
+    if (this.allAlerts.length > 100) this.allAlerts.pop();
+    if (alert.roi.qualified) {
+      this.modelEdgeAlerts.unshift(alert);
+      if (this.modelEdgeAlerts.length > 100) this.modelEdgeAlerts.pop();
+    }
+    this.runAutomatedStrategiesOnSwing(market, alert, 'explicit paper simulation');
+    this.recordEquitySnapshot(now);
+    this.notify('simulation', alert);
+    return alert;
+  }
+
+  // Backward-compatible test hook; callers should use the explicitly named simulateSwing method.
+  runTick(forceTicker = null) {
+    return this.simulateSwing(forceTicker);
+  }
+
+  async refreshOrderbook(ticker) {
+    const market = this.getMarket(ticker);
+    if (!market || !market.marketTicker) {
+      return { ok: false, message: 'No verified contract ticker is available for this Demo REST orderbook request.' };
+    }
+    try {
+      const orderbook = await this.client.getMarketOrderbook(market.marketTicker, 10);
+      market.orderbook = { ...orderbook, simulated: false, source: 'demo-rest', fetchedAt: Date.now() };
+      market.orderbookError = '';
+      market.orderbookFetchedAt = Date.now();
+      market.roi = evaluateModelEdge(market, market.currentPrice, market.lastDelta || 0, market.orderbook);
+      this.notify('orderbook', market);
+      return { ok: true, orderbook: market.orderbook };
+    } catch (error) {
+      market.orderbook = null;
+      market.orderbookError = error && error.message ? error.message : 'Unknown orderbook request error';
+      this.notify('orderbook', market);
+      return { ok: false, message: market.orderbookError };
+    }
+  }
+
+  runAutomatedStrategiesOnSwing(market, alert, triggerSource) {
+    this.portfolio.strategies.filter((strategy) => strategy.enabled).forEach((strategy) => {
+      if (strategy.topicFilter !== 'all' && strategy.topicFilter !== market.topic) return;
+      if (Math.abs(alert.delta) < (strategy.minSwing || SWING_ALERT_THRESHOLD)) return;
 
       let side = 'YES';
       let shouldTrade = false;
-
-      if (strat.rule === 'fade') {
+      if (strategy.rule === 'fade') {
         side = alert.delta > 0 ? 'NO' : 'YES';
         shouldTrade = true;
-      } else if (strat.rule === 'follow') {
+      } else if (strategy.rule === 'follow') {
         side = alert.delta > 0 ? 'YES' : 'NO';
         shouldTrade = true;
-      } else if (strat.rule === 'model-edge') {
-        if (alert.roi && alert.roi.qualified && alert.roi.expectedRoiPct >= (strat.minExpectedRoi || 15)) {
-          side = alert.roi.side;
+      } else if (strategy.rule === 'model-edge') {
+        const signal = alert.roi;
+        if (signal && signal.qualified && signal.expectedRoiPct >= (strategy.minExpectedRoi || 15)) {
+          side = signal.side;
           shouldTrade = true;
         }
-      } else if (strat.rule === 'spread') {
-        if (market.orderbook && market.orderbook.spread >= 0.02) {
-          side = alert.roi.side || 'YES';
+      } else if (strategy.rule === 'spread') {
+        if (market.orderbook && !market.orderbook.simulated && market.orderbook.spread !== null && market.orderbook.spread >= 0.02) {
+          side = alert.delta > 0 ? 'NO' : 'YES';
           shouldTrade = true;
         }
       }
-
       if (!shouldTrade) return;
 
-      const price = side === 'YES' ? market.currentPrice : clampPrice(1 - market.currentPrice);
-      const contracts = Math.min(strat.maxContracts || 15, Math.max(5, Math.floor(25 / Math.max(0.1, price))));
-      const cost = contracts * price;
+      const quotePrice = market.currentPrice;
+      const referencePrice = quotePrice === null
+        ? (market.simulationPrice ?? alert.toPrice)
+        : quotePrice;
+      const paperPrice = side === 'YES' ? referencePrice : 1 - referencePrice;
+      const contracts = Math.min(strategy.maxContracts || 15, Math.max(1, Math.floor(25 / Math.max(0.1, paperPrice))));
+      const cost = contracts * paperPrice;
       if (cost > this.portfolio.cashBalance * 0.2) return;
 
-      this.executePaperTrade({
-        ticker: market.ticker,
-        action: 'BUY',
-        side,
-        contracts,
-        price,
-        category: strat.category,
-        strategyId: strat.id,
-        note: `Auto [${strat.name}] on ${alert.delta >= 0 ? '+' : ''}$${alert.delta.toFixed(2)} swing`
-      });
+      try {
+        this.executePaperTrade({
+          ticker: market.ticker,
+          action: 'BUY',
+          side,
+          contracts,
+          price: paperPrice,
+          category: strategy.category,
+          strategyId: strategy.id,
+          note: `Paper strategy [${strategy.name}] triggered by ${triggerSource}; no exchange order was submitted.`
+        });
+      } catch (_) {
+        // Strategy simulation is best-effort and must not interrupt market-data rendering.
+      }
     });
   }
 
   executePaperTrade({ ticker, action = 'BUY', side = 'YES', contracts, price, category = 'Manual', strategyId = null, note = '' }) {
     const market = this.getMarket(ticker);
-    if (!market) throw new Error('Market not found');
-    const qty = Math.max(1, Math.round(Number(contracts)));
-    const execPrice = clampPrice(price ?? (side === 'YES' ? market.currentPrice : 1 - market.currentPrice));
-    const key = `${ticker}:${side}`;
+    if (!market) throw new Error('Market not found in the five-topic paper catalog.');
+    const normalizedSide = String(side).toUpperCase();
+    if (!['YES', 'NO'].includes(normalizedSide)) throw new Error('Choose YES or NO.');
+    const qty = Math.floor(Number(contracts));
+    if (!Number.isFinite(qty) || qty < 1) throw new Error('Enter at least one contract.');
+    const numericPrice = Number(price);
+    if (!Number.isFinite(numericPrice) || numericPrice < 0.01 || numericPrice > 0.99) {
+      throw new Error('Enter a paper contract price between $0.01 and $0.99.');
+    }
+    const execPrice = +numericPrice.toFixed(2);
+    const normalizedAction = String(action).toUpperCase();
+    if (!['BUY', 'SELL'].includes(normalizedAction)) throw new Error('Choose BUY or SELL.');
+    const key = `${market.ticker}:${normalizedSide}`;
     const now = Date.now();
 
-    if (action === 'BUY') {
+    if (normalizedAction === 'BUY') {
       const cost = +(qty * execPrice).toFixed(2);
       if (cost > this.portfolio.cashBalance) {
-        throw new Error(`Insufficient demo cash balance ($${this.portfolio.cashBalance.toFixed(2)} available, need $${cost.toFixed(2)}).`);
+        throw new Error(`Insufficient paper cash balance ($${this.portfolio.cashBalance.toFixed(2)} available, need $${cost.toFixed(2)}).`);
       }
       this.portfolio.cashBalance = +(this.portfolio.cashBalance - cost).toFixed(2);
-      const existing = this.portfolio.positions[key];
-      if (existing) {
-        const totalQty = existing.contracts + qty;
-        const weighted = (existing.contracts * existing.avgPrice + qty * execPrice) / totalQty;
-        existing.contracts = totalQty;
-        existing.avgPrice = +weighted.toFixed(3);
+      const position = this.portfolio.positions[key];
+      if (position) {
+        const totalQty = position.contracts + qty;
+        position.avgPrice = +((position.contracts * position.avgPrice + qty * execPrice) / totalQty).toFixed(4);
+        position.contracts = totalQty;
       } else {
         this.portfolio.positions[key] = {
-          ticker,
+          ticker: market.ticker,
           topic: market.topic,
-          side,
+          side: normalizedSide,
           contracts: qty,
           avgPrice: execPrice,
           category
         };
       }
       const trade = {
-        id: `TRD-${now.toString().slice(-5)}`,
+        id: `PAPER-${now}-${Math.floor(Math.random() * 1000)}`,
         ts: now,
-        ticker,
+        ticker: market.ticker,
         topic: market.topic,
         action: 'BUY',
-        side,
+        side: normalizedSide,
         contracts: qty,
         price: execPrice,
         exitPrice: null,
@@ -723,213 +719,228 @@ export class TradebotEngine {
         roiPct: 0,
         category,
         strategyId,
-        mode: this.client.lastStatus.connected ? 'Kalshi Demo REST' : 'Paper Demo',
-        note: note || `${action} ${qty} ${side} @ $${execPrice.toFixed(2)}`
+        mode: 'Paper Simulation',
+        note: note || `Paper BUY ${qty} ${normalizedSide} @ $${execPrice.toFixed(2)}; not sent to Kalshi.`
       };
       this.portfolio.trades.unshift(trade);
-      if (this.portfolio.trades.length > 120) this.portfolio.trades.pop();
+      if (this.portfolio.trades.length > 300) this.portfolio.trades.pop();
       this.recordEquitySnapshot(now);
       this.saveState();
       this.notify('portfolio', trade);
       return trade;
     }
 
-    // SELL / CLOSE existing position
-    const pos = this.portfolio.positions[key];
-    if (!pos || pos.contracts < qty) {
-      throw new Error(`No open ${side} position of at least ${qty} contracts on ${ticker}.`);
+    const position = this.portfolio.positions[key];
+    if (!position || position.contracts < qty) {
+      throw new Error(`No open paper ${normalizedSide} position of at least ${qty} contracts on ${market.ticker}.`);
     }
     const proceeds = +(qty * execPrice).toFixed(2);
-    const costBasis = +(qty * pos.avgPrice).toFixed(2);
+    const costBasis = +(qty * position.avgPrice).toFixed(2);
     const pnl = +(proceeds - costBasis).toFixed(2);
     const roiPct = costBasis > 0 ? +((pnl / costBasis) * 100).toFixed(1) : 0;
-
     this.portfolio.cashBalance = +(this.portfolio.cashBalance + proceeds).toFixed(2);
-    pos.contracts -= qty;
-    if (pos.contracts <= 0) delete this.portfolio.positions[key];
+    position.contracts -= qty;
+    if (position.contracts <= 0) delete this.portfolio.positions[key];
 
     const trade = {
-      id: `TRD-${now.toString().slice(-5)}`,
+      id: `PAPER-${now}-${Math.floor(Math.random() * 1000)}`,
       ts: now,
-      ticker,
+      ticker: market.ticker,
       topic: market.topic,
       action: 'SELL',
-      side,
+      side: normalizedSide,
       contracts: qty,
-      price: pos.avgPrice,
+      price: position.avgPrice,
       exitPrice: execPrice,
       status: 'CLOSED',
       pnl,
       roiPct,
-      category: category || pos.category || 'Manual',
+      category: category || position.category || 'Manual',
       strategyId,
-      mode: 'Paper Demo',
-      note: note || `Closed ${qty} ${side} @ $${execPrice.toFixed(2)} (P&L ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)})`
+      mode: 'Paper Simulation',
+      note: note || `Paper close ${qty} ${normalizedSide} @ $${execPrice.toFixed(2)}; not sent to Kalshi.`
     };
     this.portfolio.trades.unshift(trade);
+    if (this.portfolio.trades.length > 300) this.portfolio.trades.pop();
     this.recordEquitySnapshot(now);
     this.saveState();
     this.notify('portfolio', trade);
     return trade;
   }
 
-  /**
-   * Simulate settling an open market to YES or NO to test lifecycle settlement payouts in Demo Mode.
-   */
+  /** Settle a paper position for testing; does not change the Kalshi market's lifecycle/result. */
   simulateResolution(ticker, outcome) {
     const market = this.getMarket(ticker);
-    if (!market || market.status === 'Resolved') return null;
-    const winSide = outcome === 'YES' ? 'YES' : 'NO';
-    market.status = 'Resolved';
-    market.resolution = winSide;
-    market.currentPrice = winSide === 'YES' ? 1.0 : 0.0;
-    market.simulatedResolution = true;
-
+    if (!market) return null;
+    const winSide = String(outcome).toUpperCase() === 'YES' ? 'YES' : 'NO';
     const settledTrades = [];
     ['YES', 'NO'].forEach((side) => {
-      const key = `${ticker}:${side}`;
-      const pos = this.portfolio.positions[key];
-      if (!pos) return;
-      const payoutPrice = side === winSide ? 1.0 : 0.0;
-      const proceeds = +(pos.contracts * payoutPrice).toFixed(2);
-      const costBasis = +(pos.contracts * pos.avgPrice).toFixed(2);
+      const key = `${market.ticker}:${side}`;
+      const position = this.portfolio.positions[key];
+      if (!position) return;
+      const payoutPrice = side === winSide ? 1 : 0;
+      const proceeds = +(position.contracts * payoutPrice).toFixed(2);
+      const costBasis = +(position.contracts * position.avgPrice).toFixed(2);
       const pnl = +(proceeds - costBasis).toFixed(2);
       const roiPct = costBasis > 0 ? +((pnl / costBasis) * 100).toFixed(1) : 0;
-
       this.portfolio.cashBalance = +(this.portfolio.cashBalance + proceeds).toFixed(2);
       const trade = {
-        id: `SET-${Date.now().toString().slice(-5)}`,
+        id: `PAPER-SET-${Date.now()}-${settledTrades.length}`,
         ts: Date.now(),
-        ticker,
+        ticker: market.ticker,
         topic: market.topic,
         action: 'SETTLE',
         side,
-        contracts: pos.contracts,
-        price: pos.avgPrice,
+        contracts: position.contracts,
+        price: position.avgPrice,
         exitPrice: payoutPrice,
-        status: `RESOLVED ${winSide}`,
+        status: `PAPER SETTLED ${winSide}`,
         pnl,
         roiPct,
-        category: pos.category || 'Manual',
+        category: position.category || 'Manual',
         strategyId: null,
-        mode: 'Paper Demo Settlement',
-        note: `Simulated resolution ${winSide}: payout $${payoutPrice.toFixed(2)}/contract`
+        mode: 'Paper Simulation',
+        note: `Paper-only resolution test: ${winSide} pays $${payoutPrice.toFixed(2)}/contract. Kalshi market state was not changed.`
       };
       this.portfolio.trades.unshift(trade);
       settledTrades.push(trade);
       delete this.portfolio.positions[key];
     });
-
     this.recordEquitySnapshot(Date.now());
     this.saveState();
-    this.notify('resolution', { ticker, outcome: winSide, settledTrades });
-    return { ticker, outcome: winSide, settledTrades };
+    this.notify('paper-resolution', { ticker: market.ticker, outcome: winSide, settledTrades });
+    return { ticker: market.ticker, outcome: winSide, settledTrades };
   }
 
   getPortfolioSummary() {
-    let positionsValue = 0;
-    let unrealizedPnl = 0;
-    const openPositions = Object.values(this.portfolio.positions).map((pos) => {
-      const m = this.getMarket(pos.ticker);
-      const mark = m ? (pos.side === 'YES' ? m.currentPrice : +(1 - m.currentPrice).toFixed(2)) : pos.avgPrice;
-      const marketValue = +(pos.contracts * mark).toFixed(2);
-      const costBasis = +(pos.contracts * pos.avgPrice).toFixed(2);
-      const pnl = +(marketValue - costBasis).toFixed(2);
-      const roiPct = costBasis > 0 ? +((pnl / costBasis) * 100).toFixed(1) : 0;
-      positionsValue += marketValue;
-      unrealizedPnl += pnl;
-      return { ...pos, mark, marketValue, costBasis, pnl, roiPct, marketTitle: m ? m.title : pos.ticker };
+    let knownPositionsValue = 0;
+    let knownUnrealizedPnl = 0;
+    let unpricedPositionCount = 0;
+    const openPositions = Object.values(this.portfolio.positions).map((position) => {
+      const market = this.getMarket(position.ticker);
+      const yesPrice = market ? validApiPrice(market.currentPrice) : null;
+      const mark = yesPrice === null ? null : position.side === 'YES' ? yesPrice : +(1 - yesPrice).toFixed(4);
+      const marketValue = mark === null ? null : +(position.contracts * mark).toFixed(2);
+      const costBasis = +(position.contracts * position.avgPrice).toFixed(2);
+      const pnl = marketValue === null ? null : +(marketValue - costBasis).toFixed(2);
+      const roiPct = pnl === null || costBasis === 0 ? null : +((pnl / costBasis) * 100).toFixed(1);
+      if (marketValue === null || pnl === null) {
+        unpricedPositionCount += 1;
+      } else {
+        knownPositionsValue += marketValue;
+        knownUnrealizedPnl += pnl;
+      }
+      return {
+        ...position,
+        mark,
+        marketValue,
+        costBasis,
+        pnl,
+        roiPct,
+        marketTitle: market ? market.title : position.ticker,
+        quoteSource: market && market.dataStatus === 'demo-rest' ? 'Kalshi Demo REST' : null
+      };
     });
 
     const realizedPnl = +this.portfolio.trades
-      .filter((t) => t.status !== 'OPEN')
-      .reduce((acc, t) => acc + (t.pnl || 0), 0)
+      .filter((trade) => trade.status !== 'OPEN')
+      .reduce((sum, trade) => sum + (Number(trade.pnl) || 0), 0)
       .toFixed(2);
-
-    const totalEquity = +(this.portfolio.cashBalance + positionsValue).toFixed(2);
-    const totalPnl = +(totalEquity - this.portfolio.startingBalance).toFixed(2);
-    const totalRoiPct = +((totalPnl / this.portfolio.startingBalance) * 100).toFixed(2);
+    const fullyPriced = unpricedPositionCount === 0;
+    const positionsValue = fullyPriced ? +knownPositionsValue.toFixed(2) : null;
+    const unrealizedPnl = fullyPriced ? +knownUnrealizedPnl.toFixed(2) : null;
+    const totalEquity = fullyPriced ? +(this.portfolio.cashBalance + knownPositionsValue).toFixed(2) : null;
+    const totalPnl = totalEquity === null ? null : +(totalEquity - this.portfolio.startingBalance).toFixed(2);
+    const totalRoiPct = totalPnl === null
+      ? null
+      : +((totalPnl / this.portfolio.startingBalance) * 100).toFixed(2);
 
     return {
       cashBalance: +this.portfolio.cashBalance.toFixed(2),
-      positionsValue: +positionsValue.toFixed(2),
+      positionsValue,
       totalEquity,
       realizedPnl,
-      unrealizedPnl: +unrealizedPnl.toFixed(2),
+      unrealizedPnl,
       totalPnl,
       totalRoiPct,
+      unpricedPositionCount,
       openPositions
     };
   }
 
   getCategoryAnalytics() {
     const stats = {};
-    TRADE_CATEGORIES.forEach((cat) => {
-      stats[cat] = { category: cat, totalTrades: 0, closedTrades: 0, wins: 0, pnl: 0, invested: 0 };
+    TRADE_CATEGORIES.forEach((category) => {
+      stats[category] = { category, totalTrades: 0, closedTrades: 0, wins: 0, pnl: 0, invested: 0, unpricedOpenTrades: 0 };
     });
 
-    this.portfolio.trades.forEach((t) => {
-      const cat = t.category || 'Manual';
-      if (!stats[cat]) {
-        stats[cat] = { category: cat, totalTrades: 0, closedTrades: 0, wins: 0, pnl: 0, invested: 0 };
+    this.portfolio.trades.forEach((trade) => {
+      const category = trade.category || 'Manual';
+      if (!stats[category]) {
+        stats[category] = { category, totalTrades: 0, closedTrades: 0, wins: 0, pnl: 0, invested: 0, unpricedOpenTrades: 0 };
       }
-      const row = stats[cat];
+      const row = stats[category];
       row.totalTrades += 1;
-      row.invested += t.contracts * t.price;
-      if (t.status !== 'OPEN') {
+      row.invested += trade.contracts * trade.price;
+      if (trade.status !== 'OPEN') {
         row.closedTrades += 1;
-        row.pnl += t.pnl || 0;
-        if ((t.pnl || 0) > 0) row.wins += 1;
+        row.pnl += Number(trade.pnl) || 0;
+        if ((Number(trade.pnl) || 0) > 0) row.wins += 1;
       } else {
-        const m = this.getMarket(t.ticker);
-        if (m) {
-          const mark = t.side === 'YES' ? m.currentPrice : +(1 - m.currentPrice).toFixed(2);
-          row.pnl += (mark - t.price) * t.contracts;
+        const market = this.getMarket(trade.ticker);
+        const yesPrice = market ? validApiPrice(market.currentPrice) : null;
+        if (yesPrice === null) {
+          row.unpricedOpenTrades += 1;
+        } else {
+          const mark = trade.side === 'YES' ? yesPrice : 1 - yesPrice;
+          row.pnl += (mark - trade.price) * trade.contracts;
         }
       }
     });
 
     return Object.values(stats).map((row) => ({
       ...row,
-      pnl: +row.pnl.toFixed(2),
+      pnl: row.unpricedOpenTrades > 0 ? null : +row.pnl.toFixed(2),
       winRatePct: row.closedTrades > 0 ? +((row.wins / row.closedTrades) * 100).toFixed(1) : null,
-      roiPct: row.invested > 0 ? +((row.pnl / row.invested) * 100).toFixed(1) : 0
+      roiPct: row.invested > 0 && row.unpricedOpenTrades === 0 ? +((row.pnl / row.invested) * 100).toFixed(1) : null
     }));
   }
 
   toggleStrategy(strategyId) {
-    const s = this.portfolio.strategies.find((x) => x.id === strategyId);
-    if (!s) return;
-    s.enabled = !s.enabled;
+    const strategy = this.portfolio.strategies.find((item) => item.id === strategyId);
+    if (!strategy) return;
+    strategy.enabled = !strategy.enabled;
     this.saveState();
-    this.notify('strategy', s);
+    this.notify('strategy', strategy);
   }
 
   addCustomStrategy({ name, category, topicFilter, minSwing, minExpectedRoi, maxContracts, rule, description }) {
-    const strat = {
-      id: `strat-custom-${Date.now()}`,
-      name: name.trim(),
+    const strategy = {
+      id: `strat-custom-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      name: String(name || '').trim(),
       category: category || 'Manual',
       topicFilter: topicFilter || 'all',
       enabled: true,
       minSwing: Math.max(0.05, Number(minSwing) || 0.10),
-      minExpectedRoi: Number(minExpectedRoi) || 10,
+      minExpectedRoi: Math.max(0, Number(minExpectedRoi) || 0),
       maxContracts: Math.max(1, Math.round(Number(maxContracts) || 20)),
       rule: rule || 'model-edge',
-      description: description || `Custom automated strategy built from ${category} trade category.`
+      description: description || `Paper-only strategy created from ${category || 'Manual'} trade category.`
     };
-    this.portfolio.strategies.push(strat);
+    if (!strategy.name) throw new Error('Enter a strategy name.');
+    this.portfolio.strategies.push(strategy);
     this.saveState();
-    this.notify('strategy', strat);
-    return strat;
+    this.notify('strategy', strategy);
+    return strategy;
   }
 
   recordEquitySnapshot(ts) {
     const summary = this.getPortfolioSummary();
+    if (summary.totalEquity === null) return;
     this.portfolio.equityCurve.push({ ts, equity: summary.totalEquity });
-    if (this.portfolio.equityCurve.length > 80) this.portfolio.equityCurve.shift();
+    if (this.portfolio.equityCurve.length > 300) this.portfolio.equityCurve.shift();
   }
 }
 
-// Singleton engine shared on the current page
+// One engine instance is shared by the modules loaded on each page.
 export const engine = new TradebotEngine();

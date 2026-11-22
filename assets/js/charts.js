@@ -1,303 +1,267 @@
 /**
- * Lightweight High-DPI Interactive Canvas Charts (Zero External Dependencies)
- * - Live Contract Price Chart:
- *   - X-axis: Time (selectable: seconds, minutes, hours)
- *   - Y-axis: Current Contract Price ($0.00 - $1.00)
- *   - Plots >= $0.10 sharp jump catalyst markers with hover/click inspection
- * - Portfolio Equity Curve Chart
+ * Canvas charts for timestamped Kalshi Demo REST observations and local paper equity.
+ * The price chart intentionally does not fabricate history or mix paper simulation prices with
+ * Demo REST observations. REST points are sampled only while the page is open.
  */
 
-function formatAxisTime(ts, timeframe) {
-  const d = new Date(ts);
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mm = String(d.getMinutes()).padStart(2, '0');
-  const ss = String(d.getSeconds()).padStart(2, '0');
-  if (timeframe === 'seconds') return `${hh}:${mm}:${ss}`;
-  if (timeframe === 'minutes') return `${hh}:${mm}`;
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${months[d.getMonth()]} ${d.getDate()} ${hh}:00`;
+function formatAxisTime(ts, rangeHours) {
+  const date = new Date(ts);
+  const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (rangeHours >= 24) return `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${time}`;
+  if (rangeHours >= 6) return `${date.toLocaleDateString([], { weekday: 'short' })} ${time}`;
+  return time;
 }
 
-export function renderPriceChart(canvas, market, timeframe = 'minutes', { onMarkerSelect = null } = {}) {
-  if (!canvas || !market || !market.series) return [];
-  const dpr = window.devicePixelRatio || 1;
+export function renderPriceChart(canvas, market, rangeHours = 1, { onMarkerSelect = null } = {}) {
+  if (!canvas || !market) return [];
+  const devicePixelRatio = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
   const width = Math.max(320, Math.floor(rect.width || 640));
   const height = Math.max(240, Math.floor(rect.height || 300));
+  canvas.width = width * devicePixelRatio;
+  canvas.height = height * devicePixelRatio;
+  const context = canvas.getContext('2d');
+  context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
 
-  canvas.width = width * dpr;
-  canvas.height = height * dpr;
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-
-  const points = market.series[timeframe] || market.series.minutes || [];
   const pad = { top: 24, right: 24, bottom: 38, left: 56 };
-  const plotW = width - pad.left - pad.right;
-  const plotH = height - pad.top - pad.bottom;
+  const plotWidth = width - pad.left - pad.right;
+  const plotHeight = height - pad.top - pad.bottom;
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, width, height);
 
-  // Clear background
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, width, height);
+  const rangeMs = Math.max(1, Number(rangeHours) || 1) * 60 * 60 * 1000;
+  const latestTimestamp = market.series?.snapshots?.length
+    ? market.series.snapshots[market.series.snapshots.length - 1].ts
+    : Date.now();
+  const minTimestamp = latestTimestamp - rangeMs;
+  const points = (market.series?.snapshots || []).filter((point) => point.ts >= minTimestamp && point.ts <= latestTimestamp);
+  const span = Math.max(1, latestTimestamp - minTimestamp);
+  const xFor = (ts) => pad.left + ((ts - minTimestamp) / span) * plotWidth;
+  const yFor = (price) => pad.top + (1 - Math.max(0, Math.min(1, price))) * plotHeight;
 
-  if (points.length < 2) {
-    ctx.fillStyle = '#64748b';
-    ctx.font = '13px system-ui, sans-serif';
-    ctx.fillText('Awaiting price data...', pad.left + 12, pad.top + 30);
+  context.strokeStyle = '#e2e8f0';
+  context.lineWidth = 1;
+  context.font = '11px ui-monospace, SFMono-Regular, Menlo, monospace';
+  context.fillStyle = '#475569';
+  context.textAlign = 'right';
+  context.textBaseline = 'middle';
+  [0, 0.2, 0.4, 0.6, 0.8, 1].forEach((level) => {
+    const y = yFor(level);
+    context.beginPath();
+    context.moveTo(pad.left, y);
+    context.lineTo(width - pad.right, y);
+    context.stroke();
+    context.fillText(`$${level.toFixed(2)}`, pad.left - 8, y);
+  });
+
+  context.save();
+  context.translate(14, pad.top + plotHeight / 2);
+  context.rotate(-Math.PI / 2);
+  context.textAlign = 'center';
+  context.fillStyle = '#64748b';
+  context.font = '600 11px system-ui, sans-serif';
+  context.fillText('YES last price ($)', 0, 0);
+  context.restore();
+
+  context.textAlign = 'center';
+  context.textBaseline = 'top';
+  context.fillStyle = '#475569';
+  context.font = '11px ui-monospace, SFMono-Regular, Menlo, monospace';
+  const ticks = 5;
+  for (let index = 0; index <= ticks; index += 1) {
+    const ratio = index / ticks;
+    const timestamp = minTimestamp + ratio * span;
+    const x = pad.left + ratio * plotWidth;
+    context.strokeStyle = '#f1f5f9';
+    context.beginPath();
+    context.moveTo(x, pad.top);
+    context.lineTo(x, pad.top + plotHeight);
+    context.stroke();
+    context.fillText(formatAxisTime(timestamp, Number(rangeHours) || 1), x, pad.top + plotHeight + 8);
+  }
+
+  if (!points.length) {
+    context.fillStyle = '#475569';
+    context.textAlign = 'left';
+    context.textBaseline = 'top';
+    context.font = '13px system-ui, sans-serif';
+    context.fillText('No timestamped Demo REST quote is loaded for this contract.', pad.left + 12, pad.top + 16);
+    context.fillText('History begins after a successful browser request; no prices are fabricated.', pad.left + 12, pad.top + 38);
+    canvas._hitRegions = [];
+    canvas._onMarkerSelect = onMarkerSelect;
     return [];
   }
 
-  const minTs = points[0].ts;
-  const maxTs = points[points.length - 1].ts;
-  const tsSpan = Math.max(1, maxTs - minTs);
-
-  const xFor = (ts) => pad.left + ((ts - minTs) / tsSpan) * plotW;
-  const yFor = (price) => pad.top + (1 - Math.max(0, Math.min(1, price))) * plotH;
-
-  // Horizontal grid lines ($0.00 to $1.00 in $0.20 steps)
-  ctx.strokeStyle = '#e2e8f0';
-  ctx.lineWidth = 1;
-  ctx.font = '11px ui-monospace, SFMono-Regular, Menlo, monospace';
-  ctx.fillStyle = '#475569';
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'middle';
-
-  [0, 0.2, 0.4, 0.6, 0.8, 1.0].forEach((lvl) => {
-    const y = yFor(lvl);
-    ctx.beginPath();
-    ctx.moveTo(pad.left, y);
-    ctx.lineTo(width - pad.right, y);
-    ctx.stroke();
-    ctx.fillText(`$${lvl.toFixed(2)}`, pad.left - 8, y);
+  const gradient = context.createLinearGradient(0, pad.top, 0, pad.top + plotHeight);
+  gradient.addColorStop(0, 'rgba(15, 118, 110, 0.22)');
+  gradient.addColorStop(1, 'rgba(15, 118, 110, 0.01)');
+  context.beginPath();
+  points.forEach((point, index) => {
+    const x = xFor(point.ts);
+    const y = yFor(point.price);
+    if (index === 0) context.moveTo(x, y);
+    else context.lineTo(x, y);
   });
-
-  // Y-axis label
-  ctx.save();
-  ctx.translate(14, pad.top + plotH / 2);
-  ctx.rotate(-Math.PI / 2);
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#64748b';
-  ctx.font = '600 11px system-ui, sans-serif';
-  ctx.fillText('Contract Price ($)', 0, 0);
-  ctx.restore();
-
-  // X-axis labels
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  ctx.fillStyle = '#475569';
-  ctx.font = '11px ui-monospace, SFMono-Regular, Menlo, monospace';
-  const ticks = 5;
-  for (let i = 0; i <= ticks; i += 1) {
-    const ratio = i / ticks;
-    const ts = minTs + ratio * tsSpan;
-    const x = pad.left + ratio * plotW;
-    ctx.strokeStyle = '#f1f5f9';
-    ctx.beginPath();
-    ctx.moveTo(x, pad.top);
-    ctx.lineTo(x, pad.top + plotH);
-    ctx.stroke();
-    ctx.fillText(formatAxisTime(ts, timeframe), x, pad.top + plotH + 8);
+  if (points.length > 1) {
+    context.lineTo(xFor(points[points.length - 1].ts), pad.top + plotHeight);
+    context.lineTo(xFor(points[0].ts), pad.top + plotHeight);
+    context.closePath();
+    context.fillStyle = gradient;
+    context.fill();
   }
 
-  // Model Fair Value reference line (if open)
-  if (market.status === 'Open' && typeof market.modelFairValue === 'number') {
-    const fy = yFor(market.modelFairValue);
-    ctx.save();
-    ctx.setLineDash([5, 5]);
-    ctx.strokeStyle = '#7c3aed';
-    ctx.lineWidth = 1.25;
-    ctx.beginPath();
-    ctx.moveTo(pad.left, fy);
-    ctx.lineTo(width - pad.right, fy);
-    ctx.stroke();
-    ctx.restore();
-
-    ctx.fillStyle = '#6d28d9';
-    ctx.font = '600 10px system-ui, sans-serif';
-    ctx.textAlign = 'right';
-    ctx.fillText(`Model Fair $${market.modelFairValue.toFixed(2)}`, width - pad.right - 4, Math.max(pad.top + 8, fy - 7));
-  }
-
-  // Area fill under price curve
-  const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + plotH);
-  grad.addColorStop(0, 'rgba(15, 118, 110, 0.22)');
-  grad.addColorStop(1, 'rgba(15, 118, 110, 0.01)');
-
-  ctx.beginPath();
-  points.forEach((pt, idx) => {
-    const x = xFor(pt.ts);
-    const y = yFor(pt.price);
-    if (idx === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+  context.beginPath();
+  points.forEach((point, index) => {
+    const x = xFor(point.ts);
+    const y = yFor(point.price);
+    if (index === 0) context.moveTo(x, y);
+    else context.lineTo(x, y);
   });
-  ctx.lineTo(xFor(points[points.length - 1].ts), pad.top + plotH);
-  ctx.lineTo(xFor(points[0].ts), pad.top + plotH);
-  ctx.closePath();
-  ctx.fillStyle = grad;
-  ctx.fill();
+  context.strokeStyle = '#0f766e';
+  context.lineWidth = 2.4;
+  context.lineJoin = 'round';
+  context.stroke();
 
-  // Main price line
-  ctx.beginPath();
-  points.forEach((pt, idx) => {
-    const x = xFor(pt.ts);
-    const y = yFor(pt.price);
-    if (idx === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.strokeStyle = '#0f766e';
-  ctx.lineWidth = 2.4;
-  ctx.lineJoin = 'round';
-  ctx.stroke();
+  const lastPoint = points[points.length - 1];
+  context.beginPath();
+  context.arc(xFor(lastPoint.ts), yFor(lastPoint.price), 4.5, 0, Math.PI * 2);
+  context.fillStyle = '#0f766e';
+  context.fill();
+  context.strokeStyle = '#ffffff';
+  context.lineWidth = 2;
+  context.stroke();
 
-  // Current price dot
-  const lastPt = points[points.length - 1];
-  const lastX = xFor(lastPt.ts);
-  const lastY = yFor(lastPt.price);
-  ctx.beginPath();
-  ctx.arc(lastX, lastY, 4.5, 0, Math.PI * 2);
-  ctx.fillStyle = '#0f766e';
-  ctx.fill();
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // Plot >= $0.10 jump catalyst markers
   const hitRegions = [];
-  (market.series.jumpMarkers || []).forEach((marker) => {
-    const mTs = marker.timestamps && marker.timestamps[timeframe];
-    const mPrice = marker.prices && marker.prices[timeframe];
-    if (!mTs || mTs < minTs || mTs > maxTs) return;
-    const mx = xFor(mTs);
-    const my = yFor(mPrice);
-    const isUp = marker.delta >= 0;
-    const color = isUp ? '#15803d' : '#dc2626';
+  (market.series?.jumpMarkers || []).forEach((marker) => {
+    if (marker.simulated || !marker.ts || marker.ts < minTimestamp || marker.ts > latestTimestamp) return;
+    const x = xFor(marker.ts);
+    const y = yFor(marker.price);
+    const up = marker.delta >= 0;
+    const color = up ? '#15803d' : '#dc2626';
+    context.save();
+    context.setLineDash([2, 3]);
+    context.strokeStyle = up ? 'rgba(21,128,61,0.35)' : 'rgba(220,38,38,0.35)';
+    context.beginPath();
+    context.moveTo(x, pad.top);
+    context.lineTo(x, pad.top + plotHeight);
+    context.stroke();
+    context.restore();
 
-    // Vertical guide
-    ctx.save();
-    ctx.setLineDash([2, 3]);
-    ctx.strokeStyle = isUp ? 'rgba(21,128,61,0.35)' : 'rgba(220,38,38,0.35)';
-    ctx.beginPath();
-    ctx.moveTo(mx, pad.top);
-    ctx.lineTo(mx, pad.top + plotH);
-    ctx.stroke();
-    ctx.restore();
+    context.save();
+    context.translate(x, y);
+    context.rotate(Math.PI / 4);
+    context.fillStyle = color;
+    context.fillRect(-5.5, -5.5, 11, 11);
+    context.strokeStyle = '#ffffff';
+    context.lineWidth = 1.8;
+    context.strokeRect(-5.5, -5.5, 11, 11);
+    context.restore();
 
-    // Marker diamond
-    ctx.save();
-    ctx.translate(mx, my);
-    ctx.rotate(Math.PI / 4);
-    ctx.fillStyle = color;
-    ctx.fillRect(-5.5, -5.5, 11, 11);
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1.8;
-    ctx.strokeRect(-5.5, -5.5, 11, 11);
-    ctx.restore();
-
-    // Delta pill label
-    const pillText = `${isUp ? '+' : ''}$${marker.delta.toFixed(2)}`;
-    ctx.font = '700 10px ui-monospace, SFMono-Regular, Menlo, monospace';
-    const textW = ctx.measureText(pillText).width + 10;
-    const pillX = Math.max(pad.left + 4, Math.min(width - pad.right - textW - 4, mx - textW / 2));
-    const pillY = my > pad.top + 34 ? my - 26 : my + 12;
-
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.roundRect(pillX, pillY, textW, 18, 4);
-    ctx.fill();
-
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(pillText, pillX + textW / 2, pillY + 9);
-
-    hitRegions.push({ x: mx, y: my, radius: 16, marker });
+    const label = `${up ? '+' : ''}$${Number(marker.delta).toFixed(2)}`;
+    context.font = '700 10px ui-monospace, SFMono-Regular, Menlo, monospace';
+    const labelWidth = context.measureText(label).width + 10;
+    const labelX = Math.max(pad.left + 4, Math.min(width - pad.right - labelWidth - 4, x - labelWidth / 2));
+    const labelY = y > pad.top + 34 ? y - 26 : y + 12;
+    context.fillStyle = color;
+    context.beginPath();
+    context.roundRect(labelX, labelY, labelWidth, 18, 4);
+    context.fill();
+    context.fillStyle = '#ffffff';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(label, labelX + labelWidth / 2, labelY + 9);
+    hitRegions.push({ x, y, radius: 16, marker });
   });
 
-  // Attach click handler cleanly
   canvas._hitRegions = hitRegions;
   canvas._onMarkerSelect = onMarkerSelect;
   if (!canvas._clickBound) {
     canvas._clickBound = true;
-    canvas.addEventListener('click', (evt) => {
+    canvas.addEventListener('click', (event) => {
       if (!canvas._onMarkerSelect || !canvas._hitRegions) return;
       const box = canvas.getBoundingClientRect();
-      const cx = evt.clientX - box.left;
-      const cy = evt.clientY - box.top;
-      const hit = canvas._hitRegions.find((r) => Math.hypot(cx - r.x, cy - r.y) <= r.radius + 6);
+      const clickX = event.clientX - box.left;
+      const clickY = event.clientY - box.top;
+      const hit = canvas._hitRegions.find((region) => Math.hypot(clickX - region.x, clickY - region.y) <= region.radius + 6);
       if (hit) canvas._onMarkerSelect(hit.marker);
     });
   }
-
   return hitRegions;
 }
 
 export function renderEquityChart(canvas, equityCurve = []) {
-  if (!canvas || !equityCurve.length) return;
-  const dpr = window.devicePixelRatio || 1;
+  if (!canvas) return;
+  const devicePixelRatio = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
   const width = Math.max(300, Math.floor(rect.width || 560));
   const height = Math.max(190, Math.floor(rect.height || 220));
-  canvas.width = width * dpr;
-  canvas.height = height * dpr;
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
+  canvas.width = width * devicePixelRatio;
+  canvas.height = height * devicePixelRatio;
+  const context = canvas.getContext('2d');
+  context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, width, height);
 
   const pad = { top: 20, right: 20, bottom: 32, left: 66 };
-  const plotW = width - pad.left - pad.right;
-  const plotH = height - pad.top - pad.bottom;
-
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, width, height);
-
-  const vals = equityCurve.map((p) => p.equity);
-  const minVal = Math.min(9980, ...vals) - 10;
-  const maxVal = Math.max(10020, ...vals) + 10;
-  const span = Math.max(1, maxVal - minVal);
-  const minTs = equityCurve[0].ts;
-  const maxTs = Math.max(minTs + 1000, equityCurve[equityCurve.length - 1].ts);
-
-  const xFor = (ts) => pad.left + ((ts - minTs) / (maxTs - minTs)) * plotW;
-  const yFor = (v) => pad.top + (1 - (v - minVal) / span) * plotH;
-
-  // Grid
-  ctx.strokeStyle = '#e2e8f0';
-  ctx.fillStyle = '#475569';
-  ctx.font = '11px ui-monospace, SFMono-Regular, Menlo, monospace';
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'middle';
-  for (let i = 0; i <= 4; i += 1) {
-    const val = minVal + (span * i) / 4;
-    const y = yFor(val);
-    ctx.beginPath();
-    ctx.moveTo(pad.left, y);
-    ctx.lineTo(width - pad.right, y);
-    ctx.stroke();
-    ctx.fillText(`$${val.toFixed(0)}`, pad.left - 8, y);
+  const plotWidth = width - pad.left - pad.right;
+  const plotHeight = height - pad.top - pad.bottom;
+  if (!equityCurve.length) {
+    context.fillStyle = '#64748b';
+    context.font = '13px system-ui, sans-serif';
+    context.fillText('No local paper equity observations yet.', pad.left + 8, pad.top + 20);
+    return;
   }
 
-  // Baseline $10,000
-  const baseY = yFor(10000);
-  if (baseY >= pad.top && baseY <= pad.top + plotH) {
-    ctx.save();
-    ctx.setLineDash([4, 4]);
-    ctx.strokeStyle = '#94a3b8';
-    ctx.beginPath();
-    ctx.moveTo(pad.left, baseY);
-    ctx.lineTo(width - pad.right, baseY);
-    ctx.stroke();
-    ctx.restore();
+  const values = equityCurve.map((point) => point.equity);
+  const minValue = Math.min(9980, ...values) - 10;
+  const maxValue = Math.max(10020, ...values) + 10;
+  const valueSpan = Math.max(1, maxValue - minValue);
+  const minTimestamp = equityCurve[0].ts;
+  const maxTimestamp = Math.max(minTimestamp + 1000, equityCurve[equityCurve.length - 1].ts);
+  const xFor = (timestamp) => pad.left + ((timestamp - minTimestamp) / (maxTimestamp - minTimestamp)) * plotWidth;
+  const yFor = (value) => pad.top + (1 - (value - minValue) / valueSpan) * plotHeight;
+
+  context.strokeStyle = '#e2e8f0';
+  context.fillStyle = '#475569';
+  context.font = '11px ui-monospace, SFMono-Regular, Menlo, monospace';
+  context.textAlign = 'right';
+  context.textBaseline = 'middle';
+  for (let index = 0; index <= 4; index += 1) {
+    const value = minValue + (valueSpan * index) / 4;
+    const y = yFor(value);
+    context.beginPath();
+    context.moveTo(pad.left, y);
+    context.lineTo(width - pad.right, y);
+    context.stroke();
+    context.fillText(`$${value.toFixed(0)}`, pad.left - 8, y);
   }
 
-  // Curve
-  const lastVal = vals[vals.length - 1];
-  const color = lastVal >= 10000 ? '#15803d' : '#dc2626';
-  ctx.beginPath();
-  equityCurve.forEach((pt, idx) => {
-    const x = xFor(pt.ts);
-    const y = yFor(pt.equity);
-    if (idx === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+  const baselineY = yFor(10_000);
+  if (baselineY >= pad.top && baselineY <= pad.top + plotHeight) {
+    context.save();
+    context.setLineDash([4, 4]);
+    context.strokeStyle = '#94a3b8';
+    context.beginPath();
+    context.moveTo(pad.left, baselineY);
+    context.lineTo(width - pad.right, baselineY);
+    context.stroke();
+    context.restore();
+  }
+
+  context.beginPath();
+  equityCurve.forEach((point, index) => {
+    const x = xFor(point.ts);
+    const y = yFor(point.equity);
+    if (index === 0) context.moveTo(x, y);
+    else context.lineTo(x, y);
   });
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2.2;
-  ctx.stroke();
+  context.strokeStyle = values[values.length - 1] >= 10_000 ? '#15803d' : '#dc2626';
+  context.lineWidth = 2.2;
+  context.stroke();
+  if (equityCurve.length === 1) {
+    context.fillStyle = '#0f766e';
+    context.beginPath();
+    context.arc(pad.left, yFor(values[0]), 4, 0, Math.PI * 2);
+    context.fill();
+  }
 }

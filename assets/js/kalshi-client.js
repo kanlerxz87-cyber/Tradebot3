@@ -4,7 +4,9 @@
  *  - https://docs.kalshi.com/getting_started/demo_env
  *  - https://docs.kalshi.com/getting_started/api_environments
  *  - https://docs.kalshi.com/getting_started/orderbook_responses
- *  - https://docs.kalshi.com/api-reference/orders/create-order-v2
+ *
+ * Order creation is intentionally not implemented. This client can read public market data and,
+ * only with a user-supplied demo key, request the read-only portfolio balance endpoint.
  */
 
 export const KALSHI_DEMO_REST_PRIMARY = 'https://external-api.demo.kalshi.co/trade-api/v2';
@@ -122,7 +124,7 @@ export class KalshiDemoClient {
       connected: false,
       mode: 'paper-simulation',
       endpoint: this.baseUrl,
-      message: 'Paper Demo Mode active (connect Kalshi Demo API credentials or test public REST).',
+      message: 'No Kalshi Demo REST request has completed. Paper trading is local simulation only.',
       lastChecked: null
     };
   }
@@ -198,19 +200,26 @@ export class KalshiDemoClient {
           this.baseUrl = ep;
           this.lastStatus = {
             connected: true,
-            mode: 'live-public-rest',
+            mode: 'demo-public-rest',
             endpoint: ep,
-            message: `Live Kalshi Demo REST reachable (${(data.markets || []).length} sample markets fetched).`,
+            message: `Kalshi Demo public REST responded (${(data.markets || []).length} sample markets). This check does not prove every tracked event loaded, authenticate an account, stream WebSocket updates, or submit orders. REST responses may be cached.`,
             lastChecked: new Date().toISOString()
           };
           return { ok: true, status: this.lastStatus, data };
         }
+        this.lastStatus = {
+          connected: false,
+          mode: 'paper-simulation',
+          endpoint: ep,
+          message: `Kalshi Demo public REST returned HTTP ${res.status}. Paper trading remains local simulation only.`,
+          lastChecked: new Date().toISOString()
+        };
       } catch (err) {
         this.lastStatus = {
           connected: false,
           mode: 'paper-simulation',
           endpoint: ep,
-          message: `Browser fetch blocked or unreachable (${err.message}). Running Verified Catalog + Paper Demo Mode (see IRREG-02).`,
+          message: `Kalshi Demo public REST could not be read from this browser (${err.message}). This may be CORS, network, or service availability; paper trading remains local simulation only.`,
           lastChecked: new Date().toISOString()
         };
       }
@@ -218,7 +227,17 @@ export class KalshiDemoClient {
     return { ok: false, status: this.lastStatus };
   }
 
+  async getEvent(eventTicker) {
+    if (!eventTicker) throw new Error('An event ticker is required for a public Demo snapshot.');
+    return this.request('GET', `/events/${encodeURIComponent(eventTicker)}`);
+  }
+
+  getEventUrl(eventTicker) {
+    return `${this.baseUrl.replace(/\/$/, '')}/events/${encodeURIComponent(eventTicker)}`;
+  }
+
   async getMarketOrderbook(ticker, depth = 10) {
+    if (!ticker) throw new Error('A Kalshi market ticker is required for an orderbook snapshot.');
     const data = await this.request('GET', `/markets/${encodeURIComponent(ticker)}/orderbook?depth=${depth}`);
     return parseOrderbookFp(data);
   }
@@ -227,19 +246,4 @@ export class KalshiDemoClient {
     return this.request('GET', '/portfolio/balance', { auth: true });
   }
 
-  async createOrderV2({ ticker, side = 'bid', count, price, postOnly = false }) {
-    const clientOrderId = crypto.randomUUID ? crypto.randomUUID() : `tb3-${Date.now()}`;
-    return this.request('POST', '/portfolio/events/orders', {
-      auth: true,
-      body: {
-        ticker,
-        client_order_id: clientOrderId,
-        side,
-        count: Number(count).toFixed(2),
-        price: Number(price).toFixed(4),
-        time_in_force: 'good_till_canceled',
-        post_only: Boolean(postOnly)
-      }
-    });
-  }
 }
