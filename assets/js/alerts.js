@@ -75,11 +75,16 @@ export class AlertFeed {
       return;
     }
     if (!rows.length) {
+      const lm = this.data.snapshot?.stats?.largest_move;
+      const hours = this.data.snapshot?.stats?.candle_lookback_hours || 24;
+      const context = lm && lm.abs > 0
+        ? ` Largest move in the last ${hours}h: ${fmtDelta(lm.delta)} on ${lm.ticker} at ${fmtClock(Date.parse(lm.iso_time))} — below the $0.10 trigger.`
+        : '';
       this.container.innerHTML = '';
       this.container.append(el('div', { class: 'chat-empty' },
         this.mode === 'model'
-          ? `No qualifying moves yet. The model needs a score of ${SITE.modelThreshold}+ on a market that just moved ≥ $0.10.`
-          : 'No ≥ $0.10 moves in the current data window (last ~2h of 1-minute candles).',
+          ? `No qualifying moves yet. The model needs a score of ${SITE.modelThreshold}+ on a market that just moved ≥ $0.10.${context}`
+          : `No ≥ $0.10 moves in the last ${hours} hours of official 1-minute candles.${context}`,
       ));
       return;
     }

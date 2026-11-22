@@ -4,7 +4,7 @@
 
 import {
   SITE, TOPICS, TOPIC_ORDER, initChrome, el, qs, qsa, toast,
-  fmtUsd, fmtContracts, fmtPrice, fmtDelta, fmtNum, fmtDateTime, fmtClock, timeAgo,
+  fmtUsd, fmtContracts, fmtPrice, fmtDelta, fmtNum, fmtDateTime, fmtDate, fmtClock, timeAgo,
   esc, isNum, scoreMarket,
 } from './core.js';
 import { MarketData, TIMEFRAMES } from './market-data.js';

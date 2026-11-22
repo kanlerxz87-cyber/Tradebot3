@@ -87,7 +87,7 @@
         <div id="chat-all" class="chat-feed" role="log" aria-live="polite" aria-label="All ≥ $0.10 price swing alerts"></div>
         <div class="card-body" style="padding:8px 14px 12px">
           <div class="card-note">
-            Detected from official Kalshi 1-minute candles (close-to-close) plus live browser ticks.
+            Detected from official Kalshi 1-minute candles over a 24-hour window (close-to-close) plus live browser ticks.
             Threshold: absolute move ≥ $0.10 per contract, either direction.
           </div>
         </div>
@@ -201,8 +201,9 @@
       </div>
       <div class="card-body" style="padding-top:8px">
         <div class="card-note">
-          Ranked by official contract volume (<code>volume_fp</code>). Kalshi's public API does not publish a dollar-volume
-          field, so “Est. $ traded” = contracts × last price and is an estimate — never an official figure.
+          Ranked by estimated dollars traded (official contract volume × last price). Kalshi's public API publishes
+          contract volume (<code>volume_fp</code>), not dollar volume, so the dollar column is an estimate — never an
+          official figure. Each topic page can also be sorted by raw contract volume.
           <a href="verification.html#metrics">Metric definitions →</a>
         </div>
       </div>

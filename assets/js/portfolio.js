@@ -423,13 +423,20 @@ function onLiveAlert(alert) {
 /* ------------------------------------------------------------ demo account */
 
 const DEMO_KEY = 'tradebot3.demo.keyid';
+let demoSession = null; // { keyId, pem } held in memory only, never persisted
 
 function restoreDemoForm() {
   const keyId = localStorage.getItem(DEMO_KEY);
   if (keyId) qs('#demo-keyid').value = keyId;
   qs('#demo-connect').addEventListener('click', connectDemo);
+  qs('#demo-positions').addEventListener('click', () => loadDemoResource('/portfolio/positions'));
+  qs('#demo-fills').addEventListener('click', () => loadDemoResource('/portfolio/fills?limit=20'));
   qs('#demo-clear').addEventListener('click', () => {
     qs('#demo-pem').value = '';
+    demoSession = null;
+    qs('#demo-data').style.display = 'none';
+    qs('#demo-positions').disabled = true;
+    qs('#demo-fills').disabled = true;
     localStorage.removeItem(DEMO_KEY);
     qs('#demo-status').innerHTML = 'Cleared. The private key was never stored.';
   });
@@ -479,14 +486,38 @@ async function connectDemo() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const body = await res.json();
     const balance = body?.balance ?? body?.portfolio_balance;
+    demoSession = { keyId, pem };
+    qs('#demo-positions').disabled = false;
+    qs('#demo-fills').disabled = false;
     status.innerHTML = `<span class="status-ok">Connected to Kalshi demo.</span> Balance ${isNum(balance) ? fmtUsd(balance / 100) : esc(JSON.stringify(body).slice(0, 120))}
-      <div class="tiny">Read-only check via GET /portfolio/balance. Signing followed docs.kalshi.com/getting_started/api_keys (path without query).</div>`;
+      <div class="tiny">Read-only check via GET /portfolio/balance (cents in the API response). Signing followed docs.kalshi.com/getting_started/api_keys (path without query).</div>`;
     qs('#demo-pem').value = '';
   } catch (err) {
     const hint = /Failed to fetch|NetworkError|load failed/i.test(err.message)
       ? 'The browser could not reach the demo API — most likely CORS. This does not affect the paper account.'
       : 'Check the Key ID/PEM pair and that the key was created in the demo environment (keys are not shared with production).';
     status.innerHTML = `<span class="status-err">Could not verify: ${esc(err.message)}</span><div class="tiny">${hint}</div>`;
+  }
+}
+
+async function loadDemoResource(pathWithQuery) {
+  const status = qs('#demo-status');
+  const out = qs('#demo-data');
+  if (!demoSession) {
+    status.innerHTML = '<span class="status-err">Verify the demo connection first.</span>';
+    return;
+  }
+  const [pathOnly] = pathWithQuery.split('?');
+  try {
+    const headers = await signDemoRequest(demoSession.keyId, demoSession.pem, 'GET', pathOnly);
+    const res = await fetch(`${SITE.demoApiBase}${pathWithQuery}`, { headers });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const body = await res.json();
+    out.textContent = JSON.stringify(body, null, 2).slice(0, 6000);
+    out.style.display = 'block';
+    status.innerHTML = `<span class="status-ok">Loaded</span> GET ${esc(pathWithQuery)} <span class="tiny">— raw response shown; field names are Kalshi's, nothing is inferred.</span>`;
+  } catch (err) {
+    status.innerHTML = `<span class="status-err">Request failed: ${esc(err.message)}</span><div class="tiny">Likely browser CORS on the demo host, or an expired/invalid signature.</div>`;
   }
 }
 

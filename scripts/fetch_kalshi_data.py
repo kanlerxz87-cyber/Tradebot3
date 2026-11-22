@@ -505,10 +505,19 @@ def enrich_events(events, warnings):
         time.sleep(0.1)
 
 
-def fetch_orderbooks(markets, warnings, max_markets=60):
-    """Attach a real orderbook snapshot + derived liquidity metrics."""
+def fetch_orderbooks(markets, warnings, max_markets=80):
+    """Attach a real orderbook snapshot + derived liquidity metrics.
+
+    Markets that carry candles are prioritised so the chart and the liquidity
+    ladder always describe the same contract.
+    """
     count = 0
-    for m in markets:
+    ordered = sorted(
+        markets,
+        key=lambda m: (1 if m.get("candles") else 0, m.get("volume_24h") or 0, m.get("volume") or 0),
+        reverse=True,
+    )
+    for m in ordered:
         if m["status"] != "active":
             continue
         if count >= max_markets:
@@ -613,8 +622,13 @@ def fetch_candles(markets, warnings):
 
 
 def detect_swings(markets, events_by_ticker):
-    """Detect real >= $0.10 close-to-close moves from Kalshi candle data."""
+    """Detect real >= $0.10 close-to-close moves from Kalshi candle data.
+
+    Also returns the largest absolute move observed, so the UI can explain an
+    empty feed honestly instead of looking broken.
+    """
     alerts = []
+    largest = {"abs": 0.0}
     for m in markets:
         candles = m.get("candles")
         if not candles:
@@ -630,6 +644,18 @@ def detect_swings(markets, events_by_ticker):
                 if prev is not None:
                     delta = round(mark - prev[1], 4)
                     gap_min = max(0, round((ts - prev[0]) / 60)) if ts and prev[0] else 0
+                    if abs(delta) > largest["abs"]:
+                        largest = {
+                            "abs": abs(delta),
+                            "delta": delta,
+                            "ticker": m["ticker"],
+                            "topic": m["topic"],
+                            "ts": ts,
+                            "iso_time": datetime.fromtimestamp(ts, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                            "from_price": prev[1],
+                            "to_price": mark,
+                            "interval": label,
+                        }
                     if abs(delta) + 1e-9 >= SWING_THRESHOLD:
                         ev = events_by_ticker.get(m["event_ticker"], {})
                         alerts.append({
@@ -664,7 +690,7 @@ def detect_swings(markets, events_by_ticker):
         deduped.append(a)
         if len(deduped) >= MAX_ALERTS:
             break
-    return deduped
+    return deduped, largest
 
 
 def check_reference_links(warnings):
@@ -887,9 +913,9 @@ def main():
         events_by_ticker.setdefault(ev["event_ticker"], ev)
     enrich_events(events_by_ticker.values(), warnings)
 
-    fetch_orderbooks(markets, warnings)
     fetch_candles(markets, warnings)
-    alerts = detect_swings(markets, events_by_ticker)
+    fetch_orderbooks(markets, warnings)
+    alerts, largest_move = detect_swings(markets, events_by_ticker)
     resolutions = build_resolutions(by_topic, events_by_ticker, warnings=warnings)
     reference_links = check_reference_links(warnings)
 
@@ -959,6 +985,9 @@ def main():
             "markets_published": len(markets),
             "events_published": len(events),
             "alerts_published": len(alerts),
+            "largest_move": largest_move,
+            "candle_lookback_hours": CANDLE_LOOKBACK_HOURS,
+            "candle_publish_hours": CANDLE_PUBLISH_HOURS,
             "resolutions_published": len(resolutions),
             "orderbooks_fetched": sum(1 for m in markets if "orderbook" in m),
             "candle_series_fetched": sum(1 for m in markets if "candles" in m),

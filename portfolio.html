@@ -216,9 +216,12 @@
         </div>
         <div class="pill-row">
           <button id="demo-connect" class="btn btn-primary" type="button">Verify demo connection</button>
+          <button id="demo-positions" class="btn" type="button" disabled>Load demo positions</button>
+          <button id="demo-fills" class="btn" type="button" disabled>Load demo fills</button>
           <button id="demo-clear" class="btn" type="button">Clear</button>
         </div>
         <div id="demo-status" class="hint" style="margin-top:10px">Not connected.</div>
+        <pre id="demo-data" class="tiny" style="display:none;background:#0f172a;color:#e2e8f0;padding:10px;border-radius:8px;max-height:260px;overflow:auto;margin-top:10px"></pre>
         <div class="hr"></div>
         <div class="callout callout-muted small">
           <strong>Why execution stays simulated.</strong> Order placement on the demo account is deliberately not wired up
