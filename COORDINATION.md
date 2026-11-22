@@ -314,3 +314,4 @@ The branch originally carried a wholesale rewrite of the catalog (static quotes,
 - **Merge Method & Result:** `gh pr merge 15 --merge` — MERGED 2026-11-22T07:52:05Z as commit `2e964ce5292573d25edb9ed744fdb9c0f64bcf9b` after `python3 scripts/verify_site.py` reported ALL VERIFICATION CHECKS PASSED.
 - **GitHub Pages:** build triggered for `2e964ce` at 2026-11-22T07:52:06Z (status observed as `building`); live URL https://kanlerxz87-cyber.github.io/Tradebot3/
 - **Post-merge state:** `main` keeps all prior 29-market re-verification and audit records; the T-06 changes are limited to read-only execution enforcement, the illustrative-model fallback fix, label/doc reconciliation, IRREG-22, and the expanded verifier.
+- **Follow-up (`arena/e9a6c584-tradebot3`, PR #17):** portfolio page title/headings and the dashboard quick-ticket wording were relabelled from "trade execution / automated strategies" to paper terminology; no functional change.

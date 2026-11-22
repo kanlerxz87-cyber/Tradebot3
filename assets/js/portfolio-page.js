@@ -77,7 +77,7 @@ function renderOpenPositions() {
   const { openPositions } = engine.getPortfolioSummary();
 
   if (!openPositions.length) {
-    tbody.innerHTML = '<tr><td colspan="9" class="muted">No open positions. Place a demo trade or enable an automated strategy below.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="muted">No open positions. Place a paper trade or enable a strategy test below.</td></tr>';
     return;
   }
 
