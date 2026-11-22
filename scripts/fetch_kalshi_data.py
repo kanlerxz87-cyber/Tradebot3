@@ -616,7 +616,10 @@ def check_reference_links(warnings):
 def build_resolutions(settled_by_topic, events_by_ticker, limit_per_topic=12):
     rows = []
     for topic in TOPIC_ORDER:
-        items = [m for m in settled_by_topic.get(topic, []) if m.get("result") in ("yes", "no")]
+        bucket = settled_by_topic.get(topic, [])
+        if isinstance(bucket, dict):
+            bucket = bucket.get("settled", [])
+        items = [m for m in bucket if m.get("result") in ("yes", "no")]
         items.sort(key=lambda m: m.get("close_time") or "", reverse=True)
         for m in items[:limit_per_topic]:
             ev = events_by_ticker.get(m["event_ticker"], {})
@@ -779,8 +782,14 @@ def main():
             ), 2
         )
         ev["kalshi_url"] = f"https://kalshi.com/events/{ev['event_ticker']}"
-        ev["resolved_yes"] = sum(1 for m in ev["markets"] if (m.get("result") or "").lower() == "yes")
-        ev["resolved_no"] = sum(1 for m in ev["markets"] if (m.get("result") or "").lower() == "no")
+        ev["resolved_yes"] = sum(
+            1 for m in markets
+            if m["event_ticker"] == ev["event_ticker"] and (m.get("result") or "").lower() == "yes"
+        )
+        ev["resolved_no"] = sum(
+            1 for m in markets
+            if m["event_ticker"] == ev["event_ticker"] and (m.get("result") or "").lower() == "no"
+        )
 
     topics_meta = {}
     for topic in TOPIC_ORDER:
