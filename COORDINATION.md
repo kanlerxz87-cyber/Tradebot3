@@ -227,7 +227,7 @@
 | T-10 | Full 29-market line-by-line re-verification + corrections (22 rows), new IRREG-18/19 | `done` | `arena-83838475` | `arena/83838475-tradebot3` | `assets/js/data.js` |
 | T-11 | High-ROI desktop-notification + audio-ping toggle (landing dashboard) | `done` | `arena-83838475` | `arena/83838475-tradebot3` | `assets/js/dashboard.js`, `index.html`, `assets/css/styles.css` |
 | T-12 | Executive summary Session 2b addendum + README touch-ups + flagged-page follow-up note | `done` | `arena-83838475` | `arena/83838475-tradebot3` | `EXECUTIVE_SUMMARY.md`, `README.md`, `flagged-for-review.html` |
-| T-13 | Re-run automated verification + live server test, open PR to `main`, merge, confirm GitHub Pages deploy | `in progress` | `arena-83838475` | `arena/83838475-tradebot3` | `scripts/verify_site.py` (run only, no edits), `COORDINATION.md` (PR record) |
+| T-13 | Re-run automated verification + live server test, open PR to `main`, merge, confirm GitHub Pages deploy | `done` | `arena-83838475` | `arena/83838475-tradebot3` | `scripts/verify_site.py` (run only, no edits), `COORDINATION.md` (PR record) |
 
 > Session 2b started from `main` @ `08ad596`, reconciled onto `24fe002` (PR #6) then `9644264` (PR #4) via 3-way patch application. Resolution rules: merged values win on all overlapping rows/labels (PR #6 07:27 stamp + edge-anchored fair values; PR #4 paper-simulation disclosures + clean $10,000 baseline + host allowlists preserved verbatim); this session's 15 additional row corrections, notify toggle, follow-up note, both audit rows, and addendum are additive. Own flags renumbered twice → **IRREG-18/19** (PR #6 owns IRREG-14, PR #4 owns IRREG-16/17). Open parallel PR #5 (`arena-dcead908`, claims IRREG-09/10) still collides with merged IDs and must renumber on rebase; not this session's scope.
 
@@ -237,4 +237,5 @@
 - **Source Branch:** `arena/83838475-tradebot3` -> `main`
 - **PR URL:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/7
 - **Merge Method:** `gh pr merge 7 --merge` after passing `node --check`, `scripts/verify_site.py` with 0 broken links, and live HTTP spot-check; flagged items (`needs review`) do not block merge and remain published on `flagged-for-review.html`.
-- **GitHub Pages Live URL:** https://kanlerxz87-cyber.github.io/Tradebot3/
+- **Merge Result:** MERGED 2026-11-22T07:35:51Z as `393555d`; all session 2b tasks T-10..T-13 `done`.
+- **GitHub Pages Live URL:** https://kanlerxz87-cyber.github.io/Tradebot3/ (deploy build for `393555d` status `built`, updated 2026-11-22T07:36:19Z, no errors)
