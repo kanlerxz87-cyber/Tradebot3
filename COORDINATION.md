@@ -4,7 +4,7 @@
 > **Live Site (GitHub Pages):** https://kanlerxz87-cyber.github.io/Tradebot3/
 > **Active Session ID:** `arena-83838475` (Session 2b full refresh + notify toggle; priors merged: `arena-1a3afb37` T-07 via PR #4, `arena-59730b38` via PR #6/#8, `arena-3716ae8d` via PR #1, `arena-a8cfdaeb` via PR #2/#3)
 > **Working Branch:** `arena/83838475-tradebot3` (Arena fixed session branch; branched from `main` at `08ad596f66ebccb189754df5fa6dadac6365989c`, reconciled onto `9644264`)
-> **Last Updated:** 2026-11-22 (UTC)
+> **Last Updated:** 2026-11-22 (UTC) — T-06 audit merged via PR #15 (`main` @ `2e964ce`)
 >
 > This checkout contains prior T-01–T-06 sample-audit and Session 2 API/data refresh work on `main`. T-07 is a separate simulator/runtime-integrity follow-up on the current branch above.
 > A later additive audit from `arena/e9a6c584-tradebot3` (PR #15) is recorded at the bottom of this file.
@@ -309,5 +309,8 @@ The branch originally carried a wholesale rewrite of the catalog (static quotes,
 ### PR record
 
 - **Source Branch:** `arena/e9a6c584-tradebot3` -> `main`
-- **Commits:** claim `0a6dc10`, audit `ab717dc`, board update `9cf0267`, reconciliation and additive fixes on top of `main` @ `09e7d98`
-- **Status:** open for review as PR #15; merge and Pages deploy left to the reviewer.
+- **Commits:** claim `0a6dc10`, audit `ab717dc`, board update `9cf0267`, reconciled audit `cbeb39f`
+- **PR URL:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/15
+- **Merge Method & Result:** `gh pr merge 15 --merge` — MERGED 2026-11-22T07:52:05Z as commit `2e964ce5292573d25edb9ed744fdb9c0f64bcf9b` after `python3 scripts/verify_site.py` reported ALL VERIFICATION CHECKS PASSED.
+- **GitHub Pages:** build triggered for `2e964ce` at 2026-11-22T07:52:06Z (status observed as `building`); live URL https://kanlerxz87-cyber.github.io/Tradebot3/
+- **Post-merge state:** `main` keeps all prior 29-market re-verification and audit records; the T-06 changes are limited to read-only execution enforcement, the illustrative-model fallback fix, label/doc reconciliation, IRREG-22, and the expanded verifier.
