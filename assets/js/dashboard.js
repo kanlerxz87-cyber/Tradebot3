@@ -24,6 +24,51 @@ let selectedTimeframe = 'minutes';
 let selectedTableTopic = 'all';
 let selectedMarker = null;
 
+// High-ROI desktop notification + audio ping state (opt-in, P2 suggestion implementation)
+let notifyEnabled = false;
+let lastNotifiedAlertId = null;
+
+function playAlertPing(direction) {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = direction === 'UP' ? 880 : 587.33;
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.4);
+    osc.onended = () => ctx.close().catch(() => {});
+  } catch (_) {
+    // Audio unavailable — desktop notification still fires
+  }
+}
+
+function maybeNotifyHighRoi() {
+  if (!notifyEnabled) return;
+  const latest = engine.highRoiAlerts[0];
+  if (!latest || latest.id === lastNotifiedAlertId) return;
+  lastNotifiedAlertId = latest.id;
+  playAlertPing(latest.direction);
+  try {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const n = new Notification(`High-ROI Swing ${latest.delta >= 0 ? '+' : ''}$${latest.delta.toFixed(2)} — ${latest.ticker}`, {
+        body: `${latest.title}\n$${latest.fromPrice.toFixed(2)} → $${latest.toPrice.toFixed(2)} · ${latest.roi ? latest.roi.reason : ''}`,
+        tag: latest.id
+      });
+      n.onclick = () => window.focus();
+    }
+  } catch (_) {
+    // Notification blocked — chat feed still updates live
+  }
+}
+
 function renderKpis() {
   const openCount = engine.markets.filter((m) => m.status === 'Open').length;
   const resolvedCount = engine.markets.filter((m) => m.status === 'Resolved').length;
@@ -296,6 +341,29 @@ function bindEvents() {
     });
   }
 
+  const notifyBtn = document.getElementById('btn-alert-notify');
+  if (notifyBtn) {
+    notifyBtn.addEventListener('click', async () => {
+      if (!notifyEnabled && 'Notification' in window && Notification.permission === 'default') {
+        try {
+          await Notification.requestPermission();
+        } catch (_) {
+          // Permission request dismissed — audio ping still works
+        }
+      }
+      notifyEnabled = !notifyEnabled;
+      if (notifyEnabled) {
+        const latest = engine.highRoiAlerts[0];
+        lastNotifiedAlertId = latest ? latest.id : null; // don't replay history
+        notifyBtn.textContent = 'High-ROI Alerts: ON';
+        notifyBtn.classList.add('btn-alert-on');
+      } else {
+        notifyBtn.textContent = 'Enable High-ROI Alerts';
+        notifyBtn.classList.remove('btn-alert-on');
+      }
+    });
+  }
+
   const testApiBtn = document.getElementById('btn-test-demo-api');
   if (testApiBtn) {
     testApiBtn.addEventListener('click', async () => {
@@ -383,6 +451,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderDualChats();
     renderChartAndOrderbook();
     renderMarketsTable();
+    maybeNotifyHighRoi();
   };
 
   renderAll();
