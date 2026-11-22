@@ -1,16 +1,11 @@
 /**
- * Tradebot3 Verified Data Catalog
- * All entries verified line by line against official Kalshi docs, official Kalshi market pages,
- * and verified external sources on 2026-11-22 (UTC).
- *
- * STRICT VERIFICATION POLICY:
- * - Only 5 topics allowed: gas-prices, elections, culture, crypto, golf.
- * - Every entry includes an official sourceUrl and sourceLabel.
- * - Any value that could not be confirmed from an official source is explicitly `null`
- *   so tables render it blank and flag it as Unverified (linked to flagged-for-review.html).
+ * Tradebot3 Catalog Snapshot, with Session-2 verified corrections noted in IRREG-14.
+ * Rows include official market source URLs. Eight pages were spot-checked in Session 2;
+ * this follow-up did not independently re-check every remaining market value or catalyst claim.
+ * Unknown values are null and rendered as Unverified. This is not a live data feed.
  */
 
-export const LAST_VERIFIED_UTC = '2026-11-22T07:27:00Z';
+export const CATALOG_REVIEW_TIMESTAMP_UTC = '2026-11-22T07:27:00Z';
 
 export const ALLOWED_TOPICS = ['gas-prices', 'elections', 'culture', 'crypto', 'golf'];
 
@@ -220,13 +215,10 @@ export const DEMO_API_ENDPOINTS = [
 ];
 
 /**
- * Verified Kalshi Markets across the 5 strictly allowed topics ONLY.
- * - `volumeUsd`: verified dollar volume from official Kalshi market page, or `null` (blank + Unverified).
- * - `verifiedRestingLiquidity`: `null` statically because resting orderbook depth is live/dynamic;
- *   live orderbook fetch or clearly labeled Demo Simulation supplies interactive ladder depth.
- * - `observedPrice`: verified observed YES probability/price ($0.00-$1.00) from official Kalshi page.
- * - `observedSwing`: verified price move observed on Kalshi page (in dollars, e.g. +0.27 or -0.10), or `null`.
- * - `resolution`: 'OPEN', 'YES', or 'NO' (verified from official Kalshi settled banners).
+ * Static market catalog across the 5 allowed topics ONLY. The listed values are snapshots, not live quotes.
+ * Eight market pages were re-checked and corrected in Session 2 (IRREG-14); the remaining values
+ * were not independently re-fetched during this follow-up. Source URLs are provided for manual review.
+ * Null fields are rendered as Unverified; resting orderbook depth is simulated.
  */
 export const VERIFIED_MARKETS = [
   // ======================== 1. GAS PRICES ========================
@@ -992,6 +984,46 @@ export const FLAGGED_IRREGULARITIES = [
     status: 'Needs Review',
     sourceUrl: 'https://kalshi.com/markets',
     sourceLabel: 'Kalshi Official Markets (live re-check)'
+  },
+  {
+    id: 'IRREG-15',
+    severity: 'High',
+    category: 'Live Data / Simulation Boundary',
+    item: 'The deployed static dashboard does not stream current Kalshi quotes or real-time orderbook updates',
+    detail: 'The current page runs generated client-side ticks, generated initial chart history, and simulated resting depth. Seeded catalog alerts are snapshots without an established event timestamp. The visible paper simulation must not be treated as live market data or an actionable trading signal. A server-side authenticated WebSocket relay and live message handling have not been deployed.',
+    status: 'Needs Review',
+    sourceUrl: 'https://docs.kalshi.com/getting_started/quick_start_websockets',
+    sourceLabel: 'Kalshi Docs — WebSocket Quick Start'
+  },
+  {
+    id: 'IRREG-16',
+    severity: 'High',
+    category: 'Account / Execution Boundary',
+    item: 'Paper portfolio trades are local simulations; no orders or fills are synchronized to the Kalshi Demo account',
+    detail: 'The portfolio UI routes ticket submissions through the local paper-trade engine. The optional API connector tests public REST connectivity or requests account balance; it does not submit orders. No API credentials are configured or stored. Do not interpret the displayed balance, positions, ROI, or ledger as Kalshi account data.',
+    status: 'Needs Review',
+    sourceUrl: 'https://docs.kalshi.com/api-reference/orders/create-order-v2',
+    sourceLabel: 'Kalshi Docs — Create Order V2'
+  },
+  {
+    id: 'IRREG-17',
+    severity: 'Medium',
+    category: 'Catalyst Attribution',
+    item: 'News/context links do not establish that the cited item caused a given contract-price movement',
+    detail: 'Some catalog rows associate a market swing with an external news or event URL. The cited page can provide context, but absent a source explicitly documenting the contract price move and timing, causation and exact event timing are unverified. Such links are labeled as context only, not verified causal attribution.',
+    status: 'Needs Review',
+    sourceUrl: 'https://kalshi.com/markets',
+    sourceLabel: 'Kalshi Official Markets'
+  },
+  {
+    id: 'IRREG-18',
+    severity: 'High',
+    category: 'Model / ROI Estimates',
+    item: 'Model fair values and expected-ROI outputs are illustrative heuristics, not independently validated forecasts',
+    detail: 'The catalog includes modelFairValue inputs and the client computes edge/ROI from those values, but this repository does not provide a fitted model, backtest, calibration, or cited evidence validating the estimates. Treat all High-ROI feed entries and strategy results as educational paper simulations, not performance claims or financial advice.',
+    status: 'Needs Review',
+    sourceUrl: 'https://kalshi.com/markets',
+    sourceLabel: 'Kalshi Official Markets (contract prices only; not model validation)'
   }
 ];
 

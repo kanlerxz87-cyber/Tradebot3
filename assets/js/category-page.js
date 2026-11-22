@@ -45,8 +45,8 @@ function renderTopicHeaderAndKpis() {
 
   const heroTitle = document.getElementById('topic-hero-title');
   const heroDesc = document.getElementById('topic-hero-desc');
-  if (heroTitle) heroTitle.innerHTML = `${formatTopicBadge(topicId)} ${escapeHtml(topicInfo.name)} — Kalshi Live &amp; Resolved Events`;
-  if (heroDesc) heroDesc.textContent = topicInfo.description;
+  if (heroTitle) heroTitle.innerHTML = `${formatTopicBadge(topicId)} ${escapeHtml(topicInfo.name)} — Catalog &amp; Simulated Events`;
+  if (heroDesc) heroDesc.textContent = `${topicInfo.description} Catalog values are static snapshots; alert ticks, charts, and depth on this static site are simulated, not live Kalshi data.`;
 
   const kpiEl = document.getElementById('topic-kpi-strip');
   if (kpiEl) {
@@ -57,14 +57,14 @@ function renderTopicHeaderAndKpis() {
         <div class="kpi-sub">${openCount} Open · ${yesCount} YES · ${noCount} NO</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">Verified Dollar Volume</div>
+        <div class="kpi-label">Catalog Dollar Volume</div>
         <div class="kpi-value">$${totalVol.toLocaleString('en-US')}</div>
         <div class="kpi-sub">Excluding unverified blank volume cells</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Topic &gt;= $0.10 Alerts</div>
         <div class="kpi-value">${engine.allAlerts.filter((a) => a.topic === topicId).length}</div>
-        <div class="kpi-sub">${engine.highRoiAlerts.filter((a) => a.topic === topicId).length} flagged High-ROI</div>
+        <div class="kpi-sub">${engine.highRoiAlerts.filter((a) => a.topic === topicId).length} simulated/model snapshot signals</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Official Hub</div>

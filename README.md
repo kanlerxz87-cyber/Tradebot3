@@ -1,20 +1,19 @@
-# Tradebot3 — Kalshi Demo Live Event Dashboard & Strategy Lab
+# Tradebot3 — Kalshi Demo Paper-Simulation Dashboard & Strategy Lab
 
 **Live GitHub Pages Site:** https://kanlerxz87-cyber.github.io/Tradebot3/
 
-A verified, interactive Kalshi Demo dashboard, alerting system, portfolio tracker, and automated trading strategy simulator focused strictly on five topics: **Gas Prices**, **Elections**, **Culture**, **Crypto**, and **Golf**.
+An interactive **paper-simulation prototype** for a Kalshi Demo dashboard and strategy lab focused on **Gas Prices**, **Elections**, **Culture**, **Crypto**, and **Golf**.
+
+> **Important:** The GitHub Pages site does not currently stream live Kalshi markets. Price ticks, chart history, orderbook depth, alerts, and trade execution in the UI are simulated; catalog values are static snapshots. Portfolio values are local mock state and are not connected to a Kalshi Demo account. Do not treat the displayed model outputs as verified forecasts or trading advice. See [Flagged for Review](flagged-for-review.html) for limitations.
 
 ---
 
 ## Pages & Structure
-- **`index.html`** — Landing page, Executive Summary, Highest-Dollar Live Events across the 5 topics, Dual Real-Time Scrolling Alert Chats (`>= $0.10` swings: All Events vs. High-ROI Model), Interactive Price Chart (Seconds / Minutes / Hours + verified jump catalyst markers), and Orderbook Liquidity Ladder.
-- **`categories/gas-prices.html`** — Gas Prices dedicated subpage (verified table + live chart & orderbook).
-- **`categories/elections.html`** — Elections dedicated subpage.
-- **`categories/culture.html`** — Culture dedicated subpage.
-- **`categories/crypto.html`** — Crypto dedicated subpage.
-- **`categories/golf.html`** — Golf dedicated subpage.
-- **`portfolio.html`** — Kalshi Demo API connector (RSA-PSS Web Crypto signing + Paper Demo Mode), Trade Execution Ticket, Portfolio Equity & Positions Tracker, Trade Categorization & Analysis, and Automated Strategy Simulator / Custom Strategy Builder.
-- **`verification.html`** — Verified Kalshi Demo API endpoints & schemas, line-by-line Repository Audit, and Interactive/Live Enhancement Suggestions.
+- **`index.html`** — Landing page, Executive Summary, static sourced catalog across the 5 topics, dual paper-simulation alert chats (`>= $0.10`), simulated interactive price chart, and simulated orderbook ladder.
+- **`categories/gas-prices.html`** — Gas Prices catalog subpage (static sourced table + simulated chart & orderbook).
+- **`categories/elections.html`**, **`categories/culture.html`**, **`categories/crypto.html`**, **`categories/golf.html`** — Separate category catalogs with simulated charts and orderbooks.
+- **`portfolio.html`** — Optional API connectivity/balance test plus local-only paper trades, mock equity, categorization, and strategy simulation. The trade ticket does not place exchange orders.
+- **`verification.html`** — Official API documentation references, automated repository checks, and recommendations for a future live integration.
 - **`flagged-for-review.html`** — Transparent table of all flagged irregularities and unverified fields with official source links.
 - **`EXECUTIVE_SUMMARY.md`** — Full executive summary document.
 - **`COORDINATION.md`** — Shared task board, claims, official sources, verification log, and PR/deploy record.

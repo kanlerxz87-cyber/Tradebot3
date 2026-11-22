@@ -2,7 +2,7 @@
  * Shared Navigation, Formatting, Verification Badges & Reusable UI Components
  */
 
-import { TOPICS, LAST_VERIFIED_UTC } from './data.js';
+import { TOPICS, CATALOG_REVIEW_TIMESTAMP_UTC } from './data.js';
 
 export function escapeHtml(str) {
   return String(str ?? '')
@@ -42,7 +42,7 @@ export function renderHeader(activeKey) {
           <span class="brand-mark">TB3</span>
           <div>
             <div class="brand-title">Tradebot3 · Kalshi Demo</div>
-            <div class="brand-sub">5-Topic Live Event &amp; Swing Alert Dashboard</div>
+            <div class="brand-sub">5-Topic Paper-Simulation Dashboard</div>
           </div>
         </a>
         <nav class="nav-links" aria-label="Primary Navigation">
@@ -70,7 +70,7 @@ export function renderFooter() {
       <div class="container footer-inner">
         <div>
           <strong>Tradebot3 — Kalshi Demo Dashboard</strong> · Strictly scoped to Gas Prices, Elections, Culture, Crypto &amp; Golf.
-          <div class="muted small">Last verified against official Kalshi docs &amp; market pages: ${escapeHtml(LAST_VERIFIED_UTC)}. Unconfirmable values are left blank and flagged as Unverified.</div>
+          <div class="muted small">Catalog metadata records a review timestamp of ${escapeHtml(CATALOG_REVIEW_TIMESTAMP_UTC)}; this follow-up did not independently recheck every market value. Unverified fields are flagged for review.</div>
         </div>
         <div class="footer-links">
           <a href="${prefix}EXECUTIVE_SUMMARY.md">Executive Summary</a>
@@ -124,7 +124,7 @@ export function formatResolutionBadge(market) {
     return `<span class="badge badge-no">Resolved NO ($0.00)</span>`;
   }
   if (market.resolution === 'OPEN') {
-    return `<span class="badge badge-open">Live / Open</span>`;
+    return `<span class="badge badge-open">Open (catalog snapshot)</span>`;
   }
   return formatUnverifiedCell('Unverified');
 }
@@ -222,10 +222,12 @@ export function renderAlertItemHtml(alert, isHighRoiFeed = false) {
   const dirIcon = alert.direction === 'UP' ? '▲' : '▼';
   const dirCls = alert.direction === 'UP' ? 'chat-up' : 'chat-down';
   const simTag = alert.simulated
-    ? '<span class="badge badge-sim">Live Demo Tick</span>'
-    : alert.verifiedSwing
-    ? '<span class="badge badge-verified">Verified Observed Swing</span>'
-    : '<span class="badge badge-unverified" title="Seeded from catalog; not an observed Kalshi tick. See Flagged for Review.">Unverified Catalog Alert</span>';
+    ? '<span class="badge badge-sim">Simulated Tick</span>'
+    : alert.snapshot
+      ? '<span class="badge badge-unverified">Catalog Snapshot · Unverified Alert</span>'
+      : alert.verifiedSwing
+        ? '<span class="badge badge-verified">Verified Observed Swing</span>'
+        : '<span class="badge badge-unverified" title="Seeded from catalog; not an observed Kalshi tick. See Flagged for Review.">Unverified Catalog Alert</span>';
   const roiHtml =
     isHighRoiFeed && alert.roi
       ? `<div class="roi-callout"><strong>High-ROI Model Signal:</strong> ${escapeHtml(alert.roi.reason)}</div>`
@@ -239,7 +241,7 @@ export function renderAlertItemHtml(alert, isHighRoiFeed = false) {
           <button class="link-btn ticker-jump-btn" data-ticker="${escapeHtml(alert.ticker)}">${escapeHtml(alert.ticker)}</button>
           ${simTag}
         </div>
-        <span class="mono tiny muted">${formatTimeShort(alert.ts)}</span>
+        <span class="mono tiny muted">${alert.snapshot ? 'Static snapshot · date not established' : formatTimeShort(alert.ts)}</span>
       </div>
       <div class="chat-msg-body">
         <span class="swing-pill ${dirCls}">${dirIcon} ${alert.delta >= 0 ? '+' : ''}$${alert.delta.toFixed(2)}</span>

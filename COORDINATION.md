@@ -2,8 +2,8 @@
 
 > **Repository:** `kanlerxz87-cyber/Tradebot3`
 > **Live Site (GitHub Pages):** https://kanlerxz87-cyber.github.io/Tradebot3/
-> **Active Session ID:** `arena-59730b38` (Session 2 refresh; priors: `arena-3716ae8d` merged via PR #1, `arena-a8cfdaeb` merged via PR #2/#3)
-> **Working Branch:** `arena/59730b38-tradebot3` (Arena fixed session branch; branched from `main` at `08ad596f66ebccb189754df5fa6dadac6365989c`, rebased onto `991a8eb`)
+> **Latest Integrated Session:** `arena-59730b38` (Session 2 refresh; PR #8 merged)
+> **Current Arena Branch:** `arena/a17ff2cd-tradebot3` (fixed current-session branch; rebased onto `5851fb3`)
 > **Last Updated:** 2026-11-22 (UTC)
 
 ---
@@ -16,16 +16,20 @@
 | S2-02 | Refresh stale/incorrect observed values in verified dataset (8 re-verified markets), WS rate-limit row, new IRREG-14 | `done` | `arena-59730b38` | `arena/59730b38-tradebot3` | `assets/js/data.js` |
 | S2-03 | Executive summary Session 2 addendum (corrections + re-verification results) | `done` | `arena-59730b38` | `arena/59730b38-tradebot3` | `EXECUTIVE_SUMMARY.md` |
 | S2-04 | Re-run automated verification + live server test, open PR to `main`, merge, confirm GitHub Pages deploy | `done` | `arena-59730b38` | `arena/59730b38-tradebot3` | `scripts/verify_site.py` (run only, no edits), `COORDINATION.md` (PR record) |
+| S3-01 | Clarify simulation-only alert/chart/orderbook/portfolio UX, remove fabricated snapshot timestamps, start fresh paper portfolios clean, add source links to analytics rows, add regression assertions | `done` | `arena/a17ff2cd-tradebot3` | `arena/a17ff2cd-tradebot3` | `index.html`, `portfolio.html`, `categories/*.html`, `assets/js/{dashboard,category-page,engine,ui-common,portfolio-page}.js`, `scripts/verify_site.py` |
+| S3-02 | Publish current implementation limits, catalyst-attribution caveat, unvalidated ROI model, and remaining catalog re-verification scope | `needs review` | `arena/a17ff2cd-tradebot3` | `arena/a17ff2cd-tradebot3` | `assets/js/data.js` (IRREG-15..18), `flagged-for-review.html`, `README.md`, `EXECUTIVE_SUMMARY.md`, `verification.html`, `COORDINATION.md` |
+
+> Session 3 follow-up preserves Session 2's 8-page market re-verification, corrections, API findings, and IRREG-14. It does not claim to re-check the other catalog rows; current static values should be checked against their linked official market pages before live use.
 
 > Session 1 tasks T-01..T-05 and session `arena-a8cfdaeb` task T-06 are `done` and merged (PRs #1–#3); R-01 and static IRREG-09..13 remain `needs review` (published on site). Session 2 scopes touch only the files listed above and do not overlap any in-progress claim. Session 2 is the refresh pass requested by static IRREG-10; its new dynamic item is numbered **IRREG-14** to avoid colliding with static IRREG-09..13.
 
 ---
 
 ## Coordination Protocol Notes
-- All tasks were claimed prior to editing and pushed immediately on `arena/3716ae8d-tradebot3`.
-- Because Arena binds this session to `arena/3716ae8d-tradebot3`, all commits, pushes, and the pull request to `main` are performed on `arena/3716ae8d-tradebot3` without creating or switching branches.
+- T-01..T-05 and Session 2 tasks were completed by their listed owners and merged through their respective PRs. This follow-up uses the current Arena-fixed branch `arena/a17ff2cd-tradebot3`; do not change branches.
+- The current follow-up preserves Session 2 market corrections, IRREG-14, and verification notes while updating user-facing simulation disclosures.
 - Items marked `needs review` are published transparently on [`flagged-for-review.html`](flagged-for-review.html) with official source links and do not block integration or deployment.
-- Every table row across the site links to an official verified source. Any value that could not be confirmed statically is left blank and flagged `Unverified`.
+- Market catalog rows include Kalshi source links; automated checks validate URL presence and internal links, not the contents/currentness of every market value. Session 2 re-checked 8 market pages; remaining catalog values, catalyst attribution, and model estimates retain the review limits recorded below.
 
 ---
 
@@ -123,6 +127,11 @@
 - **IRREG-06 (Low):** Prompt listed both `external-api.demo.kalshi.co` (recommended dedicated host) and `demo-api.kalshi.co` (also supported legacy shared host); both verified and supported.
 - **IRREG-07 (Medium):** 8 markets with unexposed static dollar volumes, 1 post-Nov-19 NY gas settlement without confirmed official close banner, and dynamic live resting orderbook contract counts are left **blank** and tagged `Unverified` in verified catalog tables.
 - **IRREG-08 (Low):** Initial repo commit `62713af` contained only an 11-byte `README.md`.
+- **IRREG-14 (High):** Session 2 re-check changed seven fields across eight market pages; its before/after ledger is in the Session 2 section below.
+- **IRREG-15 (High):** No live Kalshi WebSocket/current orderbook feed is deployed; generated ticks, chart points, depth and alert timestamps are simulated/static.
+- **IRREG-16 (High):** UI tickets are local paper trades and do not send orders or synchronize a Kalshi Demo portfolio.
+- **IRREG-17 (Medium):** Context links do not establish the cause or exact timing of a contract-price move.
+- **IRREG-18 (High):** Model fair values and ROI outputs are unvalidated heuristics without backtesting or calibration.
 
 ---
 
@@ -164,7 +173,7 @@
 ### S2-01 — Independent line-by-line re-verification (status: `done`)
 - Re-fetched and re-confirmed against **live** official docs: `demo_env` (recommended `external-api.demo.kalshi.co` REST + `external-api-ws.demo.kalshi.co` WS, supported `demo-api.kalshi.co` pair), `api_environments` (incl. `wss://user-ws.demo.kalshi.co/trade-api/ws/v2` fill/user_orders host, sign path without query), `orderbook_responses` (`orderbook_fp` `[price_dollars, count_fp]` bids-only, `$0.42`/`$0.56` → `$0.44`/`$0.02` example, HTTP 200 empty arrays for unknown tickers), `quick_start_websockets` (`KALSHI-ACCESS-*` handshake headers, `timestamp + "GET" + "/trade-api/ws/v2"` signing, private vs public channels), `rate_limits` (WS connection limits Basic/Advanced/**Expert** 200, Premier 500, Paragon 750, Prime/**Prestige** 1,000), `get-market-candlesticks` (`period_interval` 1/60/1440 only), `create-order-v2` (`POST /portfolio/events/orders`, `bid`/`ask` side, fixed-point dollars).
 - Live market spot-check (8 pages: one per topic + gas/elections/crypto extras): `KXOSCARACTO-26` settled YES @ $25,562,603 **matched exactly**; 5 open-market rows required correction plus the CONTROLS-2026 settlement flip and one volume fill (see ledger below). Cross-validated against parallel session `arena-a8cfdaeb` T-06 static audit (same 4 price/volume mismatches; CONTROLS-2026 + BTCMAXMON volume findings independently re-fetched and applied here).
-- Line-by-line code audit of `assets/js/kalshi-client.js` and `assets/js/engine.js`: RSA-PSS SHA-256 saltLength 32, signed-header names, orderbook reciprocal parser, Create Order V2 payload, ≥$0.10 dual-chat alerting, $1.00/$0.00 settlement payouts, P&L math, seeded cash $9,991.70 — **no defects found**. Seeded ledger trades are historical records and were intentionally left untouched.
+- Line-by-line code audit of `assets/js/kalshi-client.js` and `assets/js/engine.js`: RSA-PSS SHA-256 saltLength 32, signed-header names, orderbook reciprocal parser, Create Order V2 payload, ≥$0.10 dual-chat alerting, $1.00/$0.00 settlement payouts, P&L math, seeded cash $9,991.70 — **no defects found**. Session 2 left the then-current seeded ledger unchanged; Session 3 subsequently removed prefilled sample trades from fresh accounts and labels retained legacy seed rows.
 
 ### S2-02 — Dataset corrections ledger (status: `done`, scope `assets/js/data.js`)
 | Ticker | Field | Before (Session 1) | After (live-verified) | Official Source |
@@ -189,10 +198,20 @@
 ### S2-04 — Verification, PR & deploy (status: `done`)
 - `python3 scripts/verify_site.py`: **ALL CHECKS PASSED** — 23 files, 35 internal links / 0 broken, DOM IDs match, 5-topic isolation (29 markets), HTTPS sources on all rows (16 endpoints / 29 markets / 9 irregularities / 7 audit items / 6 suggestions), orderbook spread $0.02, engine alert/trade/settle/strategy tests pass.
 - `node --check` clean on all 9 JS modules; live `http.server` check: HTTP 200 on all served routes; `IRREG-14` confirmed served in `data.js`.
-- Seeded demo-ledger note: `engine.js` TRD-1001..TRD-1004 entries reference pre-correction prices as **historical records** (open positions will mark to new live prices — expected behavior, not an error).
+- Session 2 recorded `TRD-1001..TRD-1004` as historical paper examples. Session 3 removed seeded examples from the fresh-account fallback; if present in older browser storage, these IDs are labeled as seeded rather than user-executed trades.
 
 ## Session 2 Pull Request & Deployment Record
 - **Source Branch:** `arena/59730b38-tradebot3` -> `main`
 - **PR URL:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/6
 - **Merge Method:** `gh pr merge 6 --merge` (merged into `main` on 2026-11-22T07:29:19Z as `24fe002` after passing `scripts/verify_site.py` with 0 broken links); flagged items (R-01 + static IRREG-09..13 + IRREG-14, `needs review`) do not block merge and remain published on `flagged-for-review.html`.
 - **GitHub Pages Live URL:** https://kanlerxz87-cyber.github.io/Tradebot3/ (deploy success confirmed via `pages/builds/latest` status `built`; record-keeping follow-up PR #7 merged after)
+
+---
+
+## Session 3 Follow-up (`arena/a17ff2cd-tradebot3`, 2026-11-22 UTC)
+
+- **Coordination/rebase:** `git pull --rebase origin main` discovered main had advanced to `5851fb3` via Session 2 PR #8 while this branch was being updated. Conflicts were limited to coordination, summary, catalog, engine, and UI-common files. Resolution preserves Session 2's 8-page verification, 7 data corrections, IRREG-14, and complete prior session logs; Session 3 changes are layered on top. No other session's work was intentionally dropped.
+- **Official pages fetched in this follow-up:** https://docs.kalshi.com/getting_started/demo_env (demo host names and Demo fidelity disclaimer); https://docs.kalshi.com/getting_started/orderbook_responses (orderbook bids, ordering, reciprocal price math, unknown ticker response); https://docs.kalshi.com/api-reference/market/get-market-candlesticks (1/60/1440-minute intervals); https://docs.kalshi.com/getting_started/quick_start_websockets (auth handshake headers and channels).
+- **Scope:** Session 2 re-verified 8 of 29 market pages; this follow-up did not independently recheck all remaining static market values. Their Kalshi links are present for manual review. News-to-contract causality and model fair value/ROI remain unverified.
+- **Current changes:** dashboard now labels simulated ticks/depth and static catalog snapshots, suppresses invented snapshot alert timestamps, begins new local paper accounts without seeded trade P&L/positions, marks retained legacy seed rows, adds market links to portfolio analytics, and publishes IRREG-15..18. The paper ticket does not call Kalshi order creation.
+- **Validation:** `python3 scripts/verify_site.py` passed (23 files; 36 internal links/0 broken; DOM references; 29 markets/5 topics; 9 entries in the dynamic irregularity dataset before Session 3 addition (plus the static IRREG-09..13 audit table); after addition there are 13 dynamic irregularity rows, 7 catalog volumes still null, and 11 resolved snapshots; orderbook math; paper alert/trade/settlement/strategy tests). `node --check` all JS and `git diff --check` passed. Local static preview returned HTTP 200 on 22 routes.

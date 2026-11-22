@@ -15,6 +15,14 @@ import {
   formatTimeShort
 } from './ui-common.js';
 
+const LEGACY_SEED_IDS = new Set(['TRD-1001', 'TRD-1002', 'TRD-1003', 'TRD-1004']);
+
+function isLegacySeedPosition(position) {
+  return engine.portfolio.trades.some((trade) =>
+    LEGACY_SEED_IDS.has(trade.id) && trade.ticker === position.ticker && trade.side === position.side && trade.status === 'OPEN'
+  );
+}
+
 function populateMarketSelect() {
   const sel = document.getElementById('trade-ticker');
   if (!sel || sel.options.length) return;
@@ -77,7 +85,7 @@ function renderOpenPositions() {
   const { openPositions } = engine.getPortfolioSummary();
 
   if (!openPositions.length) {
-    tbody.innerHTML = '<tr><td colspan="9" class="muted">No open positions. Place a demo trade or enable an automated strategy below.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="muted">No open paper positions. <a href="https://kalshi.com/markets" target="_blank" rel="noopener noreferrer">Official Kalshi markets ↗</a></td></tr>';
     return;
   }
 
@@ -86,7 +94,7 @@ function renderOpenPositions() {
       const m = engine.getMarket(p.ticker);
       return `
         <tr>
-          <td class="mono"><strong>${escapeHtml(p.ticker)}</strong><div class="tiny muted">${escapeHtml(p.marketTitle)}</div></td>
+          <td class="mono"><strong>${escapeHtml(p.ticker)}</strong><div class="tiny muted">${escapeHtml(p.marketTitle)}</div>${isLegacySeedPosition(p) ? '<span class="badge badge-unverified">Legacy seeded example</span>' : ''}</td>
           <td>${formatTopicBadge(p.topic)}</td>
           <td><span class="badge ${p.side === 'YES' ? 'badge-yes' : 'badge-no'}">${escapeHtml(p.side)}</span></td>
           <td class="mono">${p.contracts}</td>
@@ -137,22 +145,32 @@ function renderCategoryAnalytics() {
   if (!tbody) return;
   const rows = engine.getCategoryAnalytics();
 
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="muted">No paper trades to analyze yet. <a href="https://kalshi.com/markets" target="_blank" rel="noopener noreferrer">Browse official Kalshi markets ↗</a></td></tr>';
+    return;
+  }
+
   tbody.innerHTML = rows
-    .map(
-      (r) => `
-      <tr>
-        <td><strong>${escapeHtml(r.category)}</strong></td>
-        <td class="mono">${r.totalTrades}</td>
-        <td class="mono">${r.closedTrades}</td>
-        <td class="mono">${r.winRatePct !== null ? `${r.winRatePct}%` : '<span class="muted">—</span>'}</td>
-        <td class="mono ${r.pnl >= 0 ? 'delta-up' : 'delta-down'}">${r.pnl >= 0 ? '+' : ''}$${r.pnl.toFixed(2)}</td>
-        <td class="mono ${r.roiPct >= 0 ? 'delta-up' : 'delta-down'}">${r.roiPct >= 0 ? '+' : ''}${r.roiPct}%</td>
-        <td>
-          <button class="btn-xs btn-prefill-strat" data-category="${escapeHtml(r.category)}">Build Strategy →</button>
-        </td>
-      </tr>
-    `
-    )
+    .map((r) => {
+      const sourceMarkets = [...new Set(engine.portfolio.trades
+        .filter((trade) => trade.category === r.category)
+        .map((trade) => trade.ticker))]
+        .map((ticker) => engine.getMarket(ticker))
+        .filter(Boolean);
+      const sources = sourceMarkets.map((market) => formatSourceLink(market.sourceUrl, market.ticker)).join('<br>');
+      return `
+        <tr>
+          <td><strong>${escapeHtml(r.category)}</strong></td>
+          <td class="mono">${r.totalTrades}</td>
+          <td class="mono">${r.closedTrades}</td>
+          <td class="mono">${r.winRatePct !== null ? `${r.winRatePct}%` : '<span class="muted">—</span>'}</td>
+          <td class="mono ${r.pnl >= 0 ? 'delta-up' : 'delta-down'}">${r.pnl >= 0 ? '+' : ''}$${r.pnl.toFixed(2)}</td>
+          <td class="mono ${r.roiPct >= 0 ? 'delta-up' : 'delta-down'}">${r.roiPct >= 0 ? '+' : ''}${r.roiPct}%</td>
+          <td><button class="btn-xs btn-prefill-strat" data-category="${escapeHtml(r.category)}">Build Strategy →</button></td>
+          <td>${sources || formatSourceLink('https://kalshi.com/markets', 'Kalshi Markets')}</td>
+        </tr>
+      `;
+    })
     .join('');
 }
 
@@ -160,6 +178,10 @@ function renderTradesTable() {
   const tbody = document.getElementById('trades-ledger-body');
   if (!tbody) return;
   const trades = engine.portfolio.trades;
+  if (!trades.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="muted">No paper trades yet. <a href="https://kalshi.com/markets" target="_blank" rel="noopener noreferrer">Official Kalshi markets ↗</a></td></tr>';
+    return;
+  }
 
   tbody.innerHTML = trades
     .map((t) => {
@@ -174,7 +196,7 @@ function renderTradesTable() {
           <td><span class="badge ${t.status === 'OPEN' ? 'badge-open' : t.pnl >= 0 ? 'badge-yes' : 'badge-no'}">${escapeHtml(t.status)}</span></td>
           <td class="mono ${t.pnl > 0 ? 'delta-up' : t.pnl < 0 ? 'delta-down' : ''}">${t.status === 'OPEN' ? '—' : `${t.pnl >= 0 ? '+' : ''}$${Number(t.pnl).toFixed(2)} (${t.roiPct}%)`}</td>
           <td><span class="badge badge-sim">${escapeHtml(t.category)}</span></td>
-          <td class="tiny">${escapeHtml(t.note)} ${m ? formatSourceLink(m.sourceUrl, 'Kalshi') : ''}</td>
+          <td class="tiny">${LEGACY_SEED_IDS.has(t.id) ? '<span class="badge badge-unverified">Legacy seeded example — not a user-executed trade</span> ' : ''}${escapeHtml(t.note)} ${m ? formatSourceLink(m.sourceUrl, 'Kalshi') : ''}</td>
         </tr>
       `;
     })

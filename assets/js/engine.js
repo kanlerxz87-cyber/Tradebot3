@@ -1,5 +1,5 @@
 /**
- * Tradebot3 Live Alerting, Orderbook, Portfolio & Automated Strategy Engine
+ * Tradebot3 Paper Simulation Alerting, Orderbook, Portfolio & Strategy Engine
  * - Enforces >= $0.10 swing alerts in either direction into TWO scrolling chats:
  *   1) All Events Feed
  *   2) High-ROI Model Selective Feed
@@ -46,7 +46,7 @@ export const DEFAULT_STRATEGIES = [
     minExpectedRoi: 10,
     maxContracts: 20,
     rule: 'follow',
-    description: 'Follows sharp >= $0.10 breakouts when accompanied by verified news/data catalysts.'
+    description: 'Follows simulated >= $0.10 breakouts; news links are context only and not verified causes.'
   },
   {
     id: 'strat-high-roi',
@@ -168,7 +168,7 @@ export function evaluateHighRoi(market, currentPrice, delta = 0, orderbook = nul
     : 70;
 
   const qualified = netEdge >= 0.05 && expectedRoiPct >= 15 && liquidityScore >= 55;
-  const swingNote = Math.abs(delta) >= SWING_ALERT_THRESHOLD ? `Post-swing ${delta > 0 ? '+' : ''}$${delta.toFixed(2)}` : 'Live valuation';
+  const swingNote = Math.abs(delta) >= SWING_ALERT_THRESHOLD ? `Post-swing ${delta > 0 ? '+' : ''}$${delta.toFixed(2)}` : 'Paper valuation';
 
   return {
     qualified,
@@ -275,109 +275,9 @@ export class TradebotEngine {
       cashBalance: 10000.0,
       startingBalance: 10000.0,
       positions: {},
-      trades: [
-        {
-          id: 'TRD-1001',
-          ts: Date.now() - 1000 * 60 * 140,
-          ticker: 'KXAAAGASMIN-26DEC31',
-          topic: 'gas-prices',
-          action: 'BUY',
-          side: 'YES',
-          contracts: 40,
-          price: 0.45,
-          exitPrice: 0.55,
-          status: 'CLOSED',
-          pnl: 4.0,
-          roiPct: 22.2,
-          category: 'News Catalyst',
-          strategyId: 'strat-momentum',
-          mode: 'Paper Demo',
-          note: 'Entered on AAA national average dropping under $4/gal (+10¢ jump)'
-        },
-        {
-          id: 'TRD-1002',
-          ts: Date.now() - 1000 * 60 * 110,
-          ticker: 'KXETHMINY-27JAN01',
-          topic: 'crypto',
-          action: 'BUY',
-          side: 'YES',
-          contracts: 50,
-          price: 0.25,
-          exitPrice: 0.42,
-          status: 'CLOSED',
-          pnl: 8.5,
-          roiPct: 68.0,
-          category: 'High-ROI Model',
-          strategyId: 'strat-high-roi',
-          mode: 'Paper Demo',
-          note: 'Model flagged ETH downside mispricing after Waller 50bp hike remarks'
-        },
-        {
-          id: 'TRD-1003',
-          ts: Date.now() - 1000 * 60 * 80,
-          ticker: 'KXPGATOUR-THRC26-MTHO',
-          topic: 'golf',
-          action: 'BUY',
-          side: 'YES',
-          contracts: 60,
-          price: 0.13,
-          exitPrice: null,
-          status: 'OPEN',
-          pnl: 0,
-          roiPct: 0,
-          category: 'Momentum Breakout',
-          strategyId: 'strat-momentum',
-          mode: 'Paper Demo',
-          note: 'RSM Classic Round 1-2 surge to T1 (+10¢ breakout)'
-        },
-        {
-          id: 'TRD-1004',
-          ts: Date.now() - 1000 * 60 * 50,
-          ticker: 'KXPRESNOMD-28',
-          topic: 'elections',
-          action: 'BUY',
-          side: 'YES',
-          contracts: 50,
-          price: 0.26,
-          exitPrice: null,
-          status: 'OPEN',
-          pnl: 0,
-          roiPct: 0,
-          category: 'High-ROI Model',
-          strategyId: 'strat-high-roi',
-          mode: 'Paper Demo',
-          note: 'Emerson poll surge + Model Fair Value $0.34 vs $0.26'
-        }
-      ],
+      trades: [],
       strategies: JSON.parse(JSON.stringify(DEFAULT_STRATEGIES)),
-      equityCurve: [
-        { ts: Date.now() - 1000 * 60 * 180, equity: 10000.0 },
-        { ts: Date.now() - 1000 * 60 * 130, equity: 10004.0 },
-        { ts: Date.now() - 1000 * 60 * 95, equity: 10012.5 },
-        { ts: Date.now() - 1000 * 60 * 40, equity: 10014.1 },
-        { ts: Date.now(), equity: 10012.5 }
-      ]
-    };
-
-    // Build initial positions map from open seeded trades
-    fallback.cashBalance = 9991.7; // 10000 + 4.0 + 8.5 - (60*0.13) - (50*0.26)
-    fallback.positions = {
-      'KXPGATOUR-THRC26-MTHO:YES': {
-        ticker: 'KXPGATOUR-THRC26-MTHO',
-        topic: 'golf',
-        side: 'YES',
-        contracts: 60,
-        avgPrice: 0.13,
-        category: 'Momentum Breakout'
-      },
-      'KXPRESNOMD-28:YES': {
-        ticker: 'KXPRESNOMD-28',
-        topic: 'elections',
-        side: 'YES',
-        contracts: 50,
-        avgPrice: 0.26,
-        category: 'High-ROI Model'
-      }
+      equityCurve: [{ ts: Date.now(), equity: 10000.0 }]
     };
 
     try {
@@ -435,7 +335,6 @@ export class TradebotEngine {
   }
 
   seedInitialAlerts() {
-    const now = Date.now();
     const initialSwings = this.markets.filter(
       (m) => m.status === 'Open' && (Math.abs(m.observedSwing || 0) >= SWING_ALERT_THRESHOLD || (m.catalysts && m.catalysts.some((c) => Math.abs(c.delta) >= SWING_ALERT_THRESHOLD)))
     );
@@ -450,7 +349,8 @@ export class TradebotEngine {
       const fromPrice = clampPrice(m.currentPrice - delta);
       const alert = {
         id: `ALT-SEED-${idx + 1}`,
-        ts: now - (initialSwings.length - idx) * 1000 * 42,
+        ts: null,
+        snapshot: true,
         ticker: m.ticker,
         title: m.title,
         topic: m.topic,
@@ -458,7 +358,7 @@ export class TradebotEngine {
         toPrice: m.currentPrice,
         delta: +delta.toFixed(2),
         direction: delta >= 0 ? 'UP' : 'DOWN',
-        catalystLabel: primaryCat ? primaryCat.label : 'Catalog-listed >= $0.10 move (unverified tick; see Flagged for Review)',
+        catalystLabel: primaryCat ? `Catalog context (not live; causation unverified): ${primaryCat.label}` : 'Static catalog swing snapshot; not a live alert',
         catalystUrl: primaryCat ? primaryCat.url : m.sourceUrl,
         catalystSource: primaryCat ? primaryCat.sourceName : m.sourceLabel,
         verifiedSourceUrl: m.sourceUrl,
@@ -521,7 +421,7 @@ export class TradebotEngine {
   }
 
   /**
-   * Simulate a real-time tick across open markets; periodically produces a >= $0.10 swing alert.
+   * Generate a paper-simulation tick across open catalog markets and periodically produce a >= $0.10 simulated swing alert.
    */
   runTick(forceSwingTicker = null) {
     this.tickCount += 1;
@@ -593,8 +493,8 @@ export class TradebotEngine {
           delta: actualDelta,
           direction: actualDelta >= 0 ? 'UP' : 'DOWN',
           catalystLabel: cat
-            ? `Simulated Demo Tick (${cat.sourceName} reference): ${cat.label}`
-            : `Simulated Demo Tick: Rapid orderbook repricing (${actualDelta >= 0 ? '+' : ''}$${actualDelta.toFixed(2)})`,
+            ? `Simulated price tick; ${cat.sourceName} is context only, not a verified cause: ${cat.label}`
+            : `Simulated price tick: generated repricing (${actualDelta >= 0 ? '+' : ''}$${actualDelta.toFixed(2)})`,
           catalystUrl: cat ? cat.url : m.sourceUrl,
           catalystSource: cat ? cat.sourceName : m.sourceLabel,
           verifiedSourceUrl: m.sourceUrl,

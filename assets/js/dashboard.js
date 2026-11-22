@@ -1,5 +1,5 @@
 /**
- * Landing Page & Live Dashboard Controller (index.html)
+ * Landing Page & Paper-Simulation Dashboard Controller (index.html)
  */
 
 import { TOPICS, ALLOWED_TOPICS } from './data.js';
@@ -34,22 +34,22 @@ function renderKpis() {
   if (!el) return;
   el.innerHTML = `
     <div class="kpi-card">
-      <div class="kpi-label">Tracked Kalshi Events</div>
+      <div class="kpi-label">Catalog Markets</div>
       <div class="kpi-value">${engine.markets.length}</div>
-      <div class="kpi-sub">${openCount} Live/Open · ${resolvedCount} Resolved (5 topics only)</div>
+      <div class="kpi-sub">${openCount} Open · ${resolvedCount} Resolved in the snapshot</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Verified Dollar Volume</div>
+      <div class="kpi-label">Catalog Dollar Volume</div>
       <div class="kpi-value">$${(totalVol / 1e9).toFixed(2)}B</div>
-      <div class="kpi-sub">Sum of verified official Kalshi volumes</div>
+      <div class="kpi-sub">Static sourced snapshot; not a live total</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">&gt;= $0.10 Swing Alerts</div>
+      <div class="kpi-label">Paper Swing Alerts</div>
       <div class="kpi-value">${engine.allAlerts.length} / ${engine.highRoiAlerts.length}</div>
-      <div class="kpi-sub">All Events / High-ROI Selective</div>
+      <div class="kpi-sub">All Events / High-ROI · simulated and snapshot</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Demo Portfolio Equity</div>
+      <div class="kpi-label">Paper Portfolio Equity</div>
       <div class="kpi-value">$${summary.totalEquity.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
       <div class="kpi-sub ${summary.totalPnl >= 0 ? 'delta-up' : 'delta-down'}">P&amp;L: ${summary.totalPnl >= 0 ? '+' : ''}$${summary.totalPnl.toFixed(2)} (${summary.totalRoiPct >= 0 ? '+' : ''}${summary.totalRoiPct}%)</div>
     </div>
@@ -69,7 +69,7 @@ function renderTopicCards() {
       <a class="topic-card" href="${t.pagePath}">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           ${formatTopicBadge(topicId)}
-          <span class="tiny muted">${open} Live · ${resolved} Resolved</span>
+          <span class="tiny muted">${open} Open · ${resolved} Resolved (snapshot)</span>
         </div>
         <strong style="font-size:15px;">${escapeHtml(t.name)}</strong>
         <div class="tiny muted">${escapeHtml(t.description)}</div>
@@ -130,9 +130,9 @@ function renderChartAndOrderbook() {
         ${formatTopicBadge(market.topic)}
         <strong class="mono">${escapeHtml(market.ticker)}</strong>
         ${formatResolutionBadge(market)}
-        <span class="mono" style="font-size:15px;font-weight:700;">Current: $${market.currentPrice.toFixed(2)}</span>
+        <span class="badge badge-sim">Simulated current: $${market.currentPrice.toFixed(2)}</span>
         ${formatDeltaBadge(market.lastDelta)}
-        <span class="tiny muted">Verified Vol: ${market.volumeUsd ? '$' + market.volumeUsd.toLocaleString() : 'Unverified'}</span>
+        <span class="tiny muted">Catalog volume: ${market.volumeUsd ? '$' + market.volumeUsd.toLocaleString() : 'Unverified'}</span>
         ${formatSourceLink(market.sourceUrl, 'Official Kalshi Market')}
       </div>
       <div class="tiny muted" style="margin-top:4px;">${escapeHtml(market.roi.reason)}</div>
@@ -177,7 +177,7 @@ function renderCatalystPanel(market) {
     el.innerHTML = `
       ${activeHtml}
       <strong>Sharp Jump Catalysts (&gt;= $0.10):</strong>
-      <span class="muted">No &gt;= $0.10 catalyst markers logged for ${escapeHtml(market.ticker)} yet. Click "Trigger &gt;= $0.10 Swing" or select a market with verified catalysts.</span>
+      <span class="muted">No &gt;= $0.10 markers logged for ${escapeHtml(market.ticker)}. Click the simulated swing control to generate a paper event.</span>
     `;
     return;
   }
@@ -215,7 +215,7 @@ function renderMarketsTable() {
       <tr class="topic-group-row">
         <td colspan="9">
           ${formatTopicBadge(topicId)}
-          <span style="margin-left:6px;">${escapeHtml(t.name)} — ${items.length} Verified Markets (Sorted by Dollar Volume)</span>
+          <span style="margin-left:6px;">${escapeHtml(t.name)} — ${items.length} Catalog Markets (Sorted by Catalog Volume)</span>
           <a href="${t.pagePath}" style="float:right;font-size:12px;">Open ${escapeHtml(t.name)} Subpage →</a>
         </td>
       </tr>
@@ -237,7 +237,7 @@ function renderMarketsTable() {
           <td class="mono"><strong>${formatPrice(m.currentPrice)}</strong> ${formatDeltaBadge(m.lastDelta)}</td>
           <td class="mono">${formatPrice(m.observedPrice)}</td>
           <td>${formatResolutionBadge(m)}</td>
-          <td class="tiny">${m.roi.qualified ? `<span class="badge badge-verified">High ROI (+${m.roi.expectedRoiPct}%)</span>` : '<span class="muted">Watch</span>'}</td>
+          <td class="tiny">${m.roi.qualified ? `<span class="badge badge-sim">Heuristic signal (+${m.roi.expectedRoiPct}%)</span>` : '<span class="muted">Watch</span>'}</td>
           <td>${formatSourceLink(m.sourceUrl, m.sourceLabel)}</td>
           <td>
             <button class="btn-xs btn-inspect" data-ticker="${escapeHtml(m.ticker)}">Chart</button>
@@ -282,8 +282,8 @@ function bindEvents() {
     liveBtn.addEventListener('click', () => {
       const running = engine.toggleLive();
       liveBtn.innerHTML = running
-        ? '<span class="live-dot"></span>Live Stream: ON'
-        : '<span class="live-dot paused"></span>Live Stream: PAUSED';
+        ? '<span class="live-dot"></span>Paper Simulation: ON'
+        : '<span class="live-dot paused"></span>Paper Simulation: PAUSED';
     });
   }
 
@@ -301,7 +301,7 @@ function bindEvents() {
     testApiBtn.addEventListener('click', async () => {
       const banner = document.getElementById('demo-api-status');
       if (banner) {
-        banner.textContent = 'Testing live Kalshi Demo REST connectivity (external-api.demo.kalshi.co)...';
+        banner.textContent = 'Testing public Kalshi Demo REST connectivity; this does not activate a live WebSocket feed or change the paper simulator.';
         banner.className = 'status-banner';
       }
       const res = await engine.client.testPublicConnectivity();

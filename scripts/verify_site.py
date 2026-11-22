@@ -143,10 +143,19 @@ if (ob.bestYesBid !== 0.42 || ob.bestYesAsk !== 0.44 || ob.spread !== 0.02) {
 
 // 4. Engine live tick, >= $0.10 swing alert, trade execution, resolution & custom strategy test
 const eng = new TradebotEngine();
+if (eng.portfolio.trades.length !== 0 || Object.keys(eng.portfolio.positions).length !== 0 || eng.portfolio.cashBalance !== 10000) {
+  throw new Error('Fresh paper account should start clean at the $10,000 mock balance');
+}
+if (!eng.allAlerts.length || eng.allAlerts.some((a) => !a.snapshot || a.ts !== null)) {
+  throw new Error('Seeded catalog alerts must be labeled snapshots without invented timestamps');
+}
 const beforeAlerts = eng.allAlerts.length;
 eng.runTick('KXPRESNOMD-28');
 if (eng.allAlerts.length <= beforeAlerts) {
   throw new Error('Expected >= $0.10 forced swing alert to fire');
+}
+if (!eng.allAlerts[0].simulated || eng.allAlerts[0].snapshot) {
+  throw new Error('Generated alert must be labeled as a simulation, not a live alert');
 }
 const trade = eng.executePaperTrade({
   ticker: 'KXAAAGASMIN-26DEC31',
