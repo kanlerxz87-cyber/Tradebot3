@@ -58,8 +58,8 @@
             </div>
           </div>
           <div style="margin-bottom:10px;">
-            <label class="field-label" for="api-private-key">RSA PKCS#8 Private Key PEM (Optional · Signed in Browser via Web Crypto RSA-PSS · Never Stored)</label>
-            <textarea id="api-private-key" rows="2" placeholder="-----BEGIN PRIVATE KEY----- (optional for account-balance read only)"></textarea>
+            <label class="field-label" for="api-private-key">Demo Private Key PEM (Optional · Supports Ed25519 Default &amp; RSA-PSS PKCS#1/PKCS#8 · Browser Session Memory Only)</label>
+            <textarea id="api-private-key" rows="2" placeholder="-----BEGIN PRIVATE KEY----- (Ed25519/PKCS#8) or -----BEGIN RSA PRIVATE KEY-----"></textarea>
           </div>
           <button type="submit" class="btn btn-primary btn-sm">Test / Connect Kalshi Demo API</button>
           <div id="api-conn-feedback" class="status-banner" style="margin-top:8px;margin-bottom:0;">
@@ -112,6 +112,12 @@
             <input id="trade-note" type="text" placeholder="e.g., Post-swing mean reversion" />
           </div>
         </div>
+        <div style="margin-bottom:10px;">
+          <label class="tiny" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+            <input id="trade-live-demo" type="checkbox" style="width:auto;" />
+            Optional: Submit signed Create Order V2 to Live Kalshi Demo REST (only when authenticated above; Paper Simulation otherwise)
+          </label>
+        </div>
         <button type="submit" class="btn btn-primary">Record Paper Simulation Trade</button>
         <div id="trade-feedback" style="margin-top:8px;"></div>
       </form>
@@ -149,6 +155,9 @@
         <div class="card-header">
           <h2>Trade Categorization &amp; Results Analysis</h2>
           <span class="tiny muted">Compare win rate, P&amp;L &amp; ROI by trade type</span>
+        </div>
+        <div style="height:200px;margin-bottom:12px;">
+          <canvas id="category-pnl-chart" style="width:100%;height:100%;display:block;border:1px solid #e2e8f0;border-radius:8px;" aria-label="Trade Category Net P&L Bar Chart"></canvas>
         </div>
         <div class="table-wrap">
           <table class="data-table compact-table">

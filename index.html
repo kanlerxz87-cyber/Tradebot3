@@ -50,6 +50,24 @@
     </section>
 
     <!-- Dual Scrolling Alert Chats -->
+    <section class="card" style="margin-bottom:14px;padding:12px 16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <strong class="small">Live Alert Chat Controls (&gt;= $0.10 Swings):</strong>
+          <select id="alert-topic-filter" style="width:auto;" aria-label="Filter Alert Chats by Topic">
+            <option value="all">All 5 Topics</option>
+            <option value="gas-prices">Gas Prices</option>
+            <option value="elections">Elections</option>
+            <option value="culture">Culture</option>
+            <option value="crypto">Crypto</option>
+            <option value="golf">Golf</option>
+          </select>
+          <input id="alert-search" type="text" placeholder="Filter alerts by ticker or catalyst..." style="width:230px;" aria-label="Search alerts" />
+        </div>
+        <button id="btn-toggle-sound" type="button" class="btn btn-sm">High-ROI Sound Ping: OFF</button>
+      </div>
+    </section>
+
     <section class="grid-2" style="margin-bottom:18px;">
       <div class="card" style="margin-bottom:0;">
         <div class="card-header">
@@ -99,6 +117,7 @@
         </div>
 
         <div>
+          <div id="ob-live-status" style="margin-bottom:8px;"></div>
           <div id="live-orderbook-panel"></div>
 
           <!-- Quick Trade Execution Ticket -->
@@ -118,13 +137,14 @@
               </div>
               <div>
                 <label class="field-label" for="qt-price">Price ($)</label>
-                <input id="qt-price" type="number" step="0.01" min="0.01" max="0.99" value="0.26" required />
+                <input id="qt-price" type="number" step="0.01" min="0.01" max="0.99" value="0.24" required />
               </div>
               <div>
                 <label class="field-label" for="qt-category">Trade Category</label>
                 <select id="qt-category"></select>
               </div>
             </div>
+            <div id="qt-est-summary" class="tiny muted mono" style="margin-bottom:8px;"></div>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
               <button type="submit" class="btn btn-primary btn-sm">Execute Paper Simulation Trade</button>
               <a class="small" href="portfolio.html">Open Full Portfolio &amp; Automated Strategies →</a>
@@ -142,13 +162,20 @@
           <h2>Kalshi Reference Catalog (Grouped by Topic · Sorted by Published Volume)</h2>
           <div class="tiny muted">Static reference values only; not refreshed live. Every row links to a Kalshi market page. Unconfirmed fields remain blank and flagged Unverified.</div>
         </div>
-        <div class="seg-group" role="group" aria-label="Filter Table by Topic">
-          <button class="seg-btn active" data-topic-filter="all">All 5 Topics</button>
-          <button class="seg-btn" data-topic-filter="gas-prices">Gas Prices</button>
-          <button class="seg-btn" data-topic-filter="elections">Elections</button>
-          <button class="seg-btn" data-topic-filter="culture">Culture</button>
-          <button class="seg-btn" data-topic-filter="crypto">Crypto</button>
-          <button class="seg-btn" data-topic-filter="golf">Golf</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <div class="seg-group" role="group" aria-label="Filter Table by Status">
+            <button class="seg-btn active" data-status-filter="all">All Statuses</button>
+            <button class="seg-btn" data-status-filter="open">Live / Open</button>
+            <button class="seg-btn" data-status-filter="resolved">Resolved YES/NO</button>
+          </div>
+          <div class="seg-group" role="group" aria-label="Filter Table by Topic">
+            <button class="seg-btn active" data-topic-filter="all">All 5 Topics</button>
+            <button class="seg-btn" data-topic-filter="gas-prices">Gas Prices</button>
+            <button class="seg-btn" data-topic-filter="elections">Elections</button>
+            <button class="seg-btn" data-topic-filter="culture">Culture</button>
+            <button class="seg-btn" data-topic-filter="crypto">Crypto</button>
+            <button class="seg-btn" data-topic-filter="golf">Golf</button>
+          </div>
         </div>
       </div>
       <div class="table-wrap">

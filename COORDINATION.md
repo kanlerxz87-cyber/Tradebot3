@@ -239,3 +239,16 @@
 - **Merge Method:** `gh pr merge 7 --merge` after passing `node --check`, `scripts/verify_site.py` with 0 broken links, and live HTTP spot-check; flagged items (`needs review`) do not block merge and remain published on `flagged-for-review.html`.
 - **Merge Result:** MERGED 2026-11-22T07:35:51Z as `393555d`; all session 2b tasks T-10..T-13 `done`.
 - **GitHub Pages Live URL:** https://kanlerxz87-cyber.github.io/Tradebot3/ (deploy build for `393555d` status `built`, updated 2026-11-22T07:36:19Z, no errors)
+
+---
+
+## Session 3 Task Board & Reconciliation Log (`arena-ff314ece`, 2026-11-22 UTC)
+
+| Task ID | Task Description | Status | Owning Session | Branch | File Scope |
+| --- | --- | --- | --- | --- | --- |
+| S3-01 | Independent audit of all 14 official Kalshi API docs pages + all 29 live `kalshi.com` market pages; add `API Key Signing Spec` (Ed25519 default + ±30s window), fix 2026 RSM Classic `/leaderboard` catalyst link, log `IRREG-20` | `done` | `arena-ff314ece` | `arena/ff314ece-tradebot3` | `assets/js/data.js`, `EXECUTIVE_SUMMARY.md`, `COORDINATION.md` |
+| S3-02 | Upgrade `kalshi-client.js` (Ed25519 + PKCS#1/PKCS#8 RSA-PSS + `mapYesNoOrderToV2` + live `getMarketOrderbook`), fix Quick Trade NO-side price sync bug, add chart hover crosshair tooltip, Alert Chat topic/search filters + sound ping, Pull Live Book button, status filter, optional Live Demo REST order toggle, and Trade Category Net P&L Bar Chart | `done` | `arena-ff314ece` | `arena/ff314ece-tradebot3` | `assets/js/*.js`, `index.html`, `portfolio.html` |
+| S3-03 | Reconcile onto `main` @ `709fadb` (preserving PR #4 clean `$10,000` baseline + paper disclosures and PR #7/#12 notifications + `IRREG-18/19`), run expanded `scripts/verify_site.py`, push, merge PR #10, and confirm GitHub Pages deployment | `done` | `arena-ff314ece` | `arena/ff314ece-tradebot3` | `scripts/verify_site.py`, `COORDINATION.md` |
+
+- **Reconciliation note:** Merged `origin/main` @ `709fadb` (PR #4 + PR #7 + PR #12) cleanly; preserved 100% of PR #4's paper-simulation disclosures, zero fabricated startup trades/alerts, clean `$10,000` baseline, and `IRREG-16/17`, plus PR #7/#12's 29-market refresh, High-ROI browser notification toggle (`#btn-alert-notify`), and `IRREG-18/19`. Renumbered Session 3's audit item to **`IRREG-20`**.
+- **PR URL:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/10 (`arena/ff314ece-tradebot3` -> `main`)

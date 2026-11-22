@@ -3,8 +3,10 @@
  * - Live Contract Price Chart:
  *   - X-axis: Time (selectable: seconds, minutes, hours)
  *   - Y-axis: Current Contract Price ($0.00 - $1.00)
- *   - Plots >= $0.10 sharp jump catalyst markers with hover/click inspection
+ *   - Interactive hover crosshair + live price/timestamp readout tooltip
+ *   - Plots >= $0.10 sharp jump catalyst markers with click & hover inspection
  * - Portfolio Equity Curve Chart
+ * - Trade Category P&L Bar Chart
  */
 
 function formatAxisTime(ts, timeframe) {
@@ -18,8 +20,18 @@ function formatAxisTime(ts, timeframe) {
   return `${months[d.getMonth()]} ${d.getDate()} ${hh}:00`;
 }
 
-export function renderPriceChart(canvas, market, timeframe = 'minutes', { onMarkerSelect = null } = {}) {
-  if (!canvas || !market || !market.series) return [];
+function drawRoundedRect(ctx, x, y, w, h, r) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
+}
+
+function drawPriceChartFrame(canvas, market, timeframe, hoverX = null) {
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
   const width = Math.max(320, Math.floor(rect.width || 640));
@@ -30,12 +42,11 @@ export function renderPriceChart(canvas, market, timeframe = 'minutes', { onMark
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
 
-  const points = market.series[timeframe] || market.series.minutes || [];
+  const points = (market.series && (market.series[timeframe] || market.series.minutes)) || [];
   const pad = { top: 24, right: 24, bottom: 38, left: 56 };
   const plotW = width - pad.left - pad.right;
   const plotH = height - pad.top - pad.bottom;
 
-  // Clear background
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, width, height);
 
@@ -171,7 +182,6 @@ export function renderPriceChart(canvas, market, timeframe = 'minutes', { onMark
     const isUp = marker.delta >= 0;
     const color = isUp ? '#15803d' : '#dc2626';
 
-    // Vertical guide
     ctx.save();
     ctx.setLineDash([2, 3]);
     ctx.strokeStyle = isUp ? 'rgba(21,128,61,0.35)' : 'rgba(220,38,38,0.35)';
@@ -192,7 +202,6 @@ export function renderPriceChart(canvas, market, timeframe = 'minutes', { onMark
     ctx.strokeRect(-5.5, -5.5, 11, 11);
     ctx.restore();
 
-    // Delta pill label
     const pillText = `${isUp ? '+' : ''}$${marker.delta.toFixed(2)}`;
     ctx.font = '700 10px ui-monospace, SFMono-Regular, Menlo, monospace';
     const textW = ctx.measureText(pillText).width + 10;
@@ -200,8 +209,7 @@ export function renderPriceChart(canvas, market, timeframe = 'minutes', { onMark
     const pillY = my > pad.top + 34 ? my - 26 : my + 12;
 
     ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.roundRect(pillX, pillY, textW, 18, 4);
+    drawRoundedRect(ctx, pillX, pillY, textW, 18, 4);
     ctx.fill();
 
     ctx.fillStyle = '#ffffff';
@@ -212,11 +220,70 @@ export function renderPriceChart(canvas, market, timeframe = 'minutes', { onMark
     hitRegions.push({ x: mx, y: my, radius: 16, marker });
   });
 
-  // Attach click handler cleanly
-  canvas._hitRegions = hitRegions;
+  // Interactive Hover Crosshair + Price/Time Tooltip
+  if (hoverX !== null && hoverX >= pad.left && hoverX <= width - pad.right) {
+    let closest = points[0];
+    let bestDist = Infinity;
+    for (const pt of points) {
+      const dist = Math.abs(xFor(pt.ts) - hoverX);
+      if (dist < bestDist) {
+        bestDist = dist;
+        closest = pt;
+      }
+    }
+    const cx = xFor(closest.ts);
+    const cy = yFor(closest.price);
+
+    ctx.save();
+    ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx, pad.top);
+    ctx.lineTo(cx, pad.top + plotH);
+    ctx.moveTo(pad.left, cy);
+    ctx.lineTo(width - pad.right, cy);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#0f172a';
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    const tipText = `YES $${closest.price.toFixed(2)} (NO $${(1 - closest.price).toFixed(2)}) · ${formatAxisTime(closest.ts, timeframe)}`;
+    ctx.font = '600 11px ui-monospace, SFMono-Regular, Menlo, monospace';
+    const tw = ctx.measureText(tipText).width + 16;
+    const th = 22;
+    const tx = Math.max(pad.left + 4, Math.min(width - pad.right - tw - 4, cx - tw / 2));
+    const ty = Math.max(4, cy - 32);
+
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+    drawRoundedRect(ctx, tx, ty, tw, th, 5);
+    ctx.fill();
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(tipText, tx + tw / 2, ty + th / 2);
+  }
+
+  return hitRegions;
+}
+
+export function renderPriceChart(canvas, market, timeframe = 'minutes', { onMarkerSelect = null } = {}) {
+  if (!canvas || !market || !market.series) return [];
+  canvas._chartState = { market, timeframe };
   canvas._onMarkerSelect = onMarkerSelect;
-  if (!canvas._clickBound) {
-    canvas._clickBound = true;
+
+  const hitRegions = drawPriceChartFrame(canvas, market, timeframe, canvas._hoverX ?? null);
+  canvas._hitRegions = hitRegions;
+
+  if (!canvas._eventsBound) {
+    canvas._eventsBound = true;
     canvas.addEventListener('click', (evt) => {
       if (!canvas._onMarkerSelect || !canvas._hitRegions) return;
       const box = canvas.getBoundingClientRect();
@@ -224,6 +291,21 @@ export function renderPriceChart(canvas, market, timeframe = 'minutes', { onMark
       const cy = evt.clientY - box.top;
       const hit = canvas._hitRegions.find((r) => Math.hypot(cx - r.x, cy - r.y) <= r.radius + 6);
       if (hit) canvas._onMarkerSelect(hit.marker);
+    });
+
+    canvas.addEventListener('mousemove', (evt) => {
+      if (!canvas._chartState) return;
+      const box = canvas.getBoundingClientRect();
+      canvas._hoverX = evt.clientX - box.left;
+      const { market: m, timeframe: tf } = canvas._chartState;
+      canvas._hitRegions = drawPriceChartFrame(canvas, m, tf, canvas._hoverX);
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      if (!canvas._chartState) return;
+      canvas._hoverX = null;
+      const { market: m, timeframe: tf } = canvas._chartState;
+      canvas._hitRegions = drawPriceChartFrame(canvas, m, tf, null);
     });
   }
 
@@ -258,7 +340,6 @@ export function renderEquityChart(canvas, equityCurve = []) {
   const xFor = (ts) => pad.left + ((ts - minTs) / (maxTs - minTs)) * plotW;
   const yFor = (v) => pad.top + (1 - (v - minVal) / span) * plotH;
 
-  // Grid
   ctx.strokeStyle = '#e2e8f0';
   ctx.fillStyle = '#475569';
   ctx.font = '11px ui-monospace, SFMono-Regular, Menlo, monospace';
@@ -274,7 +355,6 @@ export function renderEquityChart(canvas, equityCurve = []) {
     ctx.fillText(`$${val.toFixed(0)}`, pad.left - 8, y);
   }
 
-  // Baseline $10,000
   const baseY = yFor(10000);
   if (baseY >= pad.top && baseY <= pad.top + plotH) {
     ctx.save();
@@ -287,7 +367,6 @@ export function renderEquityChart(canvas, equityCurve = []) {
     ctx.restore();
   }
 
-  // Curve
   const lastVal = vals[vals.length - 1];
   const color = lastVal >= 10000 ? '#15803d' : '#dc2626';
   ctx.beginPath();
@@ -300,4 +379,66 @@ export function renderEquityChart(canvas, equityCurve = []) {
   ctx.strokeStyle = color;
   ctx.lineWidth = 2.2;
   ctx.stroke();
+}
+
+/**
+ * Simple horizontal bar chart comparing Net P&L across trade categories.
+ */
+export function renderCategoryBarChart(canvas, analytics = []) {
+  if (!canvas || !analytics.length) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  const width = Math.max(300, Math.floor(rect.width || 520));
+  const height = Math.max(180, Math.floor(rect.height || 210));
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, width, height);
+
+  const pad = { top: 14, right: 64, bottom: 18, left: 138 };
+  const plotW = Math.max(80, width - pad.left - pad.right);
+  const plotH = height - pad.top - pad.bottom;
+
+  const maxAbs = Math.max(5, ...analytics.map((r) => Math.abs(r.pnl || 0)));
+  const zeroX = pad.left + plotW / 2;
+  const rowH = plotH / analytics.length;
+
+  // Zero axis line
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(zeroX, pad.top);
+  ctx.lineTo(zeroX, pad.top + plotH);
+  ctx.stroke();
+
+  analytics.forEach((row, idx) => {
+    const yMid = pad.top + idx * rowH + rowH / 2;
+    const barH = Math.max(10, Math.min(18, rowH - 8));
+    const val = row.pnl || 0;
+    const barW = (Math.abs(val) / maxAbs) * (plotW / 2 - 6);
+
+    // Category label
+    ctx.fillStyle = '#334155';
+    ctx.font = '600 11px system-ui, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(row.category, pad.left - 8, yMid);
+
+    // Bar
+    ctx.fillStyle = val >= 0 ? '#15803d' : '#dc2626';
+    const bx = val >= 0 ? zeroX : zeroX - barW;
+    if (barW > 0.5) {
+      drawRoundedRect(ctx, bx, yMid - barH / 2, barW, barH, 3);
+      ctx.fill();
+    }
+
+    // Value label
+    ctx.fillStyle = val >= 0 ? '#15803d' : '#dc2626';
+    ctx.font = '700 11px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(`${val >= 0 ? '+' : ''}$${val.toFixed(2)}`, pad.left + plotW + 6, yMid);
+  });
 }

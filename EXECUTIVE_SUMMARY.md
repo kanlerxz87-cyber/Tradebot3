@@ -128,6 +128,7 @@ Known limitations and review items are published on `flagged-for-review.html`:
 - **IRREG-17 (Medium):** Model fair values are illustrative and not validated forecasts; catalyst links do not prove causality.
 - **IRREG-18 (session 2b `arena-83838475`):** Session-1 observed values irreconcilable with official live pages corrected to freshly verified values across all 29 markets (see Session 2b table); prior values preserved in git history. Supersedes static sample IRREG-10/12/13 with identical official values (renumbered: PR #6 owns IRREG-14, PR #4 owns IRREG-16/17).
 - **IRREG-19 (session 2b `arena-83838475`):** Kalshi `Determined` (outcome known, payout pending) rows are displayed as Resolved YES/NO; final settlement timestamps remain unverified.
+- **IRREG-20 (session 3 `arena-ff314ece`, PR #10):** Upgraded `kalshi-client.js` with Ed25519 (recommended default) + PKCS#1/PKCS#8 RSA-PSS signing, Create Order V2 YES/NO reciprocal mapping (`mapYesNoOrderToV2`), and live Demo REST orderbook pull (`getMarketOrderbook`); fixed Quick Trade NO-side price synchronization bug & 2026 PGA Tour RSM Classic leaderboard URL; added interactive chart hover crosshair tooltip, Alert Chat topic/search filters, master table status filter, optional authenticated Demo REST order toggle, and Trade Category Net P&L Bar Chart (preserving PR #4 paper-simulation disclosures & clean `$10,000` baseline and PR #7 High-ROI notifications).
 
 ---
 

@@ -136,6 +136,15 @@ export const DEMO_API_ENDPOINTS = [
     sourceLabel: 'Kalshi Docs — API Environments'
   },
   {
+    surface: 'API Key Signing Spec',
+    status: 'Authentication Spec',
+    url: 'Headers: KALSHI-ACCESS-KEY, KALSHI-ACCESS-TIMESTAMP (ms, ±30s), KALSHI-ACCESS-SIGNATURE',
+    authRequired: 'Ed25519 (recommended default, PKCS#8) or RSA-PSS SHA-256 (PKCS#1/PKCS#8)',
+    notes: 'Sign timestamp + METHOD + path_without_query. Timestamps outside ±30s return 401 header_timestamp_expired.',
+    sourceUrl: 'https://docs.kalshi.com/getting_started/api_keys',
+    sourceLabel: 'Kalshi Docs — API Keys'
+  },
+  {
     surface: 'REST Get Events',
     status: 'Public Endpoint',
     url: 'GET /trade-api/v2/events',
@@ -848,11 +857,11 @@ export const VERIFIED_MARKETS = [
     sourceLabel: 'Kalshi — 2026 The RSM Classic Winner',
     catalysts: [
       {
-        label: 'Michael Thorbjornsen opens 64 (-8) & surges to T1 at The RSM Classic (+$0.10 jump)',
+        label: 'Michael Thorbjornsen opens 64 (-8) & shares T1 (-9) after Round 2 at The RSM Classic before rain suspension',
         delta: 0.10,
         timeOffsetMin: 105,
-        url: 'https://www.pgatour.com/tournaments/2026/the-rsm-classic/R2026493/past-results',
-        sourceName: 'PGA Tour'
+        url: 'https://www.pgatour.com/tournaments/2026/the-rsm-classic/R2026493/leaderboard',
+        sourceName: 'PGA Tour 2026 Leaderboard'
       }
     ]
   },
@@ -1045,6 +1054,16 @@ export const FLAGGED_IRREGULARITIES = [
     status: 'Needs Review',
     sourceUrl: 'https://kalshi.com/markets/kxaaagascdny/new-york-gas-price/kxaaagascdny-26nov19',
     sourceLabel: 'Kalshi — New York Gas Price Nov 19 (Determined Yes)'
+  },
+  {
+    id: 'IRREG-20',
+    severity: 'Medium',
+    category: 'API Client, Bugfix & Catalyst Link Remediation (Session arena-ff314ece)',
+    item: 'Upgraded Kalshi Demo client (Ed25519 default + PKCS#1 RSA + V2 YES/NO mapping), fixed Quick Trade NO-side price sync & 2026 PGA Tour leaderboard link',
+    detail: 'Independent audit by session arena-ff314ece verified all 29 live Kalshi markets + 14 Kalshi API docs pages and remediated four remaining technical gaps while preserving PR #4 (IRREG-16/17 paper-simulation disclosures) and PR #7 (IRREG-18/19): (1) kalshi-client.js now supports Kalshi\'s recommended default Ed25519 keys plus PKCS#1-to-PKCS#8 RSA-PSS wrapping, Create Order V2 reciprocal YES/NO mapping (mapYesNoOrderToV2), and live Demo REST orderbook fetching (getMarketOrderbook); (2) fixed Quick Trade NO-side price synchronization bug (YES -> currentPrice, NO -> 1 - currentPrice) and added Cost/Payout estimator; (3) updated KXPGATOUR-THRC26-MTHO catalyst link from 2025 /past-results to live 2026 /leaderboard; (4) added interactive chart hover crosshair tooltip, Alert Chat topic/search filters, live Demo book pull, status filter, optional live Demo order submission toggle, and Trade Category Net P&L Bar Chart.',
+    status: 'Remediated in PR #10 — Published for Transparency',
+    sourceUrl: 'https://docs.kalshi.com/getting_started/api_keys',
+    sourceLabel: 'Kalshi Docs — API Keys & Official Pages'
   }
 ];
 
@@ -1112,6 +1131,14 @@ export const REPO_AUDIT_ITEMS = [
     verified: true,
     sourceUrl: 'https://kalshi.com/markets',
     sourceLabel: 'Kalshi Official Markets'
+  },
+  {
+    path: 'assets/js/kalshi-client.js + assets/js/charts.js + dashboard/portfolio UX (arena-ff314ece)',
+    checkType: 'API Client, Bugfix & Interactive UX Audit',
+    finding: 'Session arena-ff314ece cross-verified all 29 live Kalshi markets & 14 docs.kalshi.com pages; upgraded kalshi-client.js with Ed25519 (default) + PKCS#1/PKCS#8 RSA-PSS + mapYesNoOrderToV2 + live getMarketOrderbook; fixed Quick Trade NO-side price sync & 2026 RSM Classic leaderboard link; added chart hover crosshair tooltip, Category P&L bar chart, alert search/topic filters, status filter, and Pull Live Book button. Logged as IRREG-20 (reconciled cleanly onto PR #4 & PR #7).',
+    verified: true,
+    sourceUrl: 'https://docs.kalshi.com/getting_started/api_keys',
+    sourceLabel: 'Kalshi Docs — API Keys & Create Order V2'
   }
 ];
 

@@ -224,6 +224,7 @@ export class TradebotEngine {
     this.client = new KalshiDemoClient();
     this.listeners = new Set();
     this.running = true;
+    this.soundEnabled = false;
     this.tickTimer = null;
     this.tickCount = 0;
     this.markets = [];
@@ -231,6 +232,27 @@ export class TradebotEngine {
     this.highRoiAlerts = [];
     this.portfolio = this.loadState();
     this.initMarkets();
+  }
+
+  playAlertPing() {
+    if (!this.soundEnabled || typeof window === 'undefined') return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      gain.gain.setValueAtTime(0.06, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.17);
+    } catch (_) {
+      // Ignore audio autoplay blocks
+    }
   }
 
   loadState() {
@@ -446,6 +468,7 @@ export class TradebotEngine {
         if (m.roi.qualified) {
           this.highRoiAlerts.unshift(alert);
           if (this.highRoiAlerts.length > 60) this.highRoiAlerts.pop();
+          this.playAlertPing();
         }
 
         // Trigger automated simulated strategies
@@ -754,6 +777,55 @@ export class TradebotEngine {
     const summary = this.getPortfolioSummary();
     this.portfolio.equityCurve.push({ ts, equity: summary.totalEquity });
     if (this.portfolio.equityCurve.length > 80) this.portfolio.equityCurve.shift();
+  }
+
+  async fetchLiveOrderbook(ticker) {
+    const market = this.getMarket(ticker);
+    if (!market) return { ok: false, message: 'Market not found in catalog.' };
+    try {
+      const ob = await this.client.getMarketOrderbook(ticker, 10);
+      if (ob.totalYesContracts === 0 && ob.totalNoContracts === 0) {
+        return {
+          ok: false,
+          emptyBook: true,
+          message: `Kalshi Demo REST returned HTTP 200 with empty resting book for ${ticker} (see IRREG-05). Keeping Demo Simulated Depth.`
+        };
+      }
+      market.orderbook = ob;
+      this.notify('orderbook', { ticker, live: true });
+      return {
+        ok: true,
+        message: `Loaded live Kalshi Demo REST orderbook for ${ticker} (${ob.totalYesContracts + ob.totalNoContracts} resting contracts).`
+      };
+    } catch (err) {
+      return {
+        ok: false,
+        message: `Live orderbook REST fetch blocked or unavailable (${err.message}). Displaying Demo Simulated Depth (see IRREG-02 / IRREG-07).`
+      };
+    }
+  }
+
+  async executeLiveOrPaperTrade(orderParams, { useLiveDemoApi = false } = {}) {
+    if (useLiveDemoApi && this.client.authenticated) {
+      const apiRes = await this.client.createOrderFromYesNo({
+        ticker: orderParams.ticker,
+        action: orderParams.action,
+        side: orderParams.side,
+        contracts: orderParams.contracts,
+        price: orderParams.price,
+        postOnly: Boolean(orderParams.postOnly)
+      });
+      const mirrored = this.executePaperTrade({
+        ...orderParams,
+        note: `${orderParams.note || 'Live Demo Order'} [Kalshi Demo order_id: ${apiRes.order_id || 'submitted'}]`
+      });
+      mirrored.mode = 'Kalshi Demo REST (Live)';
+      this.saveState();
+      this.notify('portfolio', mirrored);
+      return { trade: mirrored, liveApiResponse: apiRes };
+    }
+    const trade = this.executePaperTrade(orderParams);
+    return { trade, liveApiResponse: null };
   }
 }
 

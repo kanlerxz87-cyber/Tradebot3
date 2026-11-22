@@ -119,8 +119,11 @@ function renderTopicChartAndOrderbook() {
   if (obEl) obEl.innerHTML = renderOrderbookHtml(market.orderbook, market.ticker);
 
   const priceInput = document.getElementById('cat-qt-price');
+  const sideSel = document.getElementById('cat-qt-side');
   if (priceInput && document.activeElement !== priceInput) {
-    priceInput.value = market.currentPrice.toFixed(2);
+    const side = sideSel ? sideSel.value : 'YES';
+    const p = side === 'YES' ? market.currentPrice : Math.max(0.01, Math.min(0.99, +(1 - market.currentPrice).toFixed(2)));
+    priceInput.value = p.toFixed(2);
   }
 }
 
@@ -213,7 +216,23 @@ function bindEvents() {
     });
   }
 
-  document.body.addEventListener('click', (e) => {
+  document.body.addEventListener('click', async (e) => {
+    const pullObBtn = e.target.closest('.btn-pull-live-ob');
+    if (pullObBtn && pullObBtn.dataset.ticker) {
+      const fb = document.getElementById('cat-qt-feedback');
+      if (fb) {
+        fb.className = 'status-banner';
+        fb.textContent = `Fetching live Kalshi Demo orderbook for ${pullObBtn.dataset.ticker}...`;
+      }
+      const res = await engine.fetchLiveOrderbook(pullObBtn.dataset.ticker);
+      if (fb) {
+        fb.className = res.ok ? 'status-banner ok' : 'status-banner warn';
+        fb.textContent = res.message;
+      }
+      renderTopicChartAndOrderbook();
+      return;
+    }
+
     const btn = e.target.closest('.btn-inspect, .ticker-jump-btn');
     if (btn && btn.dataset.ticker) {
       selectedTicker = btn.dataset.ticker;
@@ -222,7 +241,9 @@ function bindEvents() {
     }
     const obRow = e.target.closest('.ob-row');
     if (obRow && obRow.dataset.price) {
+      const sideSel = document.getElementById('cat-qt-side');
       const p = document.getElementById('cat-qt-price');
+      if (sideSel) sideSel.value = obRow.dataset.side || 'YES';
       if (p) p.value = obRow.dataset.price;
     }
   });
@@ -232,6 +253,16 @@ function bindEvents() {
     const catSel = document.getElementById('cat-qt-category');
     if (catSel) {
       catSel.innerHTML = TRADE_CATEGORIES.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    }
+    const sideSel = document.getElementById('cat-qt-side');
+    if (sideSel) {
+      sideSel.addEventListener('change', () => {
+        const m = engine.getMarket(selectedTicker);
+        const p = document.getElementById('cat-qt-price');
+        if (m && p) {
+          p.value = (sideSel.value === 'YES' ? m.currentPrice : Math.max(0.01, Math.min(0.99, +(1 - m.currentPrice).toFixed(2)))).toFixed(2);
+        }
+      });
     }
     form.addEventListener('submit', (e) => {
       e.preventDefault();
