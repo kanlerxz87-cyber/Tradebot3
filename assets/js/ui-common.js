@@ -189,7 +189,10 @@ export function renderOrderbookHtml(orderbook, ticker) {
         <strong>Orderbook Liquidity (${escapeHtml(ticker)})</strong>
         <div class="muted tiny">Click any level to pre-fill order price · Official reciprocal rule: YES Ask = $1.00 − NO Bid</div>
       </div>
-      <div>${simBadge}</div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <button type="button" class="btn-xs btn-pull-live-ob" data-ticker="${escapeHtml(ticker)}" title="Fetch live GET /markets/${escapeHtml(ticker)}/orderbook from Kalshi Demo REST">Pull Live Book</button>
+        ${simBadge}
+      </div>
     </div>
     <div class="ob-summary-strip">
       <div><span class="muted">Best YES Bid:</span> <strong class="mono bid-price">${orderbook.bestYesBid !== null ? `$${orderbook.bestYesBid.toFixed(2)}` : '—'}</strong></div>

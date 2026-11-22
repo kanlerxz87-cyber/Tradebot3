@@ -11,7 +11,7 @@
 import { VERIFIED_MARKETS, TOPICS, ALLOWED_TOPICS } from './data.js';
 import { KalshiDemoClient } from './kalshi-client.js';
 
-const STORAGE_KEY = 'tradebot3_demo_state_v1';
+const STORAGE_KEY = 'tradebot3_demo_state_v2';
 export const SWING_ALERT_THRESHOLD = 0.10; // >= $0.10 in either direction
 
 export const TRADE_CATEGORIES = [
@@ -260,6 +260,7 @@ export class TradebotEngine {
     this.client = new KalshiDemoClient();
     this.listeners = new Set();
     this.running = true;
+    this.soundEnabled = false;
     this.tickTimer = null;
     this.tickCount = 0;
     this.markets = [];
@@ -268,6 +269,27 @@ export class TradebotEngine {
     this.portfolio = this.loadState();
     this.initMarkets();
     this.seedInitialAlerts();
+  }
+
+  playAlertPing() {
+    if (!this.soundEnabled || typeof window === 'undefined') return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      gain.gain.setValueAtTime(0.06, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.17);
+    } catch (_) {
+      // Ignore audio autoplay blocks
+    }
   }
 
   loadState() {
@@ -284,15 +306,15 @@ export class TradebotEngine {
           action: 'BUY',
           side: 'YES',
           contracts: 40,
-          price: 0.45,
-          exitPrice: 0.55,
+          price: 0.40,
+          exitPrice: 0.67,
           status: 'CLOSED',
-          pnl: 4.0,
-          roiPct: 22.2,
+          pnl: 10.8,
+          roiPct: 67.5,
           category: 'News Catalyst',
           strategyId: 'strat-momentum',
           mode: 'Paper Demo',
-          note: 'Entered on AAA national average dropping under $4/gal (+10¢ jump)'
+          note: 'Entered on AAA national average drop below $4/gal (+27¢ observed swing)'
         },
         {
           id: 'TRD-1002',
@@ -302,15 +324,15 @@ export class TradebotEngine {
           action: 'BUY',
           side: 'YES',
           contracts: 50,
-          price: 0.25,
-          exitPrice: 0.42,
+          price: 0.37,
+          exitPrice: 0.63,
           status: 'CLOSED',
-          pnl: 8.5,
-          roiPct: 68.0,
+          pnl: 13.0,
+          roiPct: 70.3,
           category: 'High-ROI Model',
           strategyId: 'strat-high-roi',
           mode: 'Paper Demo',
-          note: 'Model flagged ETH downside mispricing after Waller 50bp hike remarks'
+          note: 'Model flagged ETH Below $1,500 swing (+26¢) amid $545M liquidations'
         },
         {
           id: 'TRD-1003',
@@ -320,7 +342,7 @@ export class TradebotEngine {
           action: 'BUY',
           side: 'YES',
           contracts: 60,
-          price: 0.13,
+          price: 0.18,
           exitPrice: null,
           status: 'OPEN',
           pnl: 0,
@@ -328,7 +350,7 @@ export class TradebotEngine {
           category: 'Momentum Breakout',
           strategyId: 'strat-momentum',
           mode: 'Paper Demo',
-          note: 'RSM Classic Round 1-2 surge to T1 (+10¢ breakout)'
+          note: 'RSM Classic T1 (-9) after Round 2 before rain delay'
         },
         {
           id: 'TRD-1004',
@@ -338,7 +360,7 @@ export class TradebotEngine {
           action: 'BUY',
           side: 'YES',
           contracts: 50,
-          price: 0.26,
+          price: 0.24,
           exitPrice: null,
           status: 'OPEN',
           pnl: 0,
@@ -346,28 +368,28 @@ export class TradebotEngine {
           category: 'High-ROI Model',
           strategyId: 'strat-high-roi',
           mode: 'Paper Demo',
-          note: 'Emerson poll surge + Model Fair Value $0.34 vs $0.26'
+          note: 'Emerson poll #1 Democrat (17%) · Model Fair $0.33 vs $0.24'
         }
       ],
       strategies: JSON.parse(JSON.stringify(DEFAULT_STRATEGIES)),
       equityCurve: [
         { ts: Date.now() - 1000 * 60 * 180, equity: 10000.0 },
-        { ts: Date.now() - 1000 * 60 * 130, equity: 10004.0 },
-        { ts: Date.now() - 1000 * 60 * 95, equity: 10012.5 },
-        { ts: Date.now() - 1000 * 60 * 40, equity: 10014.1 },
-        { ts: Date.now(), equity: 10012.5 }
+        { ts: Date.now() - 1000 * 60 * 130, equity: 10010.8 },
+        { ts: Date.now() - 1000 * 60 * 95, equity: 10023.8 },
+        { ts: Date.now() - 1000 * 60 * 40, equity: 10025.2 },
+        { ts: Date.now(), equity: 10023.8 }
       ]
     };
 
     // Build initial positions map from open seeded trades
-    fallback.cashBalance = 9991.7; // 10000 + 4.0 + 8.5 - (60*0.13) - (50*0.26)
+    fallback.cashBalance = 10001.0; // 10000 + 10.8 + 13.0 - (60*0.18=10.8) - (50*0.24=12.0)
     fallback.positions = {
       'KXPGATOUR-THRC26-MTHO:YES': {
         ticker: 'KXPGATOUR-THRC26-MTHO',
         topic: 'golf',
         side: 'YES',
         contracts: 60,
-        avgPrice: 0.13,
+        avgPrice: 0.18,
         category: 'Momentum Breakout'
       },
       'KXPRESNOMD-28:YES': {
@@ -375,7 +397,7 @@ export class TradebotEngine {
         topic: 'elections',
         side: 'YES',
         contracts: 50,
-        avgPrice: 0.26,
+        avgPrice: 0.24,
         category: 'High-ROI Model'
       }
     };
@@ -620,6 +642,7 @@ export class TradebotEngine {
         if (m.roi.qualified) {
           this.highRoiAlerts.unshift(alert);
           if (this.highRoiAlerts.length > 60) this.highRoiAlerts.pop();
+          this.playAlertPing();
         }
 
         // Trigger automated simulated strategies
@@ -928,6 +951,62 @@ export class TradebotEngine {
     const summary = this.getPortfolioSummary();
     this.portfolio.equityCurve.push({ ts, equity: summary.totalEquity });
     if (this.portfolio.equityCurve.length > 80) this.portfolio.equityCurve.shift();
+  }
+
+  /**
+   * Attempt to fetch live resting orderbook depth from Kalshi Demo REST API (GET /markets/{ticker}/orderbook).
+   * Respects IRREG-05 (HTTP 200 empty arrays for unknown/inactive demo tickers).
+   */
+  async fetchLiveOrderbook(ticker) {
+    const market = this.getMarket(ticker);
+    if (!market) return { ok: false, message: 'Market not found in catalog.' };
+    try {
+      const ob = await this.client.getMarketOrderbook(ticker, 10);
+      if (ob.totalYesContracts === 0 && ob.totalNoContracts === 0) {
+        return {
+          ok: false,
+          emptyBook: true,
+          message: `Kalshi Demo REST returned HTTP 200 with empty resting book for ${ticker} (see IRREG-05). Keeping interactive Demo Simulated Depth.`
+        };
+      }
+      market.orderbook = ob;
+      this.notify('orderbook', { ticker, live: true });
+      return {
+        ok: true,
+        message: `Loaded live Kalshi Demo REST orderbook for ${ticker} (${ob.totalYesContracts + ob.totalNoContracts} resting contracts).`
+      };
+    } catch (err) {
+      return {
+        ok: false,
+        message: `Live orderbook REST fetch blocked or unavailable (${err.message}). Displaying Demo Simulated Depth (see IRREG-02 / IRREG-07).`
+      };
+    }
+  }
+
+  /**
+   * Execute via authenticated Kalshi Demo REST V2 when requested & connected, otherwise execute in Paper Demo Mode.
+   */
+  async executeLiveOrPaperTrade(orderParams, { useLiveDemoApi = false } = {}) {
+    if (useLiveDemoApi && this.client.authenticated) {
+      const apiRes = await this.client.createOrderFromYesNo({
+        ticker: orderParams.ticker,
+        action: orderParams.action,
+        side: orderParams.side,
+        contracts: orderParams.contracts,
+        price: orderParams.price,
+        postOnly: Boolean(orderParams.postOnly)
+      });
+      const mirrored = this.executePaperTrade({
+        ...orderParams,
+        note: `${orderParams.note || 'Live Demo Order'} [Kalshi Demo order_id: ${apiRes.order_id || 'submitted'}]`
+      });
+      mirrored.mode = 'Kalshi Demo REST (Live)';
+      this.saveState();
+      this.notify('portfolio', mirrored);
+      return { trade: mirrored, liveApiResponse: apiRes };
+    }
+    const trade = this.executePaperTrade(orderParams);
+    return { trade, liveApiResponse: null };
   }
 }
 

@@ -22,6 +22,9 @@ import {
 let selectedTicker = 'KXPRESNOMD-28';
 let selectedTimeframe = 'minutes';
 let selectedTableTopic = 'all';
+let selectedStatusFilter = 'all';
+let selectedAlertTopic = 'all';
+let alertSearchQuery = '';
 let selectedMarker = null;
 
 function renderKpis() {
@@ -81,26 +84,67 @@ function renderTopicCards() {
   }).join('');
 }
 
+function filterAlertList(list) {
+  const q = alertSearchQuery.trim().toLowerCase();
+  return list.filter((a) => {
+    if (selectedAlertTopic !== 'all' && a.topic !== selectedAlertTopic) return false;
+    if (!q) return true;
+    return (
+      a.ticker.toLowerCase().includes(q) ||
+      a.title.toLowerCase().includes(q) ||
+      (a.catalystLabel || '').toLowerCase().includes(q) ||
+      (a.catalystSource || '').toLowerCase().includes(q)
+    );
+  });
+}
+
 function renderDualChats() {
   const allEl = document.getElementById('chat-all-events');
   const roiEl = document.getElementById('chat-high-roi');
   const allCountEl = document.getElementById('count-all-alerts');
   const roiCountEl = document.getElementById('count-roi-alerts');
 
-  if (allCountEl) allCountEl.textContent = String(engine.allAlerts.length);
-  if (roiCountEl) roiCountEl.textContent = String(engine.highRoiAlerts.length);
+  const filteredAll = filterAlertList(engine.allAlerts);
+  const filteredRoi = filterAlertList(engine.highRoiAlerts);
+
+  if (allCountEl) allCountEl.textContent = String(filteredAll.length);
+  if (roiCountEl) roiCountEl.textContent = String(filteredRoi.length);
 
   if (allEl) {
-    allEl.innerHTML = engine.allAlerts.length
-      ? engine.allAlerts.map((a) => renderAlertItemHtml(a, false)).join('')
-      : '<p class="muted small">Listening for >= $0.10 price swings across the 5 topics...</p>';
+    allEl.innerHTML = filteredAll.length
+      ? filteredAll.map((a) => renderAlertItemHtml(a, false)).join('')
+      : '<p class="muted small">No matching &gt;= $0.10 price swings. Clear filters or click "Trigger &gt;= $0.10 Swing".</p>';
   }
 
   if (roiEl) {
-    roiEl.innerHTML = engine.highRoiAlerts.length
-      ? engine.highRoiAlerts.map((a) => renderAlertItemHtml(a, true)).join('')
-      : '<p class="muted small">No swings currently meet High-ROI Model thresholds (Net Edge >= $0.05 &amp; Exp ROI >= 15%).</p>';
+    roiEl.innerHTML = filteredRoi.length
+      ? filteredRoi.map((a) => renderAlertItemHtml(a, true)).join('')
+      : '<p class="muted small">No matching swings currently meet High-ROI Model thresholds (Net Edge &gt;= $0.05 &amp; Exp ROI &gt;= 15%).</p>';
   }
+}
+
+function updateQuickTradeEstimate() {
+  const estEl = document.getElementById('qt-est-summary');
+  if (!estEl) return;
+  const contracts = Math.max(0, Number(document.getElementById('qt-contracts')?.value || 0));
+  const price = Math.max(0, Number(document.getElementById('qt-price')?.value || 0));
+  const side = document.getElementById('qt-side')?.value || 'YES';
+  const cost = contracts * price;
+  const maxProfit = Math.max(0, contracts * (1 - price));
+  estEl.textContent = `Est. Cost (${side}): $${cost.toFixed(2)} · Max Settlement Payout: $${contracts.toFixed(2)} (Max Profit +$${maxProfit.toFixed(2)})`;
+}
+
+function syncQuickTradePrice(force = false) {
+  const market = engine.getMarket(selectedTicker);
+  const priceInput = document.getElementById('qt-price');
+  const sideEl = document.getElementById('qt-side');
+  if (!market || !priceInput || !sideEl) return;
+  if (force || document.activeElement !== priceInput) {
+    const side = sideEl.value;
+    const p = side === 'YES' ? market.currentPrice : Math.max(0.01, Math.min(0.99, +(1 - market.currentPrice).toFixed(2)));
+    priceInput.value = p.toFixed(2);
+  }
+  updateQuickTradeEstimate();
 }
 
 function renderChartAndOrderbook() {
@@ -115,7 +159,7 @@ function renderChartAndOrderbook() {
       engine.getMarketsByTopic(topicId).forEach((m) => {
         const opt = document.createElement('option');
         opt.value = m.ticker;
-        opt.textContent = `${m.ticker} — ${m.title}`;
+        opt.textContent = `${m.ticker} (${m.status}) — ${m.title}`;
         grp.appendChild(opt);
       });
       selectEl.appendChild(grp);
@@ -135,7 +179,7 @@ function renderChartAndOrderbook() {
         <span class="tiny muted">Verified Vol: ${market.volumeUsd ? '$' + market.volumeUsd.toLocaleString() : 'Unverified'}</span>
         ${formatSourceLink(market.sourceUrl, 'Official Kalshi Market')}
       </div>
-      <div class="tiny muted" style="margin-top:4px;">${escapeHtml(market.roi.reason)}</div>
+      <div class="tiny muted" style="margin-top:4px;">${escapeHtml(market.roi.reason)} · Hover chart for exact price/time crosshair</div>
     `;
   }
 
@@ -154,24 +198,21 @@ function renderChartAndOrderbook() {
     obEl.innerHTML = renderOrderbookHtml(market.orderbook, market.ticker);
   }
 
-  // Update quick trade defaults
-  const priceInput = document.getElementById('qt-price');
-  if (priceInput && document.activeElement !== priceInput) {
-    priceInput.value = market.currentPrice.toFixed(2);
-  }
+  syncQuickTradePrice(false);
 }
 
 function renderCatalystPanel(market) {
   const el = document.getElementById('chart-catalysts');
   if (!el) return;
   const markers = market.series.jumpMarkers || [];
-  const activeHtml = selectedMarker && selectedMarker.ticker === market.ticker
-    ? `<div class="status-banner ok" style="margin-bottom:8px;">
-         <strong>Selected >= $0.10 Jump Marker (${selectedMarker.delta >= 0 ? '+' : ''}$${selectedMarker.delta.toFixed(2)}):</strong>
-         ${escapeHtml(selectedMarker.label)} ·
-         ${formatSourceLink(selectedMarker.url, selectedMarker.sourceName)}
-       </div>`
-    : '';
+  const activeHtml =
+    selectedMarker && selectedMarker.ticker === market.ticker
+      ? `<div class="status-banner ok" style="margin-bottom:8px;">
+           <strong>Selected &gt;= $0.10 Jump Marker (${selectedMarker.delta >= 0 ? '+' : ''}$${selectedMarker.delta.toFixed(2)}):</strong>
+           ${escapeHtml(selectedMarker.label)} ·
+           ${formatSourceLink(selectedMarker.url, selectedMarker.sourceName)}
+         </div>`
+      : '';
 
   if (!markers.length) {
     el.innerHTML = `
@@ -210,7 +251,13 @@ function renderMarketsTable() {
 
   topicsToShow.forEach((topicId) => {
     const t = TOPICS[topicId];
-    const items = engine.getMarketsByTopic(topicId);
+    const items = engine.getMarketsByTopic(topicId).filter((m) => {
+      if (selectedStatusFilter === 'open') return m.status === 'Open';
+      if (selectedStatusFilter === 'resolved') return m.status === 'Resolved';
+      return true;
+    });
+    if (!items.length) return;
+
     rows.push(`
       <tr class="topic-group-row">
         <td colspan="9">
@@ -247,7 +294,9 @@ function renderMarketsTable() {
     });
   });
 
-  tbody.innerHTML = rows.join('');
+  tbody.innerHTML = rows.length
+    ? rows.join('')
+    : '<tr><td colspan="9" class="muted">No markets match the selected topic and status filters.</td></tr>';
 }
 
 function bindEvents() {
@@ -257,6 +306,7 @@ function bindEvents() {
       selectedTicker = e.target.value;
       selectedMarker = null;
       renderChartAndOrderbook();
+      syncQuickTradePrice(true);
       renderMarketsTable();
     });
   }
@@ -276,6 +326,39 @@ function bindEvents() {
       renderMarketsTable();
     });
   });
+
+  document.querySelectorAll('[data-status-filter]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      selectedStatusFilter = btn.dataset.statusFilter;
+      document.querySelectorAll('[data-status-filter]').forEach((b) => b.classList.toggle('active', b === btn));
+      renderMarketsTable();
+    });
+  });
+
+  const alertTopicSel = document.getElementById('alert-topic-filter');
+  if (alertTopicSel) {
+    alertTopicSel.addEventListener('change', (e) => {
+      selectedAlertTopic = e.target.value;
+      renderDualChats();
+    });
+  }
+
+  const alertSearchIn = document.getElementById('alert-search');
+  if (alertSearchIn) {
+    alertSearchIn.addEventListener('input', (e) => {
+      alertSearchQuery = e.target.value;
+      renderDualChats();
+    });
+  }
+
+  const soundBtn = document.getElementById('btn-toggle-sound');
+  if (soundBtn) {
+    soundBtn.addEventListener('click', () => {
+      engine.soundEnabled = !engine.soundEnabled;
+      soundBtn.textContent = engine.soundEnabled ? 'High-ROI Sound Ping: ON' : 'High-ROI Sound Ping: OFF';
+      if (engine.soundEnabled) engine.playAlertPing();
+    });
+  }
 
   const liveBtn = document.getElementById('btn-toggle-live');
   if (liveBtn) {
@@ -312,13 +395,30 @@ function bindEvents() {
     });
   }
 
-  // Delegate clicks on ticker buttons, Chart buttons, and orderbook price rows
-  document.body.addEventListener('click', (e) => {
+  // Delegate clicks on ticker buttons, Chart buttons, orderbook rows & Pull Live Book button
+  document.body.addEventListener('click', async (e) => {
+    const pullObBtn = e.target.closest('.btn-pull-live-ob');
+    if (pullObBtn && pullObBtn.dataset.ticker) {
+      const statusEl = document.getElementById('ob-live-status');
+      if (statusEl) {
+        statusEl.className = 'status-banner';
+        statusEl.textContent = `Fetching live Kalshi Demo orderbook for ${pullObBtn.dataset.ticker}...`;
+      }
+      const res = await engine.fetchLiveOrderbook(pullObBtn.dataset.ticker);
+      if (statusEl) {
+        statusEl.className = res.ok ? 'status-banner ok' : 'status-banner warn';
+        statusEl.textContent = res.message;
+      }
+      renderChartAndOrderbook();
+      return;
+    }
+
     const inspectBtn = e.target.closest('.btn-inspect, .ticker-jump-btn');
     if (inspectBtn && inspectBtn.dataset.ticker) {
       selectedTicker = inspectBtn.dataset.ticker;
       selectedMarker = null;
       renderChartAndOrderbook();
+      syncQuickTradePrice(true);
       renderMarketsTable();
       const chartCard = document.getElementById('interactive-chart-section');
       if (chartCard) chartCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -327,8 +427,11 @@ function bindEvents() {
 
     const obRow = e.target.closest('.ob-row');
     if (obRow && obRow.dataset.price) {
+      const sideSel = document.getElementById('qt-side');
       const priceInput = document.getElementById('qt-price');
+      if (sideSel) sideSel.value = obRow.dataset.side || 'YES';
       if (priceInput) priceInput.value = obRow.dataset.price;
+      updateQuickTradeEstimate();
     }
   });
 
@@ -339,6 +442,13 @@ function bindEvents() {
     if (catSelect) {
       catSelect.innerHTML = TRADE_CATEGORIES.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
     }
+    const qtSide = document.getElementById('qt-side');
+    const qtContracts = document.getElementById('qt-contracts');
+    const qtPrice = document.getElementById('qt-price');
+    if (qtSide) qtSide.addEventListener('change', () => syncQuickTradePrice(true));
+    if (qtContracts) qtContracts.addEventListener('input', updateQuickTradeEstimate);
+    if (qtPrice) qtPrice.addEventListener('input', updateQuickTradeEstimate);
+
     qtForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const msgEl = document.getElementById('qt-feedback');
@@ -386,6 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   renderAll();
+  syncQuickTradePrice(true);
   engine.subscribe(() => renderAll());
   engine.start();
 });

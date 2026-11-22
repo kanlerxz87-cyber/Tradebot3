@@ -89,7 +89,7 @@ import {
   REPO_AUDIT_ITEMS,
   INTERACTIVE_SUGGESTIONS
 } from './assets/js/data.js';
-import { parseOrderbookFp } from './assets/js/kalshi-client.js';
+import { parseOrderbookFp, mapYesNoOrderToV2 } from './assets/js/kalshi-client.js';
 import { TradebotEngine } from './assets/js/engine.js';
 
 // 1. Strict 5-topic check
@@ -139,6 +139,29 @@ const ob = parseOrderbookFp({
 });
 if (ob.bestYesBid !== 0.42 || ob.bestYesAsk !== 0.44 || ob.spread !== 0.02) {
   throw new Error('Orderbook reciprocal math failed: ' + JSON.stringify(ob));
+}
+
+// 3b. Official Create Order V2 YES/NO reciprocal mapping checks
+const v2BuyYes = mapYesNoOrderToV2({ action: 'BUY', side: 'YES', price: 0.40 });
+const v2BuyNo = mapYesNoOrderToV2({ action: 'BUY', side: 'NO', price: 0.35 });
+const v2SellYes = mapYesNoOrderToV2({ action: 'SELL', side: 'YES', price: 0.62 });
+const v2SellNo = mapYesNoOrderToV2({ action: 'SELL', side: 'NO', price: 0.30 });
+if (v2BuyYes.side !== 'bid' || v2BuyYes.price !== 0.4) throw new Error('v2BuyYes failed: ' + JSON.stringify(v2BuyYes));
+if (v2BuyNo.side !== 'ask' || v2BuyNo.price !== 0.65) throw new Error('v2BuyNo failed: ' + JSON.stringify(v2BuyNo));
+if (v2SellYes.side !== 'ask' || v2SellYes.price !== 0.62) throw new Error('v2SellYes failed: ' + JSON.stringify(v2SellYes));
+if (v2SellNo.side !== 'bid' || v2SellNo.price !== 0.7) throw new Error('v2SellNo failed: ' + JSON.stringify(v2SellNo));
+
+// 3c. Verify 2026-11-22 settlement & IRREG-09 audit records
+const controls = VERIFIED_MARKETS.find((m) => m.ticker === 'CONTROLS-2026');
+if (!controls || controls.status !== 'Resolved' || controls.resolution !== 'YES' || controls.observedPrice !== 1.00) {
+  throw new Error('CONTROLS-2026 settlement verification failed');
+}
+const nyGas = VERIFIED_MARKETS.find((m) => m.ticker === 'KXAAAGASCDNY-26NOV19');
+if (!nyGas || nyGas.status !== 'Resolved' || nyGas.resolution !== 'YES' || nyGas.volumeUsd !== null) {
+  throw new Error('KXAAAGASCDNY-26NOV19 settlement / unverified-volume check failed');
+}
+if (!FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-09')) {
+  throw new Error('Missing IRREG-09 audit record');
 }
 
 // 4. Engine live tick, >= $0.10 swing alert, trade execution, resolution & custom strategy test
@@ -227,8 +250,18 @@ def check_dom_ids():
     print(f"[PASS] Verified all JS getElementById references across all {len(pairs)} HTML pages.")
 
 
+def check_js_syntax():
+    js_files = sorted((ROOT / "assets" / "js").glob("*.js"))
+    for jf in js_files:
+        proc = subprocess.run(["node", "--check", str(jf)], capture_output=True, text=True, check=False)
+        if proc.returncode != 0:
+            raise AssertionError(f"Syntax error in {jf}:\n{proc.stderr}")
+    print(f"[PASS] node --check passed on all {len(js_files)} JS modules.")
+
+
 def main():
     check_required_files()
+    check_js_syntax()
     check_internal_links()
     check_dom_ids()
     check_js_modules_and_data()
