@@ -6,7 +6,7 @@
 > **Working Branch:** `arena/1a3afb37-tradebot3` (Arena-fixed; branched from `main` at `08ad596f66ebccb189754df5fa6dadac6365989c`, rebased onto current main)
 > **Last Updated:** 2026-11-22 (UTC)
 >
-> This checkout contains the previously integrated T-01–T-06 sample-audit work on `main`. This session addresses a distinct broader UI/runtime-integrity gap (T-07) and works only on the current branch above.
+> This checkout contains prior T-01–T-06 sample-audit and Session 2 API/data refresh work on `main`. T-07 is a separate simulator/runtime-integrity follow-up on the current branch above.
 
 ---
 
@@ -27,7 +27,7 @@
 - T-01–T-06 and PR #1–#3 are historical, completed work from the earlier sessions/branches described below.
 - Current work is on Arena-fixed branch `arena/1a3afb37-tradebot3`; this session is T-07, claimed and pushed before code changes.
 - Items marked `needs review` are published on [`flagged-for-review.html`](flagged-for-review.html) with source links and do not block the build.
-- Automated checks verify source-link presence and expected hostnames; they do not validate the numeric contents of every linked market page. See IRREG-14.
+- Automated checks verify source-link presence and expected hostnames; they do not validate the numeric contents of every linked market page. See IRREG-14 and the subsequent Session 2 refresh record.
 
 ---
 
@@ -43,7 +43,6 @@
 | T-06 | Re-verify stored Kalshi values against official kalshi.com pages (sample of 6 markets); relabel unverified swing alerts as Unverified; publish mismatches on Flagged for Review | `done` (sample only) | `arena-a8cfdaeb` | `arena/a8cfdaeb-tradebot3` | `assets/js/ui-common.js`, `assets/js/engine.js`, `flagged-for-review.html`, `COORDINATION.md` |
 | T-07 | Broader simulator/runtime integrity audit: remove fabricated alerts/trades and disclose static/synthetic data | `done` | `arena-1a3afb37` | `arena/1a3afb37-tradebot3` | `COORDINATION.md`, `README.md`, `EXECUTIVE_SUMMARY.md`, `index.html`, `portfolio.html`, `flagged-for-review.html`, `assets/js/data.js`, `assets/js/engine.js`, `assets/js/ui-common.js`, `assets/js/dashboard.js`, `assets/js/category-page.js`, `assets/js/portfolio-page.js`, `categories/*.html`, `scripts/verify_site.py` |
 | R-01 | Flagged Irregularities IRREG-01 through IRREG-08 & unverified static fields (published on `flagged-for-review.html`) | `needs review` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `flagged-for-review.html`, `assets/js/data.js` |
-| T-06 | Independent audit: correct misleading live/verified labels on synthetic ticks, seed alerts, sample portfolio trades, and historical chart series | `in progress` | `arena-1a3afb37` | `arena/1a3afb37-tradebot3` | `COORDINATION.md`, `README.md`, `EXECUTIVE_SUMMARY.md`, `index.html`, `portfolio.html`, `assets/js/engine.js`, `assets/js/ui-common.js`, `assets/js/dashboard.js`, `scripts/verify_site.py` |
 
 ---
 
@@ -208,7 +207,13 @@
 
 - **Owner/branch:** `arena-1a3afb37` / `arena/1a3afb37-tradebot3`, rebased onto current main. Initial claim was pushed before implementation; T-06 is the prior session's 6-market sample audit.
 - **Coordination:** T-07 is a broader UI/runtime integrity follow-up; prior Sessions 1/2 data and deployment logs were preserved.
-- **Changes:** Removed seeded alerts, synthetic historical catalyst markers, sample trades, and sample equity history. New/cleared browser state starts at $10,000 with no positions/trades; storage key v2 avoids old sample data. Generated ticks/fills remain explicitly paper simulation even when REST connectivity succeeds. UI and docs disclose static catalog values, synthetic chart/depth/ticks, illustrative ROI, and no connected live WS/order execution. Added IRREG-15/16; prior IRREG-14 market refresh remains.
+- **Changes:** Removed seeded alerts, synthetic historical catalyst markers, sample trades, and sample equity history. New/cleared browser state starts at $10,000 with no positions/trades; storage key v2 avoids old sample data. Generated ticks/fills remain explicitly paper simulation even when REST connectivity succeeds. UI and docs disclose static catalog values, synthetic chart/depth/ticks, illustrative ROI, and no connected live WS/order execution. Added IRREG-16/17; prior IRREG-14 market refresh remains.
 - **Official sources checked:** https://docs.kalshi.com/getting_started/demo_env and https://docs.kalshi.com/getting_started/quick_start_websockets. Session 2's 8-page live re-check and API docs verification remain recorded above.
 - **Verification:** `python3 scripts/verify_site.py` passes (23 required files, 35 internal links/0 broken, DOM IDs, strict 5-topic isolation, source-host checks, orderbook math, no fabricated startup alerts/trades, clean $10,000 baseline, paper-only execution, resolution and strategy tests). JS syntax, Python compile, `git diff --check` pass; local HTTP smoke test returned 200 on 14 routes.
 - **PR/deploy:** PR #4 https://github.com/kanlerxz87-cyber/Tradebot3/pull/4, merge and final deploy confirmation pending.
+
+
+## Parallel Session Integration Note (2026-11-22 UTC)
+
+- At the time T-07 was rebased, PR #5 (`arena/dcead908-tradebot3`) and PR #7 (`arena/83838475-tradebot3`) were open and both edited `assets/js/data.js`; PR #7 also edited `index.html`, `assets/js/dashboard.js`, and `flagged-for-review.html`. T-07 overlaps those files because it corrects simulated/live labeling and appends IRREG-16/17.
+- Integration requirement: preserve the T-07 paper-simulation disclosures and clean portfolio baseline when resolving either open PR; PR #7's IRREG-14/15 are distinct, so T-07's flags use 16/17. This session has not edited or pushed to another session's branch.

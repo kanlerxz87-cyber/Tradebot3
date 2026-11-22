@@ -993,7 +993,7 @@ export const FLAGGED_IRREGULARITIES = [
     sourceLabel: 'Kalshi Official Markets (live re-check)'
   },
   {
-    id: 'IRREG-15',
+    id: 'IRREG-16',
     severity: 'High',
     category: 'Live Data & Execution',
     item: 'The GitHub Pages app uses local paper simulation, not a live Kalshi feed or order executor',
@@ -1003,7 +1003,7 @@ export const FLAGGED_IRREGULARITIES = [
     sourceLabel: 'Kalshi Docs — Authenticated WebSocket Requirements'
   },
   {
-    id: 'IRREG-16',
+    id: 'IRREG-17',
     severity: 'Medium',
     category: 'Illustrative Strategy Model',
     item: 'Model fair values and catalyst labels are not validated forecasts or proof of causation',
