@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Verification, Repo Audit &amp; Suggestions — Tradebot3</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body data-root-depth="0" data-page-mode="verification">
+  <div id="site-header"></div>
+
+  <main class="page-main container">
+    <section class="page-hero">
+      <div>
+        <h1>Official Kalshi Demo API Verification, Repo Audit &amp; Interactive Suggestions</h1>
+        <p>
+          Line-by-line verification of every Kalshi Demo REST endpoint, WebSocket URL, authentication requirement, orderbook schema,
+          repository file audit, and prioritized architectural suggestions to make the dashboard even more live and interactive.
+          Every table row links directly to its official source.
+        </p>
+      </div>
+      <div class="hero-controls">
+        <a class="btn btn-primary" href="flagged-for-review.html">View Flagged for Review →</a>
+        <a class="btn" href="EXECUTIVE_SUMMARY.md">Executive Summary</a>
+      </div>
+    </section>
+
+    <!-- Kalshi Demo API Verification Table -->
+    <section class="card">
+      <div class="card-header">
+        <h2>1. Verified Kalshi Demo API Endpoints &amp; Specifications</h2>
+        <span class="badge badge-verified">Verified Against docs.kalshi.com (2026-11-22)</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>API Surface</th>
+              <th>Status</th>
+              <th>Verified URL / Specification</th>
+              <th>Authentication</th>
+              <th>Verified Notes</th>
+              <th>Official Source Link</th>
+            </tr>
+          </thead>
+          <tbody id="api-endpoints-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Line-by-Line Repository Audit Table -->
+    <section class="card">
+      <div class="card-header">
+        <h2>2. Repository Line-by-Line Audit</h2>
+        <a class="tiny" href="COORDINATION.md">View COORDINATION.md Log →</a>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Repository File / Component</th>
+              <th>Audit Type</th>
+              <th>Verification Finding</th>
+              <th>Status</th>
+              <th>Source Link</th>
+            </tr>
+          </thead>
+          <tbody id="repo-audit-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Suggestions to Make the Site More Live & Interactive -->
+    <section class="card">
+      <div class="card-header">
+        <h2>3. Suggestions to Make the Dashboard More Live &amp; Interactive</h2>
+        <span class="tiny muted">Actionable upgrades grounded in official Kalshi API capabilities</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Priority</th>
+              <th>Area</th>
+              <th>Recommendation</th>
+              <th>Impact &amp; Technical Rationale</th>
+              <th>Official Reference</th>
+            </tr>
+          </thead>
+          <tbody id="suggestions-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+  <script type="module" src="assets/js/verification-page.js"></script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flagged for Review — Tradebot3</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body data-root-depth="0" data-page-mode="flagged">
+  <div id="site-header"></div>
+
+  <main class="page-main container">
+    <section class="page-hero">
+      <div>
+        <h1>Flagged for Review — Irregularities &amp; Unverified Fields</h1>
+        <p>
+          Per our strict zero-hallucination verification policy, every technical irregularity, browser/API limitation,
+          and market field that could not be confirmed from a static official source is published transparently here
+          with official source links for manual review. Unconfirmable table cells across the site are left blank and marked <strong>Unverified</strong>.
+        </p>
+      </div>
+      <div class="hero-controls">
+        <a class="btn btn-primary" href="index.html">← Back to Dashboard</a>
+        <a class="btn" href="verification.html">API Verification</a>
+      </div>
+    </section>
+
+    <!-- Flagged Technical & Repo Irregularities -->
+    <section class="card">
+      <div class="card-header">
+        <h2>Flagged Technical, API &amp; Repository Irregularities</h2>
+        <span class="badge badge-unverified">Status: Needs Review (Non-Blocking)</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Severity</th>
+              <th>Category</th>
+              <th>Irregularity &amp; Verification Detail</th>
+              <th>Status</th>
+              <th>Official Source Link</th>
+            </tr>
+          </thead>
+          <tbody id="irregularities-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Unverified Market Fields -->
+    <section class="card">
+      <div class="card-header">
+        <h2>Markets With Blank / Unverified Static Fields</h2>
+        <span class="tiny muted">Fields not exposed in official static market snapshots are left blank rather than inferred</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Ticker</th>
+              <th>Topic</th>
+              <th>Market Title</th>
+              <th>Fields Left Blank / Dynamic</th>
+              <th>Flag</th>
+              <th>Official Source Link</th>
+            </tr>
+          </thead>
+          <tbody id="unverified-fields-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+  <script type="module" src="assets/js/verification-page.js"></script>
+</body>
+</html>
