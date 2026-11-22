@@ -1,17 +1,31 @@
-  [warn] pagination cap reached for /markets (25000 items)
-  [warn] pagination cap reached for /markets (10000 items)
-Scanning Kalshi public market data ...
-Selected 0 markets across 0 events
+Discovering Kalshi series in the five topics ...
+  series[Economics]: 949 listed, 159 match a topic
+  series[Elections]: 2617 listed, 1966 match a topic
+  series[Culture]: 2 listed, 0 match a topic
+  series[Crypto]: 306 listed, 263 match a topic
+  series[Financials]: 1337 listed, 22 match a topic
+  series[Sports]: 4321 listed, 141 match a topic
+  series[Entertainment]: 2663 listed, 793 match a topic
+  series[Politics]: 2575 listed, 207 match a topic
+  series[Companies]: 183 listed, 2 match a topic
+  gas-prices: 156 matching series
+  elections: 2166 matching series
+  culture: 797 matching series
+  crypto: 299 matching series
+  golf: 135 matching series
+Fetching open markets for those series ...
+  8309 open topic markets after filtering
+Selected 200 markets across 40 events
+Fetching recent settlements for 11 tracked series ...
 Legacy audit: 3/29 claimed tickers exist in the live API
-Wrote assets/data/snapshot.json (6.0 KB) at 2026-11-22T07:26:22Z
-  gas-prices  markets=  0 events=  0
-  elections   markets=  0 events=  0
-  culture     markets=  0 events=  0
-  crypto      markets=  0 events=  0
-  golf        markets=  0 events=  0
-Warnings (5):
-  - Topic classifier: 35000 markets outside the five topics were ignored by design.
-  - Reference link not reachable (403): https://apnews.com/hub/elections 
-  - Reference link not reachable (429): https://kalshi.com/category/elections 
-  - Reference link not reachable (403): https://thegameawards.com/ 
-  - Reference link not reachable (None): https://www.masters.com/ TimeoutError: The read operation timed out
+Traceback (most recent call last):
+  File "/home/runner/work/Tradebot3/Tradebot3/scripts/fetch_kalshi_data.py", line 994, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/runner/work/Tradebot3/Tradebot3/scripts/fetch_kalshi_data.py", line 905, in main
+    m["ticker"] for m in sorted(
+                         ^^^^^^^
+  File "/home/runner/work/Tradebot3/Tradebot3/scripts/fetch_kalshi_data.py", line 906, in <genexpr>
+    (x for x in markets if x["event_ticker"] == ev["event_ticker"]),
+                                                ~~^^^^^^^^^^^^^^^^
+KeyError: 'event_ticker'
