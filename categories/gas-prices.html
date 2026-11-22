@@ -12,28 +12,26 @@
   <main class="page-main container">
     <section class="page-hero">
       <div>
-        <h1 id="topic-hero-title">Gas Prices — Kalshi Demo Snapshots &amp; Catalog Lifecycle</h1>
+        <h1 id="topic-hero-title">Gas Prices — Kalshi Reference Catalog &amp; Resolved Events</h1>
         <p id="topic-hero-desc">AAA national and state regular gasoline Kalshi prediction markets.</p>
       </div>
       <div class="hero-controls">
-        <button id="cat-trigger-swing" class="btn btn-primary">Simulate &gt;= $0.10 Swing</button>
-        <button id="cat-refresh-data" class="btn">Refresh Demo REST Snapshots</button>
+        <button id="cat-trigger-swing" class="btn btn-primary">Trigger &gt;= $0.10 Swing</button>
         <a class="btn" href="../index.html">← All 5 Topics</a>
       </div>
     </section>
 
     <section id="topic-kpi-strip" class="kpi-grid"></section>
-    <div id="cat-data-status" class="status-banner">Demo REST snapshots are best-effort, may be cached or blocked, and are not production data or a live stream. All trades remain local paper simulations.</div>
 
     <section class="card">
       <div class="card-header">
-        <h2>Kalshi Demo REST Observations &amp; Orderbook Snapshot (Gas Prices)</h2>
+        <h2>Interactive Price Chart &amp; Orderbook Liquidity (Gas Prices)</h2>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <select id="cat-market-select" style="width:auto;min-width:280px;" aria-label="Select Gas Prices Market"></select>
           <div class="seg-group">
-            <button class="seg-btn active" data-chart-range="1">Last 1h</button>
-            <button class="seg-btn" data-chart-range="6">Last 6h</button>
-            <button class="seg-btn" data-chart-range="24">Last 24h</button>
+            <button class="seg-btn" data-timeframe="seconds">Seconds</button>
+            <button class="seg-btn active" data-timeframe="minutes">Minutes</button>
+            <button class="seg-btn" data-timeframe="hours">Hours</button>
           </div>
         </div>
       </div>
@@ -48,8 +46,7 @@
         <div>
           <div id="cat-orderbook-panel"></div>
           <form id="cat-trade-form" style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;">
-            <strong class="small">Quick Paper Trade (Gas Prices)</strong>
-            <div class="tiny muted">Local simulation only; no exchange order is submitted. Price stays blank until a Demo REST quote loads.</div>
+            <strong class="small">Quick Paper Simulation Trade (Gas Prices)</strong>
             <div class="form-grid" style="margin-top:6px;">
               <div>
                 <label class="field-label" for="cat-qt-side">Side</label>
@@ -61,14 +58,14 @@
               </div>
               <div>
                 <label class="field-label" for="cat-qt-price">Price ($)</label>
-                <input id="cat-qt-price" type="number" step="0.01" min="0.01" max="0.99" value="" placeholder="No quote loaded" required />
+                <input id="cat-qt-price" type="number" step="0.01" min="0.01" max="0.99" value="0.51" required />
               </div>
               <div>
                 <label class="field-label" for="cat-qt-category">Category</label>
                 <select id="cat-qt-category"></select>
               </div>
             </div>
-            <button type="submit" class="btn btn-primary btn-sm">Record Paper Trade</button>
+            <button type="submit" class="btn btn-primary btn-sm">Execute Paper Simulation Trade</button>
             <div id="cat-qt-feedback" style="margin-top:8px;"></div>
           </form>
         </div>
@@ -77,19 +74,19 @@
 
     <section class="grid-2" style="margin-bottom:18px;">
       <div class="card" style="margin-bottom:0;">
-        <div class="card-header"><h2>Gas Prices &gt;= $0.10 Alert Feed (REST changes + paper tests)</h2></div>
+        <div class="card-header"><h2>Gas Prices &gt;= $0.10 Swing Alerts (All)</h2></div>
         <div id="cat-chat-all" class="chat-feed" style="height:260px;"></div>
       </div>
       <div class="card" style="margin-bottom:0;">
-        <div class="card-header"><h2>Gas Prices Model-Edge Rule Feed (Disabled: No Sourced Fair Value)</h2></div>
+        <div class="card-header"><h2>Gas Prices Illustrative Model Alerts</h2></div>
         <div id="cat-chat-roi" class="chat-feed" style="height:260px;"></div>
       </div>
     </section>
 
     <section class="card">
       <div class="card-header">
-        <h2>Gas Prices Event Catalog</h2>
-        <span class="tiny muted">Sorted by dated production event-volume snapshot · Blank fields flagged as Unverified</span>
+        <h2>Gas Prices Reference Market Table</h2>
+        <span class="tiny muted">Sorted by verified dollar volume · Blank fields flagged as Unverified</span>
       </div>
       <div class="table-wrap">
         <table class="data-table">
@@ -97,10 +94,10 @@
             <tr>
               <th>Ticker</th>
               <th>Event &amp; Contract</th>
-              <th>Production Event-Volume Snapshot</th>
-              <th>Demo REST YES Last</th>
-              <th>Change Since Prior REST Snapshot</th>
-              <th>Lifecycle Snapshot</th>
+              <th>Catalog Dollar Volume</th>
+              <th>Simulated Price</th>
+              <th>Static Reference</th>
+              <th>Resolution</th>
               <th>Settlement Source</th>
               <th>Close Window</th>
               <th>Official Source Link</th>

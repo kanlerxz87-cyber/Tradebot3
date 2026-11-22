@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tradebot3 — Kalshi Demo Snapshot Dashboard (5 Topics)</title>
+  <title>Tradebot3 — Kalshi Demo Paper-Simulation Dashboard (5 Topics)</title>
   <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body data-root-depth="0">
@@ -13,25 +13,28 @@
     <!-- Hero + Executive Summary -->
     <section class="page-hero">
       <div>
-        <h1>Kalshi Demo REST Snapshot Dashboard &amp; Paper Strategy Lab</h1>
+        <h1>Kalshi Demo Dashboard &amp; Executive Summary</h1>
         <p>
-          Tracks the official Kalshi event catalog across five isolated topics — <strong>Gas Prices</strong>, <strong>Elections</strong>,
-          <strong>Culture</strong>, <strong>Crypto</strong>, and <strong>Golf</strong>. The browser makes best-effort Kalshi Demo REST
-          requests for prices, lifecycle, and the selected contract's orderbook; REST can be cached or blocked and is not a live stream.
-          Charts use only timestamped responses collected while this page is open. Every portfolio trade and strategy execution is a local paper simulation.
+          Organizes a static Kalshi market reference catalog across five isolated topics —
+          <strong>Gas Prices</strong>, <strong>Elections</strong>, <strong>Culture</strong>, <strong>Crypto</strong>, and <strong>Golf</strong>.
+          The dashboard has a <strong>local paper simulation</strong> for &gt;= $0.10 synthetic swings, interactive simulated charts and orderbook depth, and simulated strategies. It does <strong>not</strong> display a live market-data stream or place exchange orders.
         </p>
       </div>
       <div class="hero-controls">
-        <button id="btn-toggle-live" class="btn btn-primary">Demo REST Polling: ON</button>
-        <button id="btn-trigger-swing" class="btn">Simulate &gt;= $0.10 Swing</button>
-        <button id="btn-test-demo-api" class="btn">Refresh Demo REST Snapshots</button>
+        <button id="btn-toggle-live" class="btn btn-primary"><span class="live-dot"></span>Paper Simulation: ON</button>
+        <button id="btn-trigger-swing" class="btn">Trigger &gt;= $0.10 Swing</button>
+        <button id="btn-test-demo-api" class="btn">Test Demo REST API</button>
+        <button id="btn-alert-notify" class="btn" title="Desktop notification + audio ping on every new illustrative model-filter alert">Enable Model Alerts</button>
       </div>
     </section>
 
-    <div id="demo-api-status" class="status-banner">
-      Kalshi Demo REST snapshots are best-effort, may be cached, and may be blocked by browser CORS. No authenticated WebSocket stream is connected.
-      Demo prices are not production prices; paper trades and strategy fills stay local and never submit exchange orders.
-      <a href="verification.html">API limits →</a> · <a href="flagged-for-review.html">Flags →</a>
+    <div id="demo-api-status" class="status-banner warn">
+      <strong>Static catalog + paper simulation — not a live market feed.</strong> Prices/volumes below are reference values, chart histories and depth are synthetic, alerts are generated locally, and trades do not reach Kalshi. Connect a live data relay/API integration before relying on live events. <br />
+      Verified Demo Endpoints: <code class="mono">https://external-api.demo.kalshi.co/trade-api/v2</code> (recommended) &amp;
+      <code class="mono">https://demo-api.kalshi.co/trade-api/v2</code> (also supported).
+      WebSocket: <code class="mono">wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2</code>.
+      <a href="verification.html">View full API verification →</a> ·
+      <a href="flagged-for-review.html">View flagged irregularities →</a>
     </div>
 
     <!-- KPI Strip -->
@@ -47,12 +50,30 @@
     </section>
 
     <!-- Dual Scrolling Alert Chats -->
+    <section class="card" style="margin-bottom:14px;padding:12px 16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <strong class="small">Alert Chat Controls (&gt;= $0.10 Swings):</strong>
+          <select id="alert-topic-filter" style="width:auto;" aria-label="Filter Alert Chats by Topic">
+            <option value="all">All 5 Topics</option>
+            <option value="gas-prices">Gas Prices</option>
+            <option value="elections">Elections</option>
+            <option value="culture">Culture</option>
+            <option value="crypto">Crypto</option>
+            <option value="golf">Golf</option>
+          </select>
+          <input id="alert-search" type="text" placeholder="Filter alerts by ticker or catalyst..." style="width:230px;" aria-label="Search alerts" />
+        </div>
+        <button id="btn-toggle-sound" type="button" class="btn btn-sm">Model Alert Sound Ping: OFF</button>
+      </div>
+    </section>
+
     <section class="grid-2" style="margin-bottom:18px;">
       <div class="card" style="margin-bottom:0;">
         <div class="card-header">
           <div>
-            <h2>All Events Alert Feed (&gt;= $0.10 Changes)</h2>
-            <div class="tiny muted">Separately tagged Demo REST snapshot changes and explicit synthetic paper tests</div>
+            <h2>All Events Alert Chat (&gt;= $0.10 Swings)</h2>
+            <div class="tiny muted">Every locally simulated price move &gt;= $0.10 up or down across the 5 topics</div>
           </div>
           <span class="badge badge-open" id="count-all-alerts">0</span>
         </div>
@@ -62,8 +83,8 @@
       <div class="card" style="margin-bottom:0;">
         <div class="card-header">
           <div>
-            <h2>Model-Edge Rule Feed (Unavailable)</h2>
-            <div class="tiny muted">No independently sourced fair value exists, so this feed stays empty by design</div>
+            <h2>Illustrative Model Selective Alert Chat</h2>
+            <div class="tiny muted">Illustrative filter on simulated &gt;= $0.10 swings; model values are not a validated forecast</div>
           </div>
           <span class="badge badge-verified" id="count-roi-alerts">0</span>
         </div>
@@ -74,13 +95,13 @@
     <!-- Interactive Price Chart + Orderbook Liquidity -->
     <section id="interactive-chart-section" class="card">
       <div class="card-header">
-        <h2>Kalshi Demo REST Price History &amp; Orderbook Snapshot</h2>
+        <h2>Paper-Simulated Contract Price Chart &amp; Illustrative Orderbook</h2>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <select id="chart-market-select" style="width:auto;min-width:290px;" aria-label="Select Kalshi Market"></select>
-          <div class="seg-group" role="group" aria-label="REST observation lookback">
-            <button class="seg-btn active" data-chart-range="1">Last 1h</button>
-            <button class="seg-btn" data-chart-range="6">Last 6h</button>
-            <button class="seg-btn" data-chart-range="24">Last 24h</button>
+          <div class="seg-group" role="group" aria-label="Chart X-Axis Timeframe">
+            <button class="seg-btn" data-timeframe="seconds">Seconds</button>
+            <button class="seg-btn active" data-timeframe="minutes">Minutes</button>
+            <button class="seg-btn" data-timeframe="hours">Hours</button>
           </div>
         </div>
       </div>
@@ -96,12 +117,12 @@
         </div>
 
         <div>
+          <div id="ob-live-status" style="margin-bottom:8px;"></div>
           <div id="live-orderbook-panel"></div>
 
-          <!-- Quick Paper Trade Ticket -->
+          <!-- Quick Trade Execution Ticket -->
           <form id="quick-trade-form" style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;">
-            <strong class="small">Quick Paper Trade (Selected Market)</strong>
-            <div class="tiny muted">Local simulation only; no Kalshi order is submitted. Price is blank until a Demo REST quote loads.</div>
+            <strong class="small">Quick Paper Simulation Trade (Selected Market)</strong>
             <div class="form-grid" style="margin-top:6px;">
               <div>
                 <label class="field-label" for="qt-side">Side</label>
@@ -116,15 +137,16 @@
               </div>
               <div>
                 <label class="field-label" for="qt-price">Price ($)</label>
-                <input id="qt-price" type="number" step="0.01" min="0.01" max="0.99" value="" placeholder="No quote loaded" required />
+                <input id="qt-price" type="number" step="0.01" min="0.01" max="0.99" value="0.24" required />
               </div>
               <div>
                 <label class="field-label" for="qt-category">Trade Category</label>
                 <select id="qt-category"></select>
               </div>
             </div>
+            <div id="qt-est-summary" class="tiny muted mono" style="margin-bottom:8px;"></div>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-              <button type="submit" class="btn btn-primary btn-sm">Record Paper Trade</button>
+              <button type="submit" class="btn btn-primary btn-sm">Execute Paper Simulation Trade</button>
               <a class="small" href="portfolio.html">Open Full Portfolio &amp; Automated Strategies →</a>
             </div>
             <div id="qt-feedback" style="margin-top:8px;"></div>
@@ -137,16 +159,23 @@
     <section class="card">
       <div class="card-header">
         <div>
-          <h2>Five-Topic Kalshi Market Catalog (Grouped by Topic)</h2>
-          <div class="tiny muted">Every row links to its official Kalshi page. Production event-volume figures are dated snapshots; Demo REST quotes are separate and may be blank.</div>
+          <h2>Kalshi Reference Catalog (Grouped by Topic · Sorted by Published Volume)</h2>
+          <div class="tiny muted">Static reference values only; not refreshed live. Every row links to a Kalshi market page. Unconfirmed fields remain blank and flagged Unverified.</div>
         </div>
-        <div class="seg-group" role="group" aria-label="Filter Table by Topic">
-          <button class="seg-btn active" data-topic-filter="all">All 5 Topics</button>
-          <button class="seg-btn" data-topic-filter="gas-prices">Gas Prices</button>
-          <button class="seg-btn" data-topic-filter="elections">Elections</button>
-          <button class="seg-btn" data-topic-filter="culture">Culture</button>
-          <button class="seg-btn" data-topic-filter="crypto">Crypto</button>
-          <button class="seg-btn" data-topic-filter="golf">Golf</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <div class="seg-group" role="group" aria-label="Filter Table by Status">
+            <button class="seg-btn active" data-status-filter="all">All Statuses</button>
+            <button class="seg-btn" data-status-filter="open">Open</button>
+            <button class="seg-btn" data-status-filter="resolved">Resolved YES/NO</button>
+          </div>
+          <div class="seg-group" role="group" aria-label="Filter Table by Topic">
+            <button class="seg-btn active" data-topic-filter="all">All 5 Topics</button>
+            <button class="seg-btn" data-topic-filter="gas-prices">Gas Prices</button>
+            <button class="seg-btn" data-topic-filter="elections">Elections</button>
+            <button class="seg-btn" data-topic-filter="culture">Culture</button>
+            <button class="seg-btn" data-topic-filter="crypto">Crypto</button>
+            <button class="seg-btn" data-topic-filter="golf">Golf</button>
+          </div>
         </div>
       </div>
       <div class="table-wrap">
@@ -155,11 +184,11 @@
             <tr>
               <th>Ticker / Close</th>
               <th>Event &amp; Contract</th>
-              <th>Production Event-Volume Snapshot</th>
-              <th>Demo REST YES Last</th>
-              <th>Change Since Prior REST Snapshot</th>
-              <th>Lifecycle Snapshot</th>
-              <th>Model Status</th>
+              <th>Catalog Dollar Volume</th>
+              <th>Simulated Price</th>
+              <th>Static Catalog Price</th>
+              <th>Lifecycle / Resolution</th>
+              <th>ROI Model</th>
               <th>Official Source Link</th>
               <th>Action</th>
             </tr>
@@ -182,16 +211,16 @@
             <li><strong>Recommended Demo REST:</strong> <code class="mono">https://external-api.demo.kalshi.co/trade-api/v2</code> (<code class="mono">demo-api.kalshi.co</code> also supported).</li>
             <li><strong>Recommended Demo WebSocket:</strong> <code class="mono">wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2</code> (<code class="mono">demo-api.kalshi.co</code> also supported).</li>
             <li><strong>Orderbook Reciprocal Pricing:</strong> <code class="mono">orderbook_fp</code> returns bids only (<code class="mono">yes_dollars</code>, <code class="mono">no_dollars</code>); YES Ask = $1.00 − NO Bid.</li>
-            <li><strong>REST / Chart Limit:</strong> Kalshi REST candlesticks support 1m, 60m, and 1440m intervals. This static app does not connect an authenticated WebSocket; its chart only shows REST observations collected during this page session (<a href="flagged-for-review.html">IRREG-04</a>).</li>
+            <li><strong>Candlesticks Constraint:</strong> REST candlesticks support 1m, 60m, and 1440m intervals only; Seconds charts require real tick aggregation (flagged in <a href="flagged-for-review.html">IRREG-04</a>).</li>
           </ul>
         </div>
         <div>
           <h3 class="small" style="margin-top:0;">Trading, Lifecycle &amp; Verification Discipline</h3>
           <ul class="small" style="padding-left:18px;margin-bottom:0;">
             <li><strong>Strict 5-Topic Scope:</strong> Gas Prices, Elections, Culture, Crypto, and Golf only — isolated into dedicated subpages.</li>
-            <li><strong>Lifecycle:</strong> Displays dated production catalog status or a best-effort Kalshi Demo REST status; the two environments may differ. Paper settlement tests do not change market lifecycle.</li>
-            <li><strong>Paper Strategies:</strong> Mean-Reversion, Momentum, spread tests, and custom rules record local simulated trades only; the ROI rule is disabled without a sourced fair value. See <a href="portfolio.html">Portfolio &amp; Strategies</a>.</li>
-            <li><strong>Factual Audit:</strong> Unverified prices, changes, and depth stay blank; discrepancies are published on <a href="flagged-for-review.html">Flagged for Review</a>.</li>
+            <li><strong>Lifecycle Resolution:</strong> Catalog status is static; settlement controls in Portfolio simulate YES/NO outcomes.</li>
+            <li><strong>Automated Strategy Testing:</strong> Swing Mean-Reversion, Momentum Breakout, illustrative model filter, Spread Capture, plus custom category-based strategies on <a href="portfolio.html">Portfolio &amp; Strategies</a>.</li>
+            <li><strong>Zero Hallucination Policy:</strong> Unverified values are left blank and published transparently on <a href="flagged-for-review.html">Flagged for Review</a>.</li>
           </ul>
         </div>
       </div>

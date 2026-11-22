@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Paper Portfolio &amp; Strategy Lab — Tradebot3</title>
+  <title>Portfolio, Trade Execution &amp; Automated Strategies — Tradebot3</title>
   <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body data-root-depth="0">
@@ -12,16 +12,14 @@
   <main class="page-main container">
     <section class="page-hero">
       <div>
-        <h1>Local Paper Portfolio &amp; Strategy Lab</h1>
+        <h1>Kalshi Paper Portfolio &amp; Strategy Simulation Lab</h1>
         <p>
-          Start with a local $10,000 paper balance, record simulated YES/NO trades, test paper resolution payouts, categorize results,
-          and run or create paper-only strategies. An optional read-only Kalshi Demo balance check is separate: this page does not submit
-          exchange orders or synchronize Demo-account positions. Demo REST quotes may be unavailable, cached, or different from production.
+          Track a local $10,000 paper balance, simulate YES/NO entries and settlements, categorize simulated results, and test automated strategies. The UI does not submit orders to Kalshi; its API connector checks REST access and account balance only.
         </p>
       </div>
       <div class="hero-controls">
-        <button id="btn-run-sim-burst" class="btn btn-primary">Run Paper Simulation Burst (3 Swings)</button>
-        <button id="btn-reset-portfolio" class="btn">Reset Paper Portfolio</button>
+        <button id="btn-run-sim-burst" class="btn btn-primary">Run Automated Strategy Sim Burst (3 Swings)</button>
+        <button id="btn-reset-portfolio" class="btn">Reset Paper Simulator</button>
       </div>
     </section>
 
@@ -33,7 +31,7 @@
       <div class="card" style="margin-bottom:0;">
         <div class="card-header">
           <h2>Portfolio Equity Curve</h2>
-          <span class="tiny muted">Paper equity only · requires a Demo REST mark for every open position</span>
+          <span class="tiny muted">Paper simulation equity (local baseline $10,000)</span>
         </div>
         <div style="height:220px;">
           <canvas id="equity-curve-chart" style="width:100%;height:100%;display:block;border:1px solid #e2e8f0;border-radius:8px;"></canvas>
@@ -42,7 +40,7 @@
 
       <div class="card" style="margin-bottom:0;">
         <div class="card-header">
-          <h2>Optional Read-Only Kalshi Demo API Check</h2>
+          <h2>Kalshi Demo Account API Connector</h2>
           <a class="tiny" href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">Official Demo Docs ↗</a>
         </div>
         <form id="demo-api-form">
@@ -60,22 +58,22 @@
             </div>
           </div>
           <div style="margin-bottom:10px;">
-              <label class="field-label" for="api-private-key">RSA PKCS#8 Private Key PEM (Optional · Browser RSA-PSS · Not Stored; Ed25519 is not supported by this client)</label>
-            <textarea id="api-private-key" rows="2" placeholder="-----BEGIN PRIVATE KEY----- (read-only /portfolio/balance check only)"></textarea>
+            <label class="field-label" for="api-private-key">Demo Private Key PEM (Optional · Supports Ed25519 Default &amp; RSA-PSS PKCS#1/PKCS#8 · Browser Session Memory Only)</label>
+            <textarea id="api-private-key" rows="2" placeholder="-----BEGIN PRIVATE KEY----- (Ed25519/PKCS#8) or -----BEGIN RSA PRIVATE KEY-----"></textarea>
           </div>
-          <button type="submit" class="btn btn-primary btn-sm">Check Demo REST / Read-Only Balance</button>
+          <button type="submit" class="btn btn-primary btn-sm">Test / Connect Kalshi Demo API</button>
           <div id="api-conn-feedback" class="status-banner" style="margin-top:8px;margin-bottom:0;">
-            The $10,000 balance below is local paper money. An optional API balance check does not connect the paper ledger, sync positions, or submit orders.
+            Paper simulation only ($10,000 local mock balance). API connector does not send orders. Any entered key stays in this browser session; no credential is included in the repository.
           </div>
         </form>
       </div>
     </section>
 
-    <!-- Manual Paper Trade Ticket -->
+    <!-- Manual Trade Execution Ticket -->
     <section class="card">
       <div class="card-header">
-        <h2>Record Paper Trade (Local Simulation)</h2>
-        <span class="tiny muted">No Kalshi order is submitted. Add a category to analyze local paper results.</span>
+        <h2>Simulate a Paper Trade on an Event</h2>
+        <span class="tiny muted">Tag every trade with a category to analyze category-level ROI and build automated strategies</span>
       </div>
       <form id="execute-trade-form">
         <div class="form-grid">
@@ -102,8 +100,8 @@
             <input id="trade-contracts" type="number" min="1" max="1000" value="30" required />
           </div>
           <div>
-            <label class="field-label" for="trade-price">Paper Fill Price ($)</label>
-            <input id="trade-price" type="number" step="0.01" min="0.01" max="0.99" value="" placeholder="No quote loaded" required />
+            <label class="field-label" for="trade-price">Limit / Exec Price ($)</label>
+            <input id="trade-price" type="number" step="0.01" min="0.01" max="0.99" value="0.26" required />
           </div>
           <div>
             <label class="field-label" for="trade-category">Trade Category</label>
@@ -114,7 +112,10 @@
             <input id="trade-note" type="text" placeholder="e.g., Post-swing mean reversion" />
           </div>
         </div>
-        <button type="submit" class="btn btn-primary">Record Paper Trade</button>
+        <p class="tiny muted" style="margin:0 0 10px;">
+          This ticket records a local paper simulation only. No request is sent to Kalshi, even after an authenticated balance check.
+        </p>
+        <button type="submit" class="btn btn-primary">Record Paper Simulation Trade</button>
         <div id="trade-feedback" style="margin-top:8px;"></div>
       </form>
     </section>
@@ -122,8 +123,8 @@
     <!-- Open Positions & Lifecycle Resolution Controls -->
     <section class="card">
       <div class="card-header">
-        <h2>Open Paper Positions &amp; Paper Resolution Tests</h2>
-        <span class="tiny muted">Paper settle buttons test $1.00 / $0.00 payouts only; they do not change Kalshi market lifecycle.</span>
+        <h2>Open Portfolio Positions &amp; Lifecycle Resolution Tracker</h2>
+        <span class="tiny muted">Use "Settle YES" or "Settle NO" to test demo resolution payouts ($1.00 winner / $0.00 loser)</span>
       </div>
       <div class="table-wrap">
         <table class="data-table">
@@ -152,6 +153,9 @@
           <h2>Trade Categorization &amp; Results Analysis</h2>
           <span class="tiny muted">Compare win rate, P&amp;L &amp; ROI by trade type</span>
         </div>
+        <div style="height:200px;margin-bottom:12px;">
+          <canvas id="category-pnl-chart" style="width:100%;height:100%;display:block;border:1px solid #e2e8f0;border-radius:8px;" aria-label="Trade Category Net P&L Bar Chart"></canvas>
+        </div>
         <div class="table-wrap">
           <table class="data-table compact-table">
             <thead>
@@ -172,8 +176,8 @@
 
       <div class="card" style="margin-bottom:0;">
         <div class="card-header">
-          <h2>Paper Strategy Rules (Simulated Only)</h2>
-          <span class="tiny muted">Enabled rules can create local paper trades after REST changes or explicit simulations; no exchange orders are placed.</span>
+          <h2>Automated Simulated Trading Strategies</h2>
+          <span class="tiny muted">Strategies auto-execute only on locally simulated &gt;= $0.10 swings</span>
         </div>
         <div id="strategies-list"></div>
       </div>
@@ -182,8 +186,8 @@
     <!-- Create Custom Strategy Based on Trade Category -->
     <section id="custom-strategy-section" class="card">
       <div class="card-header">
-        <h2>Create Custom Paper Strategy (From Trade Category)</h2>
-        <span class="tiny muted">Custom rules remain paper-only and run only after a qualifying REST snapshot change or explicit test simulation.</span>
+        <h2>Create Custom Automated Strategy (From Trade Category)</h2>
+        <span class="tiny muted">New strategies participate in simulated &gt;= $0.10 paper ticks only</span>
       </div>
       <form id="custom-strategy-form">
         <div class="form-grid">
@@ -209,7 +213,7 @@
           <div>
             <label class="field-label" for="cs-rule">Execution Rule</label>
             <select id="cs-rule">
-              <option value="model-edge">Model-Edge Rule (needs a sourced fair value)</option>
+              <option value="model-edge">Illustrative Model Edge (heuristic)</option>
               <option value="fade">Mean-Reversion (Fade Swing)</option>
               <option value="follow">Momentum (Follow Swing)</option>
               <option value="spread">Liquidity Spread Capture</option>
@@ -239,8 +243,8 @@
     <!-- Full Trade History Ledger -->
     <section class="card">
       <div class="card-header">
-        <h2>Paper Trade &amp; Paper Settlement Ledger</h2>
-        <span class="tiny muted">Local manual trades, strategy simulations, and test payouts; not Kalshi account activity</span>
+        <h2>Trade Execution &amp; Settlement Ledger</h2>
+        <span class="tiny muted">All manual, automated strategy, and resolved trades</span>
       </div>
       <div class="table-wrap">
         <table class="data-table compact-table">

@@ -1,6 +1,13 @@
-/** Shared controller for the five isolated topic pages. */
+/**
+ * Shared Controller for the 5 Separate Topic Subpages:
+ * - categories/gas-prices.html
+ * - categories/elections.html
+ * - categories/culture.html
+ * - categories/crypto.html
+ * - categories/golf.html
+ */
 
-import { TOPICS, LAST_VERIFIED_DATE_UTC } from './data.js';
+import { TOPICS } from './data.js';
 import { engine, TRADE_CATEGORIES } from './engine.js';
 import { renderPriceChart } from './charts.js';
 import {
@@ -20,133 +27,103 @@ import {
 const topicId = document.body.dataset.topic || 'gas-prices';
 const topicInfo = TOPICS[topicId];
 let selectedTicker = null;
-let selectedRangeHours = 1;
+let selectedTimeframe = 'minutes';
 let selectedMarker = null;
-const orderbookAttempts = new Map();
 
 function initSelection() {
-  const markets = engine.getMarketsByTopic(topicId);
-  const firstOpen = markets.find((market) => market.status === 'Open') || markets[0];
+  const list = engine.getMarketsByTopic(topicId);
+  const firstOpen = list.find((m) => m.status === 'Open') || list[0];
   selectedTicker = firstOpen ? firstOpen.ticker : null;
 }
 
-function money(value) {
-  return value === null || value === undefined || !Number.isFinite(Number(value))
-    ? '<span class="muted">—</span>'
-    : `$${Number(value).toFixed(2)}`;
-}
-
-function updateDataStatus() {
-  const el = document.getElementById('cat-data-status');
-  if (!el) return;
-  const status = engine.marketDataStatus;
-  el.className = `status-banner ${!status.connected && status.lastChecked ? 'warn' : ''}`;
-  el.textContent = `${status.message} Catalog page snapshot date: ${LAST_VERIFIED_DATE_UTC}. Demo prices are not production prices; no WebSocket stream is connected.`;
-}
-
 function renderTopicHeaderAndKpis() {
-  const markets = engine.getMarketsByTopic(topicId);
-  const openCount = markets.filter((market) => market.status === 'Open').length;
-  const resolvedCount = markets.filter((market) => market.status === 'Resolved').length;
-  const reviewCount = markets.filter((market) => market.status === 'Needs Review').length;
-  const totalVolume = markets.reduce((sum, market) => sum + (market.volumeUsd || 0), 0);
+  const list = engine.getMarketsByTopic(topicId);
+  const openCount = list.filter((m) => m.status === 'Open').length;
+  const yesCount = list.filter((m) => m.resolution === 'YES').length;
+  const noCount = list.filter((m) => m.resolution === 'NO').length;
+  const totalVol = list.reduce((s, m) => s + (m.volumeUsd || 0), 0);
 
-  const title = document.getElementById('topic-hero-title');
-  const description = document.getElementById('topic-hero-desc');
-  if (title) title.innerHTML = `${formatTopicBadge(topicId)} ${escapeHtml(topicInfo.name)} — Kalshi Demo Snapshots &amp; Catalog Lifecycle`;
-  if (description) description.textContent = `${topicInfo.description} Demo REST data is best-effort and may be cached or unavailable; all trades are local paper simulations.`;
+  const heroTitle = document.getElementById('topic-hero-title');
+  const heroDesc = document.getElementById('topic-hero-desc');
+  if (heroTitle) heroTitle.innerHTML = `${formatTopicBadge(topicId)} ${escapeHtml(topicInfo.name)} — Kalshi Reference Catalog &amp; Resolved Events`;
+  if (heroDesc) heroDesc.textContent = `${topicInfo.description} Static catalog reference; no live feed or exchange order execution is connected.`;
 
-  const kpis = document.getElementById('topic-kpi-strip');
-  if (!kpis) return;
-  kpis.innerHTML = `
-    <div class="kpi-card">
-      <div class="kpi-label">${escapeHtml(topicInfo.name)} Market Rows</div>
-      <div class="kpi-value">${markets.length}</div>
-      <div class="kpi-sub">${openCount} Open · ${resolvedCount} Finalized · ${reviewCount} Needs Review</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Production Event-Volume Snapshot</div>
-      <div class="kpi-value">$${totalVolume.toLocaleString('en-US')}</div>
-      <div class="kpi-sub">Dated ${LAST_VERIFIED_DATE_UTC} · separate from Demo contract volume</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Alert Records</div>
-      <div class="kpi-value">${engine.allAlerts.filter((alert) => alert.topic === topicId).length}</div>
-      <div class="kpi-sub">REST snapshot changes and explicitly labeled paper tests</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Official Hub</div>
-      <div class="kpi-value" style="font-size:15px;margin-top:8px;">${formatSourceLink(topicInfo.officialHubUrl, 'Kalshi Official')}</div>
-      <div class="kpi-sub">Every catalog row links to an official Kalshi page</div>
-    </div>
-  `;
-}
-
-function maybeRefreshOrderbook(market) {
-  if (!market || !market.marketTicker || market.orderbook) return;
-  const lastAttempt = orderbookAttempts.get(market.marketTicker) || 0;
-  if (Date.now() - lastAttempt < 60_000) return;
-  orderbookAttempts.set(market.marketTicker, Date.now());
-  void engine.refreshOrderbook(market.ticker);
+  const kpiEl = document.getElementById('topic-kpi-strip');
+  if (kpiEl) {
+    kpiEl.innerHTML = `
+      <div class="kpi-card">
+        <div class="kpi-label">${escapeHtml(topicInfo.name)} Contracts</div>
+        <div class="kpi-value">${list.length}</div>
+        <div class="kpi-sub">${openCount} catalog Open · ${yesCount} catalog YES · ${noCount} catalog NO</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Catalog Dollar Volume</div>
+        <div class="kpi-value">$${totalVol.toLocaleString('en-US')}</div>
+        <div class="kpi-sub">Static reference only; not a live volume feed</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Topic &gt;= $0.10 Alerts</div>
+        <div class="kpi-value">${engine.allAlerts.filter((a) => a.topic === topicId).length}</div>
+        <div class="kpi-sub">${engine.highRoiAlerts.filter((a) => a.topic === topicId).length} passed illustrative model filter</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Official Market Page</div>
+        <div class="kpi-value" style="font-size:15px;margin-top:8px;">${formatSourceLink(topicInfo.officialHubUrl, 'Kalshi Official')}</div>
+        <div class="kpi-sub">Catalog rows include Kalshi market links</div>
+      </div>
+    `;
+  }
 }
 
 function renderTopicChartAndOrderbook() {
-  const markets = engine.getMarketsByTopic(topicId);
-  const market = markets.find((item) => item.ticker === selectedTicker) || markets[0];
+  const list = engine.getMarketsByTopic(topicId);
+  const market = list.find((m) => m.ticker === selectedTicker) || list[0];
   if (!market) return;
   selectedTicker = market.ticker;
 
-  const select = document.getElementById('cat-market-select');
-  if (select && !select.options.length) {
-    markets.forEach((item) => {
-      const option = document.createElement('option');
-      option.value = item.ticker;
-      option.textContent = `${item.ticker} — ${item.title}`;
-      select.appendChild(option);
+  const selectEl = document.getElementById('cat-market-select');
+  if (selectEl && !selectEl.options.length) {
+    list.forEach((m) => {
+      const opt = document.createElement('option');
+      opt.value = m.ticker;
+      opt.textContent = `${m.ticker} — ${m.title}`;
+      selectEl.appendChild(opt);
     });
   }
-  if (select) select.value = market.ticker;
+  if (selectEl) selectEl.value = market.ticker;
 
-  const meta = document.getElementById('cat-chart-meta');
-  if (meta) {
-    const priceInfo = market.currentPrice === null
-      ? 'No verified Demo REST YES last loaded'
-      : `Demo REST YES last ${formatPrice(market.currentPrice)} · fetched ${new Date(market.lastFetchedAt).toLocaleTimeString()}`;
-    meta.innerHTML = `
+  const metaEl = document.getElementById('cat-chart-meta');
+  if (metaEl) {
+    metaEl.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <strong class="mono">${escapeHtml(market.ticker)}</strong>
         ${formatResolutionBadge(market)}
-        <span class="mono"><strong>${priceInfo}</strong></span>
+        <span class="mono"><strong>$${market.currentPrice.toFixed(2)}</strong></span>
         ${formatDeltaBadge(market.lastDelta)}
-        ${formatSourceLink(market.dataSourceUrl || market.sourceUrl, market.dataSourceUrl ? 'Demo REST event' : 'Official Kalshi market page')}
+        ${formatSourceLink(market.sourceUrl, 'Kalshi Official')}
       </div>
-      <div class="tiny muted" style="margin-top:4px;">${escapeHtml(market.roi.reason)} REST responses may be cached; this chart does not backfill exchange history.</div>
+      <div class="tiny muted" style="margin-top:4px;">Illustrative paper-model output (not a validated ROI forecast): ${escapeHtml(market.roi.reason)}</div>
     `;
   }
 
-  renderPriceChart(document.getElementById('cat-price-chart'), market, selectedRangeHours, {
-    onMarkerSelect: (marker) => {
-      selectedMarker = marker;
+  const canvas = document.getElementById('cat-price-chart');
+  renderPriceChart(canvas, market, selectedTimeframe, {
+    onMarkerSelect: (mk) => {
+      selectedMarker = mk;
       renderCatalysts(market);
     }
   });
   renderCatalysts(market);
 
-  maybeRefreshOrderbook(market);
-  const orderbookEl = document.getElementById('cat-orderbook-panel');
-  if (orderbookEl) {
-    orderbookEl.innerHTML = renderOrderbookHtml(market.orderbook, market.ticker, {
-      marketTicker: market.marketTicker,
-      error: market.orderbookError || ''
-    });
-  }
+  const obEl = document.getElementById('cat-orderbook-panel');
+  if (obEl) obEl.innerHTML = renderOrderbookHtml(market.orderbook, market.ticker);
 
   const priceInput = document.getElementById('cat-qt-price');
+  const sideSel = document.getElementById('cat-qt-side');
   if (priceInput && document.activeElement !== priceInput) {
-    const side = document.getElementById('cat-qt-side')?.value || 'YES';
-    priceInput.value = market.currentPrice === null
-      ? ''
-      : (side === 'YES' ? market.currentPrice : 1 - market.currentPrice).toFixed(2);
+    const side = sideSel ? sideSel.value : 'YES';
+    const p = side === 'YES' ? market.currentPrice : Math.max(0.01, Math.min(0.99, +(1 - market.currentPrice).toFixed(2)));
+    priceInput.value = p.toFixed(2);
   }
 }
 
@@ -154,110 +131,142 @@ function renderCatalysts(market) {
   const el = document.getElementById('cat-catalysts');
   if (!el) return;
   const markers = market.series.jumpMarkers || [];
-  const selected = selectedMarker && selectedMarker.ticker === market.ticker
-    ? `<div class="status-banner ok" style="margin-bottom:8px;"><strong>Selected REST snapshot change (${selectedMarker.delta >= 0 ? '+' : ''}$${selectedMarker.delta.toFixed(2)}):</strong> ${escapeHtml(selectedMarker.label)} · ${formatSourceLink(selectedMarker.url, selectedMarker.sourceName)}</div>`
-    : '';
-  if (!markers.length) {
-    el.innerHTML = `${selected}<strong>Observed >= $0.10 changes:</strong> <span class="muted">No timestamped Demo REST change has been observed for ${escapeHtml(market.ticker)}. No synthetic catalyst marker is shown.</span>`;
-    return;
-  }
-  el.innerHTML = `${selected}<strong>Changes between Demo REST snapshots (${escapeHtml(market.ticker)})</strong><span class="tiny muted"> · not streaming; no causal news attribution</span><ul class="catalyst-list">${markers.slice().reverse().map((marker) => `
-    <li><span class="delta ${marker.delta >= 0 ? 'delta-up' : 'delta-down'}">${marker.delta >= 0 ? '+' : ''}$${marker.delta.toFixed(2)}</span> ${escapeHtml(marker.label)} — ${formatSourceLink(marker.url, marker.sourceName)}</li>
-  `).join('')}</ul>`;
+  const activeHtml =
+    selectedMarker && selectedMarker.ticker === market.ticker
+      ? `<div class="status-banner ok" style="margin-bottom:8px;">
+           <strong>Selected Jump (${selectedMarker.delta >= 0 ? '+' : ''}$${selectedMarker.delta.toFixed(2)}):</strong>
+           ${escapeHtml(selectedMarker.label)} · ${formatSourceLink(selectedMarker.url, selectedMarker.sourceName)}
+         </div>`
+      : '';
+  el.innerHTML = markers.length
+    ? `${activeHtml}<strong>Simulated Swing Markers &amp; Contextual Links (&gt;= $0.10):</strong><div class="tiny muted">These linked pages are not verified as causes of the synthetic price changes.</div><ul class="catalyst-list">${markers
+        .map(
+          (mk) =>
+            `<li><span class="delta ${mk.delta >= 0 ? 'delta-up' : 'delta-down'}">${mk.delta >= 0 ? '+' : ''}$${mk.delta.toFixed(2)}</span> ${escapeHtml(mk.label)} — ${formatSourceLink(mk.url, mk.sourceName)}</li>`
+        )
+        .join('')}</ul>`
+    : `${activeHtml}<span class="muted">No simulated &gt;= $0.10 swing markers logged yet on ${escapeHtml(market.ticker)}.</span>`;
 }
 
 function renderTopicAlerts() {
   const allEl = document.getElementById('cat-chat-all');
   const roiEl = document.getElementById('cat-chat-roi');
-  const alerts = engine.allAlerts.filter((alert) => alert.topic === topicId);
-  const roiAlerts = engine.modelEdgeAlerts.filter((alert) => alert.topic === topicId);
+  const topicAlerts = engine.allAlerts.filter((a) => a.topic === topicId);
+  const topicRoi = engine.highRoiAlerts.filter((a) => a.topic === topicId);
+
   if (allEl) {
-    allEl.innerHTML = alerts.length
-      ? alerts.map((alert) => renderAlertItemHtml(alert, false)).join('')
-      : `<p class="muted small">No REST snapshot change or paper simulation alert has been recorded for ${escapeHtml(topicInfo.name)}.</p>`;
+    allEl.innerHTML = topicAlerts.length
+      ? topicAlerts.map((a) => renderAlertItemHtml(a, false)).join('')
+      : `<p class="muted small">No simulated &gt;= $0.10 swings logged yet for ${escapeHtml(topicInfo.name)}. Click "Trigger &gt;= $0.10 Swing" to test.</p>`;
   }
   if (roiEl) {
-    roiEl.innerHTML = roiAlerts.length
-      ? roiAlerts.map((alert) => renderAlertItemHtml(alert, true)).join('')
-      : '<p class="muted small">Unavailable: no independently sourced fair-value estimate is provided for this topic.</p>';
+    roiEl.innerHTML = topicRoi.length
+      ? topicRoi.map((a) => renderAlertItemHtml(a, true)).join('')
+      : `<p class="muted small">No ${escapeHtml(topicInfo.name)} paper swings currently meet the illustrative model thresholds.</p>`;
   }
 }
 
 function renderTopicTable() {
   const tbody = document.getElementById('cat-markets-body');
   if (!tbody) return;
-  tbody.innerHTML = engine.getMarketsByTopic(topicId).map((market) => `
+  const list = engine.getMarketsByTopic(topicId);
+
+  tbody.innerHTML = list
+    .map(
+      (m) => `
     <tr>
-      <td class="mono"><button class="link-btn btn-inspect" data-ticker="${escapeHtml(market.ticker)}">${escapeHtml(market.ticker)}</button></td>
-      <td><strong>${escapeHtml(market.title)}</strong><div class="tiny muted">${escapeHtml(market.contractLabel)}</div></td>
-      <td class="mono">${formatDollarVolume(market.volumeUsd)}<div class="tiny muted">${escapeHtml(market.volumeAsOf || 'As-of date unavailable')}</div></td>
-      <td class="mono"><strong>${formatPrice(market.currentPrice)}</strong><div class="tiny muted">Demo REST</div></td>
-      <td class="mono">${formatDeltaBadge(market.lastDelta)}</td>
-      <td>${formatResolutionBadge(market)}</td>
-      <td class="small">${escapeHtml(market.settlementSource)}</td>
-      <td class="small">${escapeHtml(market.closeWindow)}</td>
-      <td>${formatSourceLink(market.sourceUrl, market.sourceLabel)}</td>
-    </tr>`).join('');
+      <td class="mono"><button class="link-btn btn-inspect" data-ticker="${escapeHtml(m.ticker)}">${escapeHtml(m.ticker)}</button></td>
+      <td><strong>${escapeHtml(m.title)}</strong><div class="tiny muted">${escapeHtml(m.contractLabel)}</div></td>
+      <td class="mono">${formatDollarVolume(m.volumeUsd)}</td>
+      <td class="mono"><strong>${formatPrice(m.currentPrice)}</strong> ${formatDeltaBadge(m.lastDelta)}</td>
+      <td class="mono">${formatPrice(m.observedPrice)}</td>
+      <td>${formatResolutionBadge(m)}</td>
+      <td class="small">${escapeHtml(m.settlementSource)}</td>
+      <td class="small">${escapeHtml(m.closeWindow)}</td>
+      <td>${formatSourceLink(m.sourceUrl, m.sourceLabel)}</td>
+    </tr>
+  `
+    )
+    .join('');
 }
 
 function bindEvents() {
-  const select = document.getElementById('cat-market-select');
-  if (select) {
-    select.addEventListener('change', (event) => {
-      selectedTicker = event.target.value;
+  const sel = document.getElementById('cat-market-select');
+  if (sel) {
+    sel.addEventListener('change', (e) => {
+      selectedTicker = e.target.value;
       selectedMarker = null;
       renderTopicChartAndOrderbook();
     });
   }
-  document.querySelectorAll('[data-chart-range]').forEach((button) => {
-    button.addEventListener('click', () => {
-      selectedRangeHours = Number(button.dataset.chartRange) || 1;
-      document.querySelectorAll('[data-chart-range]').forEach((item) => item.classList.toggle('active', item === button));
+
+  document.querySelectorAll('[data-timeframe]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      selectedTimeframe = btn.dataset.timeframe;
+      document.querySelectorAll('[data-timeframe]').forEach((b) => b.classList.toggle('active', b === btn));
       renderTopicChartAndOrderbook();
     });
   });
 
-  const simulateButton = document.getElementById('cat-trigger-swing');
-  if (simulateButton) {
-    simulateButton.addEventListener('click', () => {
-      const market = engine.getMarket(selectedTicker);
-      if (market && market.status === 'Open') engine.simulateSwing(market.ticker);
+  const trigBtn = document.getElementById('cat-trigger-swing');
+  if (trigBtn) {
+    trigBtn.addEventListener('click', () => {
+      const open = engine.getMarketsByTopic(topicId).find((m) => m.status === 'Open');
+      if (open) engine.runTick(selectedTicker && engine.getMarket(selectedTicker).status === 'Open' ? selectedTicker : open.ticker);
     });
   }
-  const refreshButton = document.getElementById('cat-refresh-data');
-  if (refreshButton) refreshButton.addEventListener('click', () => void engine.refreshMarketData());
 
-  document.body.addEventListener('click', (event) => {
-    const inspect = event.target.closest('.btn-inspect, .ticker-jump-btn');
-    if (inspect && inspect.dataset.ticker) {
-      selectedTicker = inspect.dataset.ticker;
+  document.body.addEventListener('click', async (e) => {
+    const pullObBtn = e.target.closest('.btn-pull-live-ob');
+    if (pullObBtn && pullObBtn.dataset.ticker) {
+      const fb = document.getElementById('cat-qt-feedback');
+      if (fb) {
+        fb.className = 'status-banner';
+        fb.textContent = `Fetching live Kalshi Demo orderbook for ${pullObBtn.dataset.ticker}...`;
+      }
+      const res = await engine.fetchLiveOrderbook(pullObBtn.dataset.ticker);
+      if (fb) {
+        fb.className = res.ok ? 'status-banner ok' : 'status-banner warn';
+        fb.textContent = res.message;
+      }
+      renderTopicChartAndOrderbook();
+      return;
+    }
+
+    const btn = e.target.closest('.btn-inspect, .ticker-jump-btn');
+    if (btn && btn.dataset.ticker) {
+      selectedTicker = btn.dataset.ticker;
       selectedMarker = null;
       renderTopicChartAndOrderbook();
     }
-    const orderbookRefresh = event.target.closest('.btn-refresh-orderbook');
-    if (orderbookRefresh) {
-      const market = engine.getMarket(orderbookRefresh.dataset.ticker);
-      if (market) {
-        orderbookAttempts.set(market.marketTicker, Date.now());
-        void engine.refreshOrderbook(market.ticker);
-      }
-    }
-    const orderbookRow = event.target.closest('.ob-row');
-    if (orderbookRow && orderbookRow.dataset.price) {
-      const priceInput = document.getElementById('cat-qt-price');
-      if (priceInput) priceInput.value = orderbookRow.dataset.price;
+    const obRow = e.target.closest('.ob-row');
+    if (obRow && obRow.dataset.price) {
+      const sideSel = document.getElementById('cat-qt-side');
+      const p = document.getElementById('cat-qt-price');
+      if (sideSel) sideSel.value = obRow.dataset.side || 'YES';
+      if (p) p.value = obRow.dataset.price;
     }
   });
 
   const form = document.getElementById('cat-trade-form');
   if (form) {
-    const categorySelect = document.getElementById('cat-qt-category');
-    if (categorySelect) {
-      categorySelect.innerHTML = TRADE_CATEGORIES.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join('');
+    const catSel = document.getElementById('cat-qt-category');
+    if (catSel) {
+      catSel.innerHTML = TRADE_CATEGORIES.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
     }
-    form.addEventListener('submit', (event) => {
-      event.preventDefault();
-      const feedback = document.getElementById('cat-qt-feedback');
+    const sideSel = document.getElementById('cat-qt-side');
+    if (sideSel) {
+      sideSel.addEventListener('change', () => {
+        const m = engine.getMarket(selectedTicker);
+        const p = document.getElementById('cat-qt-price');
+        if (m && p) {
+          p.value = (sideSel.value === 'YES' ? m.currentPrice : Math.max(0.01, Math.min(0.99, +(1 - m.currentPrice).toFixed(2)))).toFixed(2);
+        }
+      });
+    }
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fb = document.getElementById('cat-qt-feedback');
       try {
         const trade = engine.executePaperTrade({
           ticker: selectedTicker,
@@ -266,23 +275,21 @@ function bindEvents() {
           contracts: Number(document.getElementById('cat-qt-contracts').value),
           price: Number(document.getElementById('cat-qt-price').value),
           category: document.getElementById('cat-qt-category').value,
-          note: `${topicInfo.name} page paper simulation; no exchange order was sent.`
+          note: `${topicInfo.name} Subpage Trade`
         });
-        if (feedback) {
-          feedback.className = 'status-banner ok';
-          feedback.textContent = `Paper trade recorded (${trade.id}): BUY ${trade.contracts} ${trade.side} on ${trade.ticker} @ $${trade.price.toFixed(2)}. No Kalshi order was submitted.`;
+        if (fb) {
+          fb.className = 'status-banner ok';
+          fb.textContent = `Paper simulation recorded (not sent to Kalshi) (${trade.id}): BUY ${trade.contracts} ${trade.side} on ${trade.ticker} @ $${trade.price.toFixed(2)}.`;
         }
-      } catch (error) {
-        if (feedback) {
-          feedback.className = 'status-banner warn';
-          feedback.textContent = error.message;
+      } catch (err) {
+        if (fb) {
+          fb.className = 'status-banner warn';
+          fb.textContent = err.message;
         }
       }
     });
   }
 
-  const sideSelect = document.getElementById('cat-qt-side');
-  if (sideSelect) sideSelect.addEventListener('change', () => renderTopicChartAndOrderbook());
   window.addEventListener('resize', () => renderTopicChartAndOrderbook());
 }
 
@@ -291,13 +298,14 @@ document.addEventListener('DOMContentLoaded', () => {
   renderFooter();
   initSelection();
   bindEvents();
+
   const renderAll = () => {
     renderTopicHeaderAndKpis();
     renderTopicChartAndOrderbook();
     renderTopicAlerts();
     renderTopicTable();
-    updateDataStatus();
   };
+
   renderAll();
   engine.subscribe(() => renderAll());
   engine.start();

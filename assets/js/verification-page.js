@@ -82,7 +82,7 @@ function renderFlaggedPage() {
           <strong>${escapeHtml(ir.item)}</strong>
           <div class="small muted" style="margin-top:3px;">${escapeHtml(ir.detail)}</div>
         </td>
-        <td><span class="badge badge-unverified">${escapeHtml(ir.status)}</span></td>
+        <td><span class="badge ${ir.status.includes('Remediated') ? 'badge-yes' : 'badge-unverified'}">${escapeHtml(ir.status)}</span></td>
         <td>${formatSourceLink(ir.sourceUrl, ir.sourceLabel)}</td>
       </tr>
     `

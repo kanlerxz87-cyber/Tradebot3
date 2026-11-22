@@ -14,14 +14,179 @@
       <div>
         <h1>Flagged for Review — Irregularities &amp; Unverified Fields</h1>
         <p>
-          Per our strict zero-hallucination verification policy, every technical irregularity, browser/API limitation,
-          and market field that could not be confirmed from a static official source is published transparently here
+          Known verification gaps and technical irregularities are published transparently here. This audit has not re-fetched every numeric market snapshot;
+          the live-data and execution limitations below are important before relying on this static site
           with official source links for manual review. Unconfirmable table cells across the site are left blank and marked <strong>Unverified</strong>.
         </p>
       </div>
       <div class="hero-controls">
         <a class="btn btn-primary" href="index.html">← Back to Dashboard</a>
         <a class="btn" href="verification.html">API Verification</a>
+      </div>
+    </section>
+
+    <!-- Re-verification 2026-11-22 (sample) -->
+    <section class="card">
+      <div class="card-header">
+        <h2>Re-verification Against Official Kalshi Pages (checked 2026-11-22 UTC)</h2>
+        <span class="badge badge-unverified">Status: Needs Review (Non-Blocking)</span>
+      </div>
+      <p class="tiny muted">
+        Six market pages were fetched from kalshi.com on 2026-11-22 and compared with the values stored in
+        <code>assets/js/data.js</code>. The site previously labelled these values "Verified". Live Kalshi prices and volumes
+        change over time, so a difference may reflect a later snapshot, but the stored values could not be confirmed as current.
+        Rows marked MISMATCH keep their stored values for now and are flagged Unverified; the official values are shown for review.
+      </p>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Ticker</th>
+              <th>Contract (as stored)</th>
+              <th>Stored price / volume</th>
+              <th>Official page value (2026-11-22)</th>
+              <th>Result</th>
+              <th>Official Source Link</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>KXAAAGASMAX-26DEC31</td>
+              <td>Above $4.60</td>
+              <td>0.51 / $1,836,232</td>
+              <td>Yes 6¢ / $2,150,412 vol</td>
+              <td><span class="badge badge-unverified">MISMATCH</span></td>
+              <td><a href="https://kalshi.com/markets/kxaaagasmax/us-highest-gas-price-yearly/kxaaagasmax-26dec31" target="_blank" rel="noopener">kalshi.com ↗</a></td>
+            </tr>
+            <tr>
+              <td>KXAAAGASMIN-26DEC31</td>
+              <td>Below $3.40</td>
+              <td>0.55 / $115,427</td>
+              <td>Yes 69¢ / $120,214 vol</td>
+              <td><span class="badge badge-unverified">MISMATCH</span></td>
+              <td><a href="https://kalshi.com/markets/kxaaagasmin/us-lowest-gas-price-yearly/kxaaagasmin-26dec31" target="_blank" rel="noopener">kalshi.com ↗</a></td>
+            </tr>
+            <tr>
+              <td>KXPRESNOMD-28</td>
+              <td>Jon Ossoff</td>
+              <td>0.26 / $304,563,107</td>
+              <td>Yes 24¢ / $308,045,852 vol</td>
+              <td><span class="badge badge-unverified">MISMATCH</span></td>
+              <td><a href="https://kalshi.com/markets/kxpresnomd/democratic-primary-winner/kxpresnomd-28" target="_blank" rel="noopener">kalshi.com ↗</a></td>
+            </tr>
+            <tr>
+              <td>KXETHMINY-27JAN01</td>
+              <td>Below $1,500.00</td>
+              <td>0.42 / $1,782,347</td>
+              <td>Yes 63¢ / $1,829,630 vol</td>
+              <td><span class="badge badge-unverified">MISMATCH</span></td>
+              <td><a href="https://kalshi.com/markets/kxethminy/how-low-will-ethereum-fall-this-year/kxethminy-27jan01" target="_blank" rel="noopener">kalshi.com ↗</a></td>
+            </tr>
+            <tr>
+              <td>CONTROLS-2026</td>
+              <td>Democratic Party</td>
+              <td>Status Open, 0.97 / $220,875,845</td>
+              <td>Page title "Democrats Win"; Democratic Party 100%; $341,173,231 vol</td>
+              <td><span class="badge badge-unverified">MISMATCH (status)</span></td>
+              <td><a href="https://kalshi.com/markets/controls/senate-winner/controls-2026" target="_blank" rel="noopener">kalshi.com ↗</a></td>
+            </tr>
+            <tr>
+              <td>KXOSCARACTO-26</td>
+              <td>Michael B. Jordan</td>
+              <td>1.00 Resolved YES / $25,562,603</td>
+              <td>Yes 100% / $25,562,603 vol</td>
+              <td><span class="badge badge-yes">MATCH</span></td>
+              <td><a href="https://kalshi.com/markets/kxoscaracto/oscar-for-best-actor/kxoscaracto-26" target="_blank" rel="noopener">kalshi.com ↗</a></td>
+            </tr>
+            <tr>
+              <td>KXBTCMAXMON-BTC-26MAR31</td>
+              <td>Above $77,500.00</td>
+              <td>0 Resolved NO / volume blank</td>
+              <td>Above $77,500.00: No (sidebar: Determined) / $2,050,528 vol shown</td>
+              <td><span class="badge badge-yes">MATCH (outcome)</span></td>
+              <td><a href="https://kalshi.com/markets/kxbtcmaxmon/bitcoin-monthly-one-touch/kxbtcmaxmon-btc-26mar31" target="_blank" rel="noopener">kalshi.com ↗</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tiny muted">
+        Scope: 6 of 29 stored markets were sampled, not all. The remaining 23 are not yet re-verified. The previous seeded swing alerts have been removed. New automatic ticks are explicitly tagged as simulated paper ticks; source links are context only, not causal evidence. Demo prices may also differ from production (see IRREG-03).
+      </p>
+      <ul class="tiny">
+        <li><strong>IRREG-09 (High):</strong> Seeded &gt;= $0.10 swing alerts were falsely labelled "Verified Observed Swing"; this follow-up removed them. Runtime generated ticks are labeled simulated.</li>
+        <li><strong>IRREG-10 (High):</strong> Stored prices disagree with official pages for 4 of 6 sampled markets (see table above). Stored values kept and flagged; a refresh pass is needed.</li>
+        <li><strong>IRREG-11 (Low):</strong> Kalshi docs also list <code>user-ws.demo.kalshi.co</code> (fill and order updates) and <code>external-feeds.demo.kalshi.co</code> (external feeds) as demo hosts. The site does not mention them. Source: <a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener">docs.kalshi.com API Environments ↗</a></li>
+        <li><strong>IRREG-12 (Medium):</strong> CONTROLS-2026 is stored as Open, but the official page title reads "Senate Control 2026 Results: Democrats Win". Status needs confirmation.</li>
+        <li><strong>IRREG-13 (Low):</strong> Stored dollar volumes differ from official pages for 4 of 6 sampled markets. Likely timing, not confirmed.</li>
+      </ul>
+      <div class="status-banner ok" style="margin-top:10px;margin-bottom:0;">
+        <strong>Follow-up update (2026-11-22, session <code>arena-83838475</code>) — original sample table above is preserved as-is:</strong>
+        the requested full refresh pass is now done: all 29 markets were re-checked against the same official pages
+        (same official values independently confirmed) and <code>assets/js/data.js</code> now stores the fresh verified
+        values, so static IRREG-10/12/13 sample mismatches are resolved (see data-driven IRREG-18, and IRREG-19 for the
+        Determined→Resolved mapping). IRREG-09's "Unverified Catalog Alert" relabelling is kept. IRREG-11 is partly
+        resolved: the External Feeds demo host is now listed in the verified API table (16 rows), and the
+        <code>user-ws.demo.kalshi.co</code> host was already listed there.
+      </div>
+    </section>
+
+    <!-- Complete 29-Market Before/After Verification Ledger (session arena-340e65b6) -->
+    <section class="card">
+      <div class="card-header">
+        <h2>Complete 29-of-29 Market Re-Verification Ledger (Session <code>arena-340e65b6</code>, 2026-11-22 UTC)</h2>
+        <span class="badge badge-verified">29 Markets Cross-Checked</span>
+      </div>
+      <p class="tiny muted">
+        Every market in <code>VERIFIED_MARKETS</code> across all 5 allowed topics (Gas Prices, Elections, Culture, Crypto, Golf) was
+        independently fetched from its official <code>kalshi.com</code> page on 2026-11-22 UTC and compared against the Session 1 baseline.
+        All 28 exposed dollar volumes and all 29 contract prices/outcomes are synchronized in <code>assets/js/data.js</code>; only
+        <code>KXAAAGASCDNY-26NOV19</code> dollar volume remains blank and flagged <strong>Unverified</strong> because the settled page exposes no volume figure.
+      </p>
+      <div class="table-wrap">
+        <table class="data-table compact-table">
+          <thead>
+            <tr>
+              <th>Ticker</th>
+              <th>Topic</th>
+              <th>Contract</th>
+              <th>Session 1 Baseline</th>
+              <th>Official kalshi.com Page (2026-11-22 UTC)</th>
+              <th>Audit Status</th>
+              <th>Official Source Link</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono">KXAAAGASMAX-26DEC31</td><td>Gas Prices</td><td>Above $4.60</td><td>0.51 / $1,836,232</td><td>6% (Yes 6¢, ▼ 5) / $2,150,412 vol</td><td><span class="badge badge-unverified">MISMATCH → Synced</span></td><td><a href="https://kalshi.com/markets/kxaaagasmax/us-highest-gas-price-yearly/kxaaagasmax-26dec31" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXAAAGASMAXCA-26DEC31</td><td>Gas Prices</td><td>CA Above $6.60</td><td>0.34 / vol blank</td><td>2% (Yes 6¢, ▼ 6) / $509,539 vol</td><td><span class="badge badge-unverified">MISMATCH → Synced</span></td><td><a href="https://kalshi.com/markets/kxaaagasmaxca/california-highest-gas-price-yearly/kxaaagasmaxca-26dec31" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXAAAGASMIN-26DEC31</td><td>Gas Prices</td><td>Below $3.40</td><td>0.55 (+0.10) / $115,427</td><td>67% (Yes 69¢, ▲ 27) / $120,214 vol</td><td><span class="badge badge-unverified">MISMATCH → Synced</span></td><td><a href="https://kalshi.com/markets/kxaaagasmin/us-lowest-gas-price-yearly/kxaaagasmin-26dec31" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXAAAGASMINCA-26DEC31-3.90</td><td>Gas Prices</td><td>CA Below $3.90</td><td>0.07 / $51,884</td><td>2% (Yes 2¢, ▼ 2) / $70,069 vol</td><td><span class="badge badge-unverified">MISMATCH → Synced</span></td><td><a href="https://kalshi.com/markets/kxaaagasminca/california-lowest-gas-price-yearly/kxaaagasminca-26dec31" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXAAAGASCDNY-26NOV19</td><td>Gas Prices</td><td>NY Large Decrease</td><td>Open 0.90 / vol blank</td><td>Determined: Outcome Yes / vol not shown</td><td><span class="badge badge-unverified">Status Synced · Vol Blank</span></td><td><a href="https://kalshi.com/markets/kxaaagascdny/new-york-gas-price/kxaaagascdny-26nov19" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">CONTROLS-2026</td><td>Elections</td><td>Democratic Party</td><td>Open 0.97 / $220,875,845</td><td>Determined: Outcome Yes / $341,173,231 vol</td><td><span class="badge badge-unverified">MISMATCH → Synced</span></td><td><a href="https://kalshi.com/markets/controls/senate-winner/controls-2026" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXPRESNOMD-28</td><td>Elections</td><td>Jon Ossoff</td><td>0.26 / $304,563,107</td><td>24% (Yes 24¢) / $308,045,852 vol</td><td><span class="badge badge-unverified">MISMATCH → Synced</span></td><td><a href="https://kalshi.com/markets/kxpresnomd/democratic-primary-winner/kxpresnomd-28" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXPRESPERSON-28</td><td>Elections</td><td>Jon Ossoff</td><td>0.17 / $111,643,774</td><td>17% (Yes 18¢, ▼ 1) / $111,670,768 vol</td><td><span class="badge badge-unverified">Vol Drift → Synced</span></td><td><a href="https://kalshi.com/markets/kxpresperson/pres-person/kxpresperson-28" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">CONTROLS-2028</td><td>Elections</td><td>Democratic Party</td><td>0.90 / $1,038,096</td><td>90% (Yes 89¢, ▲ 1) / $1,038,132 vol</td><td><span class="badge badge-unverified">Vol Drift → Synced</span></td><td><a href="https://kalshi.com/markets/controls/senate-winner/controls-2028" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXPRESPARTY-2028</td><td>Elections</td><td>Democratic Party</td><td>0.67 / $897,054</td><td>67% (Yes 67¢) / $911,689 vol</td><td><span class="badge badge-unverified">Vol Drift → Synced</span></td><td><a href="https://kalshi.com/markets/kxpresparty/party-winning-presidency/kxpresparty-2028" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">POWER-28</td><td>Elections</td><td>Democratic Sweep</td><td>0.63 / $596,106</td><td>65% (Yes 67¢) / $613,272 vol</td><td><span class="badge badge-unverified">MISMATCH → Synced</span></td><td><a href="https://kalshi.com/markets/power/party-power/power-28" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXOSCARACTO-26</td><td>Culture</td><td>Michael B. Jordan</td><td>1.00 YES / $25,562,603</td><td>Determined: Outcome Yes / $25,562,603 vol</td><td><span class="badge badge-yes">EXACT MATCH</span></td><td><a href="https://kalshi.com/markets/kxoscaracto/oscar-for-best-actor/kxoscaracto-26" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXRT-ODY</td><td>Culture</td><td>Above 94% (95%)</td><td>1.00 YES / $7,186,984</td><td>Determined: Outcome Yes / $7,186,984 vol</td><td><span class="badge badge-yes">EXACT MATCH</span></td><td><a href="https://kalshi.com/markets/kxrt/rotten-tomatoes-scores/kxrt-ody" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXOSCARACTR-26</td><td>Culture</td><td>Jessie Buckley</td><td>1.00 YES / $6,648,461</td><td>Determined: Outcome Yes / $6,648,461 vol</td><td><span class="badge badge-yes">EXACT MATCH</span></td><td><a href="https://kalshi.com/markets/kxoscaractr/oscar-for-best-actress/kxoscaractr-26" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXGAMEAWARDS-2026</td><td>Culture</td><td>GTA VI</td><td>0.91 / $4,193,638</td><td>91% (Yes 92¢, ▲ 6) / $4,315,316 vol</td><td><span class="badge badge-unverified">Vol Drift → Synced</span></td><td><a href="https://kalshi.com/markets/kxgameawards/game-awards/kxgameawards-2026" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXOSCARDOCU-26</td><td>Culture</td><td>Mr. Nobody against Putin</td><td>1.00 YES / $728,234</td><td>Determined: Outcome Yes / $728,234 vol</td><td><span class="badge badge-yes">EXACT MATCH</span></td><td><a href="https://kalshi.com/markets/kxoscardocu/oscar-for-best-documentary-feature/kxoscardocu-26" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXRT-BRI</td><td>Culture</td><td>Above 50% (59%)</td><td>1.00 YES / $418,245</td><td>Determined: Outcome Yes / $418,245 vol</td><td><span class="badge badge-yes">EXACT MATCH</span></td><td><a href="https://kalshi.com/markets/kxrt/rotten-tomatoes-scores/kxrt-bri" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXBTCY-27JAN0100</td><td>Crypto</td><td>$60,000–$64,999.99</td><td>0.19 / vol blank</td><td>22% (Yes 21.9¢, ▲ 2.6) / $50,835,002 vol</td><td><span class="badge badge-unverified">MISMATCH → Synced</span></td><td><a href="https://kalshi.com/markets/kxbtcy/btc-price-range-eoy/kxbtcy-27jan0100" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXBTCMINY-27JAN01</td><td>Crypto</td><td>BTC Below $55,000</td><td>0.58 (+0.15) / vol blank</td><td>64% (Yes 66¢, ▲ 32) / $9,494,723 vol</td><td><span class="badge badge-unverified">MISMATCH → Synced</span></td><td><a href="https://kalshi.com/markets/kxbtcminy/how-low-will-bitcoin-fall-this-year/kxbtcminy-27jan01" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXBTC50VS100-BTC-26DEC31</td><td>Crypto</td><td>$50,000 First</td><td>0.18 / vol blank</td><td>37% (Yes 40¢, ▼ 3) / $9,284,632 vol</td><td><span class="badge badge-unverified">MISMATCH → Synced</span></td><td><a href="https://kalshi.com/markets/kxbtc50vs100/will-btc-fall-below-50k-before-hitting-100k/kxbtc50vs100-btc-26dec31" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXBTCMAXMON-BTC-26MAR31</td><td>Crypto</td><td>Above $77,500</td><td>0.00 NO / vol blank</td><td>Above $77,500: No (Determined) / $2,050,528 vol</td><td><span class="badge badge-yes">MATCH (vol added)</span></td><td><a href="https://kalshi.com/markets/kxbtcmaxmon/bitcoin-monthly-one-touch/kxbtcmaxmon-btc-26mar31" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXETHMINY-27JAN01</td><td>Crypto</td><td>Below $1,500.00</td><td>0.42 (+0.19) / $1,782,347</td><td>63% (Yes 63¢, ▲ 26) / $1,829,630 vol</td><td><span class="badge badge-unverified">MISMATCH → Synced</span></td><td><a href="https://kalshi.com/markets/kxethminy/how-low-will-ethereum-fall-this-year/kxethminy-27jan01" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXSOLD26-27JAN0100</td><td>Crypto</td><td>SOL $50 or above</td><td>0.89 (-0.10) / $213,632</td><td>90% (Yes 89¢, ▼ 1) / $215,030 vol</td><td><span class="badge badge-unverified">Vol/Delta → Synced</span></td><td><a href="https://kalshi.com/markets/kxsold26/sol-price-end-of-2026/kxsold26-27jan0100" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXPGATOUR-MAST26</td><td>Golf</td><td>Rory McIlroy</td><td>1.00 YES / $548,706,971</td><td>Determined: Outcome Yes / $548,706,971 vol</td><td><span class="badge badge-yes">EXACT MATCH</span></td><td><a href="https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-mast26" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXPGATOUR-PGC26-ARAI</td><td>Golf</td><td>Aaron Rai</td><td>1.00 YES / $393,570,149</td><td>Determined: Outcome Yes / $393,570,149 vol</td><td><span class="badge badge-yes">EXACT MATCH</span></td><td><a href="https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-pgc26" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXPGATOUR-USO26</td><td>Golf</td><td>Wyndham Clark</td><td>1.00 YES / vol blank</td><td>Determined: Outcome Yes / $353,561,663 vol</td><td><span class="badge badge-yes">MATCH (vol added)</span></td><td><a href="https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-uso26" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXPGATOUR-THRC26-MTHO</td><td>Golf</td><td>Michael Thorbjornsen</td><td>0.13 (+0.10) / $27,982,941</td><td>18% (Yes 18¢, ▲ 1) / $39,992,031 vol</td><td><span class="badge badge-unverified">MISMATCH → Synced</span></td><td><a href="https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-thrc26" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXPGATOUR-MAST27</td><td>Golf</td><td>Scottie Scheffler</td><td>0.16 / $1,894,804</td><td>18% (Yes 18¢, ▼ 1) / $2,380,682 vol</td><td><span class="badge badge-unverified">MISMATCH → Synced</span></td><td><a href="https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-mast27" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+            <tr><td class="mono">KXPGAMASTERS-26</td><td>Golf</td><td>Tiger Woods</td><td>0.00 NO / vol blank</td><td>Tiger Woods: No (Determined) / $807,770 vol</td><td><span class="badge badge-yes">MATCH (vol added)</span></td><td><a href="https://kalshi.com/markets/kxpgamasters/golfers-to-participate-in-the-masters/kxpgamasters-26" target="_blank" rel="noopener">kalshi.com ↗</a></td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
