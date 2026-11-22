@@ -2,9 +2,22 @@
 
 > **Repository:** `kanlerxz87-cyber/Tradebot3`
 > **Live Site (GitHub Pages):** https://kanlerxz87-cyber.github.io/Tradebot3/
-> **Active Session ID:** `arena-a8cfdaeb` (prior session: `arena-3716ae8d`, merged via PR #1)
-> **Working Branch:** `arena/3716ae8d-tradebot3` (Arena fixed session branch; branched from `main` at `62713af9e466cd393c61be0df37e5de0872919cc`)
+> **Active Session ID:** `arena-59730b38` (Session 2 refresh; priors: `arena-3716ae8d` merged via PR #1, `arena-a8cfdaeb` merged via PR #2/#3)
+> **Working Branch:** `arena/59730b38-tradebot3` (Arena fixed session branch; branched from `main` at `08ad596f66ebccb189754df5fa6dadac6365989c`, rebased onto `991a8eb`)
 > **Last Updated:** 2026-11-22 (UTC)
+
+---
+
+## Session 2 Task Board (Independent Re-Verification & Data Refresh — `arena-59730b38`)
+
+| Task ID | Task Description | Status | Owning Session | Branch | File Scope |
+| --- | --- | --- | --- | --- | --- |
+| S2-01 | Independent line-by-line re-verification of all API claims + 6-market live spot-check against official Kalshi docs/pages | `in progress` | `arena-59730b38` | `arena/59730b38-tradebot3` | `COORDINATION.md` (Session 2 log only) |
+| S2-02 | Refresh stale/incorrect observed values in verified dataset (6 re-verified markets), WS rate-limit row, new IRREG-09 | `in progress` | `arena-59730b38` | `arena/59730b38-tradebot3` | `assets/js/data.js` |
+| S2-03 | Executive summary Session 2 addendum (corrections + re-verification results) | `in progress` | `arena-59730b38` | `arena/59730b38-tradebot3` | `EXECUTIVE_SUMMARY.md` |
+| S2-04 | Re-run automated verification + live server test, open PR to `main`, merge, confirm GitHub Pages deploy | `in progress` | `arena-59730b38` | `arena/59730b38-tradebot3` | `scripts/verify_site.py` (run only, no edits), `COORDINATION.md` (PR record) |
+
+> Session 1 tasks T-01..T-05 and session `arena-a8cfdaeb` task T-06 are `done` and merged (PRs #1–#3); R-01 and static IRREG-09..13 remain `needs review` (published on site). Session 2 scopes touch only the files listed above and do not overlap any in-progress claim. Session 2 is the refresh pass requested by static IRREG-10; its new dynamic item is numbered **IRREG-14** to avoid colliding with static IRREG-09..13.
 
 ---
 
