@@ -193,6 +193,6 @@
 
 ## Session 2 Pull Request & Deployment Record
 - **Source Branch:** `arena/59730b38-tradebot3` -> `main`
-- **PR URL:** *(recorded after `gh pr create` below)*
-- **Merge Method:** `gh pr merge <n> --merge` after passing `scripts/verify_site.py` with 0 broken links; flagged items (R-01 + static IRREG-09..13 + IRREG-14, `needs review`) do not block merge and remain published on `flagged-for-review.html`.
-- **GitHub Pages Live URL:** https://kanlerxz87-cyber.github.io/Tradebot3/
+- **PR URL:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/6
+- **Merge Method:** `gh pr merge 6 --merge` (merged into `main` on 2026-11-22T07:29:19Z as `24fe002` after passing `scripts/verify_site.py` with 0 broken links); flagged items (R-01 + static IRREG-09..13 + IRREG-14, `needs review`) do not block merge and remain published on `flagged-for-review.html`.
+- **GitHub Pages Live URL:** https://kanlerxz87-cyber.github.io/Tradebot3/ (deploy success confirmed via `pages/builds/latest` status `built`; record-keeping follow-up PR #7 merged after)
