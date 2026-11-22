@@ -4,6 +4,12 @@
 
 An interactive Kalshi market reference catalog, local alerting/portfolio simulator, and strategy test bench focused strictly on five topics: **Gas Prices**, **Elections**, **Culture**, **Crypto**, and **Golf**.
 
+> **Session 2 re-verification (2026-11-22 UTC, `arena/83838475`):** all 29 market rows re-checked line by line
+> against live official Kalshi pages; 22 rows updated with fresh verified prices/volumes/resolutions
+> (12 resolved, 1 unverified volume left), API specs re-confirmed against docs.kalshi.com, and an opt-in
+> High-ROI desktop-notification + audio-ping toggle added to the landing dashboard. See
+> `EXECUTIVE_SUMMARY.md` §0 and `COORDINATION.md` for the full correction log.
+
 ---
 
 ## Pages & Structure

@@ -119,6 +119,15 @@
         <li><strong>IRREG-12 (Medium):</strong> CONTROLS-2026 is stored as Open, but the official page title reads "Senate Control 2026 Results: Democrats Win". Status needs confirmation.</li>
         <li><strong>IRREG-13 (Low):</strong> Stored dollar volumes differ from official pages for 4 of 6 sampled markets. Likely timing, not confirmed.</li>
       </ul>
+      <div class="status-banner ok" style="margin-top:10px;margin-bottom:0;">
+        <strong>Follow-up update (2026-11-22, session <code>arena-83838475</code>) — original sample table above is preserved as-is:</strong>
+        the requested full refresh pass is now done: all 29 markets were re-checked against the same official pages
+        (same official values independently confirmed) and <code>assets/js/data.js</code> now stores the fresh verified
+        values, so static IRREG-10/12/13 sample mismatches are resolved (see data-driven IRREG-18, and IRREG-19 for the
+        Determined→Resolved mapping). IRREG-09's "Unverified Catalog Alert" relabelling is kept. IRREG-11 is partly
+        resolved: the External Feeds demo host is now listed in the verified API table (16 rows), and the
+        <code>user-ws.demo.kalshi.co</code> host was already listed there.
+      </div>
     </section>
 
     <!-- Flagged Technical & Repo Irregularities -->

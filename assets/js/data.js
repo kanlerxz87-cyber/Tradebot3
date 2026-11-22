@@ -9,7 +9,7 @@
  * - Unconfirmed fields are `null` and render blank/Unverified; values in this static catalog can become stale.
  */
 
-export const LAST_VERIFIED_UTC = '2026-11-22T07:27:00Z';
+export const LAST_VERIFIED_UTC = '2026-11-22T07:35:11Z';
 
 export const ALLOWED_TOPICS = ['gas-prices', 'elections', 'culture', 'crypto', 'golf'];
 
@@ -130,8 +130,8 @@ export const DEMO_API_ENDPOINTS = [
     surface: 'External Feeds WebSocket (Demo)',
     status: 'Dedicated Feed Host',
     url: 'wss://external-feeds.demo.kalshi.co/trade-api/v2/external-feeds',
-    authRequired: 'Authenticated (sign GET /trade-api/v2/external-feeds)',
-    notes: 'Dedicated demo host for external data feeds; Trade API REST/WS hosts unaffected. Covers the external-feeds gap in static IRREG-11 (the user-ws host was already listed).',
+    authRequired: 'Authenticated (sign GET /trade-api/v2/external-feeds; KALSHI-ACCESS-* handshake headers)',
+    notes: 'Dedicated demo host for external data feeds; Trade API REST/WS hosts unaffected. Covers the external-feeds gap in static IRREG-11 (the user-ws host was already listed). Independently confirmed by session arena-83838475 against api_environments.',
     sourceUrl: 'https://docs.kalshi.com/getting_started/api_environments',
     sourceLabel: 'Kalshi Docs — API Environments'
   },
@@ -212,7 +212,7 @@ export const DEMO_API_ENDPOINTS = [
     status: 'Rate Limit Spec',
     url: 'Basic/Adv/Expert: 200 | Premier: 500 | Paragon: 750 | Prime/Prestige: 1,000',
     authRequired: 'Tier-based',
-    notes: 'Maximum concurrent WebSocket connections per API tier.',
+    notes: 'Maximum concurrent WebSocket connections per API tier (Predictions + Perps share the per-user limit).',
     sourceUrl: 'https://docs.kalshi.com/getting_started/rate_limits',
     sourceLabel: 'Kalshi Docs — Rate Limits and Tiers'
   }
@@ -287,6 +287,13 @@ export const VERIFIED_MARKETS = [
         timeOffsetMin: 140,
         url: 'https://www.cnbc.com/2026/11/09/stock-market-today-live-updates.html',
         sourceName: 'CNBC'
+      },
+      {
+        label: 'Below $3.40 surges to 67% (+27) as Texas gas drops ~55c/gal; Below $3.60 hits 97% (+30)',
+        delta: 0.27,
+        timeOffsetMin: 60,
+        url: 'https://kalshi.com/markets/kxaaagasmin/us-lowest-gas-price-yearly/kxaaagasmin-26dec31',
+        sourceName: 'Kalshi Market Feed'
       }
     ]
   },
@@ -298,13 +305,13 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'CA Below $3.90',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.07,
-    observedSwing: null,
-    volumeUsd: 51884,
+    observedPrice: 0.02,
+    observedSwing: -0.02,
+    volumeUsd: 70069,
     verifiedRestingLiquidity: null,
     closeWindow: 'Dec 31, 2026',
     settlementSource: 'AAA California Regular Average',
-    modelFairValue: 0.11,
+    modelFairValue: 0.05,
     sourceUrl: 'https://kalshi.com/markets/kxaaagasminca/california-lowest-gas-price-yearly',
     sourceLabel: 'Kalshi — California Lowest Gas Price 2026',
     catalysts: [
@@ -325,13 +332,13 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'CA Above $6.60',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.34,
-    observedSwing: -0.04,
-    volumeUsd: null,
+    observedPrice: 0.02,
+    observedSwing: -0.06,
+    volumeUsd: 509539,
     verifiedRestingLiquidity: null,
     closeWindow: 'Dec 31, 2026',
     settlementSource: 'AAA California Regular Average',
-    modelFairValue: 0.25,
+    modelFairValue: 0.05,
     sourceUrl: 'https://kalshi.com/markets/kxaaagasmaxca/california-highest-gas-price-yearly/kxaaagasmaxca-26dec31',
     sourceLabel: 'Kalshi — California Highest Gas Price 2026',
     catalysts: [
@@ -350,15 +357,15 @@ export const VERIFIED_MARKETS = [
     topic: 'gas-prices',
     title: 'New York gas price (Nov 19, 2026) — Large decrease (<= $4.0814/gal)',
     contractLabel: 'NY Large Decrease',
-    status: 'Open',
-    resolution: null,
-    observedPrice: 0.90,
+    status: 'Resolved',
+    resolution: 'YES',
+    observedPrice: 1.00,
     observedSwing: null,
     volumeUsd: null,
     verifiedRestingLiquidity: null,
     closeWindow: 'Nov 19, 2026 (Payout Nov 26, 2026)',
     settlementSource: 'AAA New York Regular Average',
-    modelFairValue: 0.92,
+    modelFairValue: 1.00,
     sourceUrl: 'https://kalshi.com/markets/kxaaagascdny/new-york-gas-price/kxaaagascdny-26nov19',
     sourceLabel: 'Kalshi — New York Gas Price Nov 19',
     catalysts: []
@@ -411,7 +418,7 @@ export const VERIFIED_MARKETS = [
     sourceLabel: 'Kalshi — 2026 U.S. Senate Control',
     catalysts: [
       {
-        label: '2026 Midterm results drive +$0.23 (+23¢) jump in Democratic Senate control odds to 97%',
+        label: '2026 Midterm results drive +$0.23 (+23¢) jump in Democratic Senate control odds toward 100% (now Determined: Democrats Win)',
         delta: 0.23,
         timeOffsetMin: 240,
         url: 'https://kalshi.com/markets/controls/senate-winner/controls-2026',
@@ -427,9 +434,9 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'Jon Ossoff',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.18,
-    observedSwing: 0.01,
-    volumeUsd: 111643774,
+    observedPrice: 0.17,
+    observedSwing: -0.01,
+    volumeUsd: 111670768,
     verifiedRestingLiquidity: null,
     closeWindow: 'Nov 7, 2029',
     settlementSource: 'Official Electoral College / Presidential Inauguration',
@@ -454,9 +461,9 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'Democratic Party',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.89,
-    observedSwing: null,
-    volumeUsd: 1038096,
+    observedPrice: 0.90,
+    observedSwing: 0.01,
+    volumeUsd: 1038132,
     verifiedRestingLiquidity: null,
     closeWindow: 'Nov 7, 2028',
     settlementSource: 'Official U.S. Senate Control',
@@ -475,7 +482,7 @@ export const VERIFIED_MARKETS = [
     resolution: 'OPEN',
     observedPrice: 0.67,
     observedSwing: null,
-    volumeUsd: 897054,
+    volumeUsd: 911689,
     verifiedRestingLiquidity: null,
     closeWindow: 'Nov 7, 2029',
     settlementSource: 'Official Presidential Election Party Winner',
@@ -492,9 +499,9 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'Democratic Sweep',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.63,
+    observedPrice: 0.65,
     observedSwing: null,
-    volumeUsd: 596106,
+    volumeUsd: 613272,
     verifiedRestingLiquidity: null,
     closeWindow: 'Nov 7, 2028',
     settlementSource: 'Official 2028 Federal Election Results',
@@ -571,8 +578,8 @@ export const VERIFIED_MARKETS = [
     status: 'Open',
     resolution: 'OPEN',
     observedPrice: 0.91,
-    observedSwing: null,
-    volumeUsd: 4193638,
+    observedSwing: 0.06,
+    volumeUsd: 4315316,
     verifiedRestingLiquidity: null,
     closeWindow: 'Dec 2026 (Max Payout Dec 31, 2027)',
     settlementSource: 'The Game Awards Official Ceremony',
@@ -653,6 +660,13 @@ export const VERIFIED_MARKETS = [
         timeOffsetMin: 110,
         url: 'https://www.cnbc.com/2026/11/19/stock-market-today-live-updates.html',
         sourceName: 'CNBC'
+      },
+      {
+        label: 'ETH dips to $1,538 with $545M liquidations; Below $1,500 jumps to 63% (+26)',
+        delta: 0.26,
+        timeOffsetMin: 45,
+        url: 'https://kalshi.com/markets/kxethminy/how-low-will-ethereum-fall-this-year/kxethminy-27jan01',
+        sourceName: 'Kalshi Market Feed'
       }
     ]
   },
@@ -664,9 +678,9 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'SOL $50 or above',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.89,
+    observedPrice: 0.90,
     observedSwing: -0.10,
-    volumeUsd: 213632,
+    volumeUsd: 215030,
     verifiedRestingLiquidity: null,
     closeWindow: 'Jan 1, 2027',
     settlementSource: 'CF Benchmarks / Kalshi Spot Reference',
@@ -691,9 +705,9 @@ export const VERIFIED_MARKETS = [
     contractLabel: '$60,000–$64,999.99',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.19,
+    observedPrice: 0.22,
     observedSwing: 0.04,
-    volumeUsd: null,
+    volumeUsd: 50835002,
     verifiedRestingLiquidity: null,
     closeWindow: 'Jan 1, 2027',
     settlementSource: 'CF Benchmarks / Kalshi BTC Reference',
@@ -718,9 +732,9 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'BTC Below $55,000',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.58,
-    observedSwing: 0.15,
-    volumeUsd: null,
+    observedPrice: 0.64,
+    observedSwing: 0.32,
+    volumeUsd: 9494723,
     verifiedRestingLiquidity: null,
     closeWindow: 'Jan 1, 2027',
     settlementSource: 'CF Benchmarks / Kalshi BTC Reference',
@@ -729,8 +743,8 @@ export const VERIFIED_MARKETS = [
     sourceLabel: 'Kalshi — How Low Will Bitcoin Get 2026',
     catalysts: [
       {
-        label: 'BTC touches ~$55,055 intraday low during Wall Street sell-off; Below $55k jumps +$0.15',
-        delta: 0.15,
+        label: 'BTC touches ~$55,055 intraday low during Wall Street sell-off; Below $55k jumps +$0.32 (▲32)',
+        delta: 0.32,
         timeOffsetMin: 85,
         url: 'https://www.cnbc.com/2026/11/19/stock-market-today-live-updates.html',
         sourceName: 'CNBC'
@@ -745,9 +759,9 @@ export const VERIFIED_MARKETS = [
     contractLabel: '$50,000 First',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.18,
-    observedSwing: 0.01,
-    volumeUsd: null,
+    observedPrice: 0.37,
+    observedSwing: -0.03,
+    volumeUsd: 9284632,
     verifiedRestingLiquidity: null,
     closeWindow: 'Dec 31, 2026',
     settlementSource: 'CF Benchmarks / Kalshi BTC Reference',
@@ -850,9 +864,9 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'Scottie Scheffler',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.16,
-    observedSwing: null,
-    volumeUsd: 1894804,
+    observedPrice: 0.18,
+    observedSwing: -0.01,
+    volumeUsd: 2380682,
     verifiedRestingLiquidity: null,
     closeWindow: 'Apr 2027 (Max Payout Apr 25, 2027)',
     settlementSource: 'Augusta National / PGA Tour',
@@ -871,7 +885,7 @@ export const VERIFIED_MARKETS = [
     resolution: 'YES',
     observedPrice: 1.00,
     observedSwing: null,
-    volumeUsd: null,
+    volumeUsd: 353561663,
     verifiedRestingLiquidity: null,
     closeWindow: 'Settled (2026 U.S. Open)',
     settlementSource: 'USGA / PGA Tour / ESPN',
@@ -890,7 +904,7 @@ export const VERIFIED_MARKETS = [
     resolution: 'NO',
     observedPrice: 0.00,
     observedSwing: null,
-    volumeUsd: null,
+    volumeUsd: 807770,
     verifiedRestingLiquidity: null,
     closeWindow: 'Settled (Apr 2026)',
     settlementSource: 'Augusta National Official Field',
@@ -966,8 +980,8 @@ export const FLAGGED_IRREGULARITIES = [
     id: 'IRREG-07',
     severity: 'Medium',
     category: 'Unverified Static Fields',
-    item: 'Unexposed dollar volumes, live resting orderbook contract counts, and unconfirmed post-Nov-19 NY gas settlement left blank',
-    detail: 'Affected rows: KXAAAGASMAXCA-26DEC31 (volume), KXAAAGASCDNY-26NOV19 (volume & final YES/NO resolution), KXBTCY-27JAN0100 (volume), KXBTCMINY-27JAN01 (volume), KXBTC50VS100-BTC-26DEC31 (volume), KXBTCMAXMON-BTC-26MAR31 (volume), KXPGATOUR-USO26 (volume), KXPGAMASTERS-26 (volume), and static resting orderbook depth across all markets. Per verification rules, unconfirmable values are left blank and marked Unverified rather than inferred.',
+    item: 'One unexposed dollar volume (NY gas 11/19 settled page shows no figure) and live resting orderbook contract counts left blank',
+    detail: 'Re-verified 2026-11-22 (session arena-83838475): 7 of 8 missing volumes are now filled from official Kalshi pages (CA gas max $509,539; BTC EOY $50,835,002; BTC low $9,494,723; BTC 50v100 $9,284,632; BTC Mar $2,050,528; US Open $353,561,663; Masters field $807,770) and the NY gas Nov-19 settlement is confirmed YES. Remaining blanks: KXAAAGASCDNY-26NOV19 dollar volume (settled page exposes no figure) and static resting orderbook depth across all markets (live/dynamic only). Unconfirmable values stay blank and marked Unverified rather than inferred.',
     status: 'Needs Review',
     sourceUrl: 'https://kalshi.com/markets',
     sourceLabel: 'Kalshi Official Markets'
@@ -1011,6 +1025,26 @@ export const FLAGGED_IRREGULARITIES = [
     status: 'Needs Review',
     sourceUrl: 'https://kalshi.com/markets',
     sourceLabel: 'Kalshi Markets (contract reference)'
+  },
+  {
+    id: 'IRREG-18',
+    severity: 'Medium',
+    category: 'Re-verification Corrections',
+    item: 'Full 29-market refresh pass applied; supersedes static sample IRREG-10/12/13 (session arena-83838475)',
+    detail: 'Line-by-line re-check of all 29 markets found session-1 values that could not be reconciled with official Kalshi pages as live market drift (e.g. US gas Above $4.60: 51% recorded vs 6% Yes 6c live; CA gas Above $6.60: 34% vs 2%; BTC $50k-first: 18% vs 37%; Senate-2026 volume $220.9M vs $341.2M live; ETH low 42% vs 63%). All open-market rows were reset to freshly observed official values (headline chance %, Yes/No cents, ▲/▼ move, vol) on 2026-11-22; 7 settled-market volumes/resolutions matched exactly and were left untouched. This refresh resolves the sample mismatches flagged in static IRREG-10/12/13 (same official values, independently cross-validated). Corrected rows keep their official source links; prior values are preserved in git history (main @ 08ad596). Numbered IRREG-18/19: merged PR #6 owns IRREG-14 (session arena-59730b38 7-row refresh, an independent cross-validation of the same official values) and merged PR #4 owns IRREG-16/17 (paper-simulation disclosure); this full 29-market pass supersedes the same sample mismatches with identical official values.',
+    status: 'Needs Review',
+    sourceUrl: 'https://kalshi.com/markets/kxaaagasmax/us-highest-gas-price-yearly/kxaaagasmax-26dec31',
+    sourceLabel: 'Kalshi — US Highest Gas Price 2026 (example corrected row)'
+  },
+  {
+    id: 'IRREG-19',
+    severity: 'Low',
+    category: 'Lifecycle Methodology',
+    item: 'Kalshi Determined (outcome known, payout pending) rows are displayed as Resolved YES/NO',
+    detail: 'Kalshi market pages show a Determined banner with Outcome Yes/No once the result is known, sometimes before the payout/settle date (e.g. NY gas Nov-19 pays Nov 26; Senate-2026 window runs to Feb 1, 2027). This dashboard maps Determined Yes/No to Resolved YES ($1.00) / Resolved NO ($0.00) so lifecycle tracking and settlement P&L stay consistent; final on-chain settlement timestamps are not statically exposed and remain unverified.',
+    status: 'Needs Review',
+    sourceUrl: 'https://kalshi.com/markets/kxaaagascdny/new-york-gas-price/kxaaagascdny-26nov19',
+    sourceLabel: 'Kalshi — New York Gas Price Nov 19 (Determined Yes)'
   }
 ];
 
@@ -1070,6 +1104,14 @@ export const REPO_AUDIT_ITEMS = [
     verified: true,
     sourceUrl: 'https://kalshi.com/markets',
     sourceLabel: 'Kalshi Official Markets (live re-check)'
+  },
+  {
+    path: 'assets/js/data.js (session-2 re-verification)',
+    checkType: 'Official Source Re-check',
+    finding: 'All 29 market rows re-verified individually against live official Kalshi pages on 2026-11-22 (headline chance, Yes/No cents, move arrows, vol, Determined banners); API specs re-checked against docs.kalshi.com (demo env, environments, orderbook, websockets, rate limits, candlesticks 1/60/1440, create-order V2, get-balance) and the Emerson Nov-19 poll toplines (Ossoff 17%, Rubio 44% vs Vance 24%). Corrections logged as IRREG-18/IRREG-19 (renumbered: merged PR #6 owns IRREG-14, merged PR #4 owns IRREG-16/17).',
+    verified: true,
+    sourceUrl: 'https://kalshi.com/markets',
+    sourceLabel: 'Kalshi Official Markets'
   }
 ];
 

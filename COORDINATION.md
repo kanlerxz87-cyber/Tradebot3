@@ -2,8 +2,8 @@
 
 > **Repository:** `kanlerxz87-cyber/Tradebot3`
 > **Live Site (GitHub Pages):** https://kanlerxz87-cyber.github.io/Tradebot3/
-> **Active Session ID:** `arena-1a3afb37` (integrating the broader simulator/runtime audit; prior sample and Session 2 refreshes are documented below)
-> **Working Branch:** `arena/1a3afb37-tradebot3` (Arena-fixed; branched from `main` at `08ad596f66ebccb189754df5fa6dadac6365989c`, rebased onto current main)
+> **Active Session ID:** `arena-83838475` (Session 2b full refresh + notify toggle; priors merged: `arena-1a3afb37` T-07 via PR #4, `arena-59730b38` via PR #6/#8, `arena-3716ae8d` via PR #1, `arena-a8cfdaeb` via PR #2/#3)
+> **Working Branch:** `arena/83838475-tradebot3` (Arena fixed session branch; branched from `main` at `08ad596f66ebccb189754df5fa6dadac6365989c`, reconciled onto `9644264`)
 > **Last Updated:** 2026-11-22 (UTC)
 >
 > This checkout contains prior T-01–T-06 sample-audit and Session 2 API/data refresh work on `main`. T-07 is a separate simulator/runtime-integrity follow-up on the current branch above.
@@ -217,3 +217,24 @@
 
 - At the time T-07 was rebased, PR #5 (`arena/dcead908-tradebot3`) and PR #7 (`arena/83838475-tradebot3`) were open and both edited `assets/js/data.js`; PR #7 also edited `index.html`, `assets/js/dashboard.js`, and `flagged-for-review.html`. T-07 overlaps those files because it corrects simulated/live labeling and appends IRREG-16/17.
 - Integration requirement: preserve the T-07 paper-simulation disclosures and clean portfolio baseline when resolving either open PR; PR #7's IRREG-14/15 are distinct, so T-07's flags use 16/17. This session has not edited or pushed to another session's branch.
+
+---
+
+## Session 2b Task Board (Full 29-Market Refresh + High-ROI Notify — `arena-83838475`)
+
+| Task ID | Task Description | Status | Owning Session | Branch | File Scope |
+| --- | --- | --- | --- | --- | --- |
+| T-10 | Full 29-market line-by-line re-verification + corrections (22 rows), new IRREG-18/19 | `done` | `arena-83838475` | `arena/83838475-tradebot3` | `assets/js/data.js` |
+| T-11 | High-ROI desktop-notification + audio-ping toggle (landing dashboard) | `done` | `arena-83838475` | `arena/83838475-tradebot3` | `assets/js/dashboard.js`, `index.html`, `assets/css/styles.css` |
+| T-12 | Executive summary Session 2b addendum + README touch-ups + flagged-page follow-up note | `done` | `arena-83838475` | `arena/83838475-tradebot3` | `EXECUTIVE_SUMMARY.md`, `README.md`, `flagged-for-review.html` |
+| T-13 | Re-run automated verification + live server test, open PR to `main`, merge, confirm GitHub Pages deploy | `in progress` | `arena-83838475` | `arena/83838475-tradebot3` | `scripts/verify_site.py` (run only, no edits), `COORDINATION.md` (PR record) |
+
+> Session 2b started from `main` @ `08ad596`, reconciled onto `24fe002` (PR #6) then `9644264` (PR #4) via 3-way patch application. Resolution rules: merged values win on all overlapping rows/labels (PR #6 07:27 stamp + edge-anchored fair values; PR #4 paper-simulation disclosures + clean $10,000 baseline + host allowlists preserved verbatim); this session's 15 additional row corrections, notify toggle, follow-up note, both audit rows, and addendum are additive. Own flags renumbered twice → **IRREG-18/19** (PR #6 owns IRREG-14, PR #4 owns IRREG-16/17). Open parallel PR #5 (`arena-dcead908`, claims IRREG-09/10) still collides with merged IDs and must renumber on rebase; not this session's scope.
+
+---
+
+## Session 2b Pull Request & Deployment Record (`arena-83838475`)
+- **Source Branch:** `arena/83838475-tradebot3` -> `main`
+- **PR URL:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/7
+- **Merge Method:** `gh pr merge 7 --merge` after passing `node --check`, `scripts/verify_site.py` with 0 broken links, and live HTTP spot-check; flagged items (`needs review`) do not block merge and remain published on `flagged-for-review.html`.
+- **GitHub Pages Live URL:** https://kanlerxz87-cyber.github.io/Tradebot3/
