@@ -2,9 +2,22 @@
 
 > **Repository:** `kanlerxz87-cyber/Tradebot3`
 > **Live Site (GitHub Pages):** https://kanlerxz87-cyber.github.io/Tradebot3/
-> **Active Session ID:** `arena-a8cfdaeb` (prior session: `arena-3716ae8d`, merged via PR #1)
-> **Working Branch:** `arena/3716ae8d-tradebot3` (Arena fixed session branch; branched from `main` at `62713af9e466cd393c61be0df37e5de0872919cc`)
+> **Active Session ID:** `arena-59730b38` (Session 2 refresh; priors: `arena-3716ae8d` merged via PR #1, `arena-a8cfdaeb` merged via PR #2/#3)
+> **Working Branch:** `arena/59730b38-tradebot3` (Arena fixed session branch; branched from `main` at `08ad596f66ebccb189754df5fa6dadac6365989c`, rebased onto `991a8eb`)
 > **Last Updated:** 2026-11-22 (UTC)
+
+---
+
+## Session 2 Task Board (Independent Re-Verification & Data Refresh — `arena-59730b38`)
+
+| Task ID | Task Description | Status | Owning Session | Branch | File Scope |
+| --- | --- | --- | --- | --- | --- |
+| S2-01 | Independent line-by-line re-verification of all API claims + 8-market live spot-check against official Kalshi docs/pages | `done` | `arena-59730b38` | `arena/59730b38-tradebot3` | `COORDINATION.md` (Session 2 log only) |
+| S2-02 | Refresh stale/incorrect observed values in verified dataset (8 re-verified markets), WS rate-limit row, new IRREG-14 | `done` | `arena-59730b38` | `arena/59730b38-tradebot3` | `assets/js/data.js` |
+| S2-03 | Executive summary Session 2 addendum (corrections + re-verification results) | `done` | `arena-59730b38` | `arena/59730b38-tradebot3` | `EXECUTIVE_SUMMARY.md` |
+| S2-04 | Re-run automated verification + live server test, open PR to `main`, merge, confirm GitHub Pages deploy | `done` | `arena-59730b38` | `arena/59730b38-tradebot3` | `scripts/verify_site.py` (run only, no edits), `COORDINATION.md` (PR record) |
+
+> Session 1 tasks T-01..T-05 and session `arena-a8cfdaeb` task T-06 are `done` and merged (PRs #1–#3); R-01 and static IRREG-09..13 remain `needs review` (published on site). Session 2 scopes touch only the files listed above and do not overlap any in-progress claim. Session 2 is the refresh pass requested by static IRREG-10; its new dynamic item is numbered **IRREG-14** to avoid colliding with static IRREG-09..13.
 
 ---
 
@@ -141,3 +154,45 @@
 - **PR:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/2 (`arena/a8cfdaeb-tradebot3` -> `main`), merged with `gh pr merge 2 --merge` (merge commit on `main`).
 - **Pages deploy:** `pages build and deployment` run completed with `success`; live page https://kanlerxz87-cyber.github.io/Tradebot3/flagged-for-review.html serves the T-06 re-verification table.
 - **Flagged items:** IRREG-09 to IRREG-13 are non-blocking and published on Flagged for Review.
+
+---
+
+> **Merge-conflict reconciliation (2026-11-22 ~07:30 UTC, session `arena-59730b38`):** `git pull --rebase` onto `main` (`991a8eb`, after parallel session `arena-a8cfdaeb` merged PRs #2/#3) conflicted only in `COORDINATION.md` headers/footers. Resolved by keeping the other session's `Session Log — arena-a8cfdaeb` and T-06 rows verbatim and appending Session 2 sections below; no other-session work was discarded. Cross-validation: T-06's static audit independently confirmed the same 4 price/volume mismatches Session 2 corrects. To avoid ID collision with static IRREG-09..13, Session 2's new dynamic item is numbered **IRREG-14**. T-06's static re-verification table is preserved as the historical before/after record; IRREG-14 documents the applied refresh.
+
+## Session 2 Verification Log (`arena-59730b38`, 2026-11-22T07:27:00Z)
+
+### S2-01 — Independent line-by-line re-verification (status: `done`)
+- Re-fetched and re-confirmed against **live** official docs: `demo_env` (recommended `external-api.demo.kalshi.co` REST + `external-api-ws.demo.kalshi.co` WS, supported `demo-api.kalshi.co` pair), `api_environments` (incl. `wss://user-ws.demo.kalshi.co/trade-api/ws/v2` fill/user_orders host, sign path without query), `orderbook_responses` (`orderbook_fp` `[price_dollars, count_fp]` bids-only, `$0.42`/`$0.56` → `$0.44`/`$0.02` example, HTTP 200 empty arrays for unknown tickers), `quick_start_websockets` (`KALSHI-ACCESS-*` handshake headers, `timestamp + "GET" + "/trade-api/ws/v2"` signing, private vs public channels), `rate_limits` (WS connection limits Basic/Advanced/**Expert** 200, Premier 500, Paragon 750, Prime/**Prestige** 1,000), `get-market-candlesticks` (`period_interval` 1/60/1440 only), `create-order-v2` (`POST /portfolio/events/orders`, `bid`/`ask` side, fixed-point dollars).
+- Live market spot-check (8 pages: one per topic + gas/elections/crypto extras): `KXOSCARACTO-26` settled YES @ $25,562,603 **matched exactly**; 5 open-market rows required correction plus the CONTROLS-2026 settlement flip and one volume fill (see ledger below). Cross-validated against parallel session `arena-a8cfdaeb` T-06 static audit (same 4 price/volume mismatches; CONTROLS-2026 + BTCMAXMON volume findings independently re-fetched and applied here).
+- Line-by-line code audit of `assets/js/kalshi-client.js` and `assets/js/engine.js`: RSA-PSS SHA-256 saltLength 32, signed-header names, orderbook reciprocal parser, Create Order V2 payload, ≥$0.10 dual-chat alerting, $1.00/$0.00 settlement payouts, P&L math, seeded cash $9,991.70 — **no defects found**. Seeded ledger trades are historical records and were intentionally left untouched.
+
+### S2-02 — Dataset corrections ledger (status: `done`, scope `assets/js/data.js`)
+| Ticker | Field | Before (Session 1) | After (live-verified) | Official Source |
+| --- | --- | --- | --- | --- |
+| KXAAAGASMAX-26DEC31 | observedPrice / swing / volumeUsd / modelFairValue | 0.51 / −0.01 / 1,836,232 / 0.43 | **0.06 / −0.05 / 2,150,412 / 0.01** | https://kalshi.com/markets/kxaaagasmax/us-highest-gas-price-yearly/kxaaagasmax-26dec31 |
+| KXAAAGASMIN-26DEC31 | observedPrice / swing / volumeUsd / modelFairValue | 0.55 / +0.10 / 115,427 / 0.64 | **0.67 / +0.27 / 120,214 / 0.76** | https://kalshi.com/markets/kxaaagasmin/us-lowest-gas-price-yearly/kxaaagasmin-26dec31 |
+| KXPRESNOMD-28 | observedPrice / swing / volumeUsd / modelFairValue | 0.26 / −0.01 / 304,563,107 / 0.34 | **0.24 / null / 308,045,852 / 0.32** | https://kalshi.com/markets/kxpresnomd/democratic-primary-winner/kxpresnomd-28 |
+| KXETHMINY-27JAN01 | observedPrice / swing / volumeUsd / modelFairValue | 0.42 / +0.19 / 1,782,347 / 0.51 | **0.63 / +0.26 / 1,829,630 / 0.72** | https://kalshi.com/markets/kxethminy/how-low-will-ethereum-fall-this-year/kxethminy-27jan01 |
+| KXPGATOUR-THRC26-MTHO | observedPrice / swing / volumeUsd / modelFairValue | 0.13 / +0.10 / 27,982,941 / 0.21 | **0.18 / +0.01 / 39,992,031 / 0.26** | https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-thrc26 |
+| CONTROLS-2026 | status / resolution / price / swing / volumeUsd / modelFairValue | Open / OPEN / 0.97 / +0.23 / 220,875,845 / 0.97 | **Resolved / YES / 1.00 / null / 341,173,231 / 1.00** | https://kalshi.com/markets/controls/senate-winner/controls-2026 |
+| KXBTCMAXMON-BTC-26MAR31 | volumeUsd (outcome already Resolved NO) | null | **2,050,528** | https://kalshi.com/markets/kxbtcmaxmon/bitcoin-monthly-one-touch/kxbtcmaxmon-btc-26mar31 |
+| — | `LAST_VERIFIED_UTC` | 2026-11-22T07:15:00Z | **2026-11-22T07:27:00Z** | (site footer freshness stamp) |
+| — | WS Connection Limits row | Basic/Adv: 200 … Prime: 1,000 | **Basic/Adv/Expert: 200 … Prime/Prestige: 1,000** | https://docs.kalshi.com/getting_started/rate_limits |
+| — | `FLAGGED_IRREGULARITIES` | 8 items | **9 items (added IRREG-14; numbered to avoid static IRREG-09..13)** | https://kalshi.com/markets |
+| — | `REPO_AUDIT_ITEMS` | 6 items | **7 items (added Session 2 re-verification row)** | https://kalshi.com/markets |
+- **Model-fair-value re-anchor rule (documented, mechanical, no invented facts):** `newFair = clamp(newObserved + (priorFair − priorObserved), 0.01, 0.99)` — preserves each model's prior directional edge under new live prices so the High-ROI engine does not emit false signals from stale parameters.
+- **Observed-price convention:** headline Kalshi "Chance %" (Yes¢ shown alongside; only KXAAAGASMIN differed: 67% vs 69¢ → 0.67 recorded).
+
+### S2-03 — Executive summary addendum (status: `done`, scope `EXECUTIVE_SUMMARY.md`)
+- Added dated Session 2 addendum (re-verification results, corrections, code-audit outcome); Session 1 content preserved verbatim.
+
+### S2-04 — Verification, PR & deploy (status: `done`)
+- `python3 scripts/verify_site.py`: **ALL CHECKS PASSED** — 23 files, 35 internal links / 0 broken, DOM IDs match, 5-topic isolation (29 markets), HTTPS sources on all rows (16 endpoints / 29 markets / 9 irregularities / 7 audit items / 6 suggestions), orderbook spread $0.02, engine alert/trade/settle/strategy tests pass.
+- `node --check` clean on all 9 JS modules; live `http.server` check: HTTP 200 on all served routes; `IRREG-14` confirmed served in `data.js`.
+- Seeded demo-ledger note: `engine.js` TRD-1001..TRD-1004 entries reference pre-correction prices as **historical records** (open positions will mark to new live prices — expected behavior, not an error).
+
+## Session 2 Pull Request & Deployment Record
+- **Source Branch:** `arena/59730b38-tradebot3` -> `main`
+- **PR URL:** *(recorded after `gh pr create` below)*
+- **Merge Method:** `gh pr merge <n> --merge` after passing `scripts/verify_site.py` with 0 broken links; flagged items (R-01 + static IRREG-09..13 + IRREG-14, `needs review`) do not block merge and remain published on `flagged-for-review.html`.
+- **GitHub Pages Live URL:** https://kanlerxz87-cyber.github.io/Tradebot3/

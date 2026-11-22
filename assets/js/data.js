@@ -10,7 +10,7 @@
  *   so tables render it blank and flag it as Unverified (linked to flagged-for-review.html).
  */
 
-export const LAST_VERIFIED_UTC = '2026-11-22T07:15:00Z';
+export const LAST_VERIFIED_UTC = '2026-11-22T07:27:00Z';
 
 export const ALLOWED_TOPICS = ['gas-prices', 'elections', 'culture', 'crypto', 'golf'];
 
@@ -128,6 +128,15 @@ export const DEMO_API_ENDPOINTS = [
     sourceLabel: 'Kalshi Docs — API Environments'
   },
   {
+    surface: 'External Feeds WebSocket (Demo)',
+    status: 'Dedicated Feed Host',
+    url: 'wss://external-feeds.demo.kalshi.co/trade-api/v2/external-feeds',
+    authRequired: 'Authenticated (sign GET /trade-api/v2/external-feeds)',
+    notes: 'Dedicated demo host for external data feeds; Trade API REST/WS hosts unaffected. Covers the external-feeds gap in static IRREG-11 (the user-ws host was already listed).',
+    sourceUrl: 'https://docs.kalshi.com/getting_started/api_environments',
+    sourceLabel: 'Kalshi Docs — API Environments'
+  },
+  {
     surface: 'REST Get Events',
     status: 'Public Endpoint',
     url: 'GET /trade-api/v2/events',
@@ -202,7 +211,7 @@ export const DEMO_API_ENDPOINTS = [
   {
     surface: 'WebSocket Connection Limits',
     status: 'Rate Limit Spec',
-    url: 'Basic/Adv: 200 | Premier: 500 | Paragon: 750 | Prime: 1,000',
+    url: 'Basic/Adv/Expert: 200 | Premier: 500 | Paragon: 750 | Prime/Prestige: 1,000',
     authRequired: 'Tier-based',
     notes: 'Maximum concurrent WebSocket connections per API tier.',
     sourceUrl: 'https://docs.kalshi.com/getting_started/rate_limits',
@@ -229,13 +238,13 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'Above $4.60',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.51,
-    observedSwing: -0.01,
-    volumeUsd: 1836232,
+    observedPrice: 0.06,
+    observedSwing: -0.05,
+    volumeUsd: 2150412,
     verifiedRestingLiquidity: null,
     closeWindow: 'Dec 31, 2026',
     settlementSource: 'AAA Daily Fuel Gauge',
-    modelFairValue: 0.43,
+    modelFairValue: 0.01,
     sourceUrl: 'https://kalshi.com/markets/kxaaagasmax/us-highest-gas-price-yearly/kxaaagasmax-26dec31',
     sourceLabel: 'Kalshi — US Highest Gas Price 2026',
     catalysts: [
@@ -263,13 +272,13 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'Below $3.40',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.55,
-    observedSwing: 0.10,
-    volumeUsd: 115427,
+    observedPrice: 0.67,
+    observedSwing: 0.27,
+    volumeUsd: 120214,
     verifiedRestingLiquidity: null,
     closeWindow: 'Dec 31, 2026',
     settlementSource: 'AAA Daily Fuel Gauge',
-    modelFairValue: 0.64,
+    modelFairValue: 0.76,
     sourceUrl: 'https://kalshi.com/markets/kxaaagasmin/us-lowest-gas-price-yearly/kxaaagasmin-26dec31',
     sourceLabel: 'Kalshi — US Lowest Gas Price 2026',
     catalysts: [
@@ -365,13 +374,13 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'Jon Ossoff',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.26,
-    observedSwing: -0.01,
-    volumeUsd: 304563107,
+    observedPrice: 0.24,
+    observedSwing: null,
+    volumeUsd: 308045852,
     verifiedRestingLiquidity: null,
     closeWindow: 'Nov 7, 2028',
     settlementSource: 'Democratic National Convention Official Nominee',
-    modelFairValue: 0.34,
+    modelFairValue: 0.32,
     sourceUrl: 'https://kalshi.com/markets/kxpresnomd/democratic-primary-winner/kxpresnomd-28',
     sourceLabel: 'Kalshi — 2028 Democratic Nominee',
     catalysts: [
@@ -390,15 +399,15 @@ export const VERIFIED_MARKETS = [
     topic: 'elections',
     title: 'Who will control the U.S. Senate in 2026? — Democratic Party',
     contractLabel: 'Democratic Party',
-    status: 'Open',
-    resolution: 'OPEN',
-    observedPrice: 0.97,
-    observedSwing: 0.23,
-    volumeUsd: 220875845,
+    status: 'Resolved',
+    resolution: 'YES',
+    observedPrice: 1.00,
+    observedSwing: null,
+    volumeUsd: 341173231,
     verifiedRestingLiquidity: null,
-    closeWindow: 'Feb 1, 2027 (Media Consensus / Pres. Pro Tempore)',
+    closeWindow: 'Settled (Media Consensus: Democrats Win)',
     settlementSource: 'Media Consensus / U.S. Senate Pres. Pro Tempore',
-    modelFairValue: 0.97,
+    modelFairValue: 1.00,
     sourceUrl: 'https://kalshi.com/markets/controls/senate-winner/controls-2026',
     sourceLabel: 'Kalshi — 2026 U.S. Senate Control',
     catalysts: [
@@ -629,13 +638,13 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'ETH Below $1,500',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.42,
-    observedSwing: 0.19,
-    volumeUsd: 1782347,
+    observedPrice: 0.63,
+    observedSwing: 0.26,
+    volumeUsd: 1829630,
     verifiedRestingLiquidity: null,
     closeWindow: 'Jan 1, 2027',
     settlementSource: 'CF Benchmarks / Kalshi Spot Reference',
-    modelFairValue: 0.51,
+    modelFairValue: 0.72,
     sourceUrl: 'https://kalshi.com/markets/kxethminy/how-low-will-ethereum-fall-this-year/kxethminy-27jan01',
     sourceLabel: 'Kalshi — How Low Will Ethereum Get 2026',
     catalysts: [
@@ -758,7 +767,7 @@ export const VERIFIED_MARKETS = [
     resolution: 'NO',
     observedPrice: 0.00,
     observedSwing: null,
-    volumeUsd: null,
+    volumeUsd: 2050528,
     verifiedRestingLiquidity: null,
     closeWindow: 'Settled (Mar 31, 2026)',
     settlementSource: 'CF Benchmarks / Kalshi BTC Reference',
@@ -815,13 +824,13 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'Michael Thorbjornsen',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.13,
-    observedSwing: 0.10,
-    volumeUsd: 27982941,
+    observedPrice: 0.18,
+    observedSwing: 0.01,
+    volumeUsd: 39992031,
     verifiedRestingLiquidity: null,
     closeWindow: 'Nov 22, 2026 (Max Payout Dec 5, 2026)',
     settlementSource: 'PGA Tour / ESPN / Fox Sports',
-    modelFairValue: 0.21,
+    modelFairValue: 0.26,
     sourceUrl: 'https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-thrc26',
     sourceLabel: 'Kalshi — 2026 The RSM Classic Winner',
     catalysts: [
@@ -973,6 +982,16 @@ export const FLAGGED_IRREGULARITIES = [
     status: 'Needs Review',
     sourceUrl: 'https://github.com/kanlerxz87-cyber/Tradebot3/commit/62713af9e466cd393c61be0df37e5de0872919cc',
     sourceLabel: 'GitHub Commit 62713af'
+  },
+  {
+    id: 'IRREG-14',
+    severity: 'High',
+    category: 'Dataset Re-verification',
+    item: 'Session-2 live re-check corrected 7 stale/incorrect rows incl. CONTROLS-2026 settlement (see detail)',
+    detail: 'Independent re-verification against live official Kalshi pages on 2026-11-22 (session stamp 07:27:00Z) corrected 7 rows: KXAAAGASMAX-26DEC31 Above $4.60 price $0.51->$0.06, swing -$0.01->-$0.05, vol $1,836,232->$2,150,412; KXAAAGASMIN-26DEC31 Below $3.40 $0.55->$0.67, swing +$0.10->+$0.27, vol $115,427->$120,214; KXPRESNOMD-28 Ossoff $0.26->$0.24, vol $304,563,107->$308,045,852; KXETHMINY-27JAN01 Below $1,500 $0.42->$0.63, swing +$0.19->+$0.26, vol $1,782,347->$1,829,630; KXPGATOUR-THRC26-MTHO $0.13->$0.18, swing +$0.10->+$0.01, vol $27,982,941->$39,992,031; CONTROLS-2026 Open 0.97/vol $220,875,845 -> Resolved YES @ $1.00, vol $341,173,231 (page: Democrats Win, Determined/Yes); KXBTCMAXMON-BTC-26MAR31 filled volume $2,050,528 (NO outcome re-confirmed). This is the refresh pass requested by static IRREG-10 (session arena-a8cfdaeb T-06 audit, whose before/after table is preserved on this page as the historical record). Model fair values were mechanically re-anchored preserving each prior model edge (resolved rows at settlement; documented in COORDINATION.md). Live Kalshi values drift continuously; all static snapshots carry verification timestamps. KXOSCARACTO-26 (settled YES, $25,562,603) re-confirmed exactly.',
+    status: 'Needs Review',
+    sourceUrl: 'https://kalshi.com/markets',
+    sourceLabel: 'Kalshi Official Markets (live re-check)'
   }
 ];
 
@@ -1024,6 +1043,14 @@ export const REPO_AUDIT_ITEMS = [
     verified: true,
     sourceUrl: 'https://github.com/kanlerxz87-cyber/Tradebot3',
     sourceLabel: 'GitHub — Tradebot3 Repo'
+  },
+  {
+    path: 'assets/js/data.js (Session 2 re-verification)',
+    checkType: 'Independent Re-verification',
+    finding: 'Session arena-59730b38 re-checked all API endpoint claims against live docs.kalshi.com (demo_env, api_environments incl. external-feeds host, orderbook_responses, quick_start_websockets, rate_limits WS limits Basic/Adv/Expert 200, Premier 500, Paragon 750, Prime/Prestige 1000, candlesticks 1/60/1440, Create Order V2) and 8 live kalshi.com market pages; corrected 7 stale/incorrect rows (incl. CONTROLS-2026 Resolved YES), re-anchored model fair values preserving prior edge, added external-feeds endpoint row, and published IRREG-14.',
+    verified: true,
+    sourceUrl: 'https://kalshi.com/markets',
+    sourceLabel: 'Kalshi Official Markets (live re-check)'
   }
 ];
 
