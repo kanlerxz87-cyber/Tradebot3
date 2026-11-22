@@ -2,8 +2,8 @@
 
 > **Repository:** `kanlerxz87-cyber/Tradebot3`
 > **Live Site (GitHub Pages):** https://kanlerxz87-cyber.github.io/Tradebot3/
-> **Active Session ID:** `arena-3716ae8d`
-> **Working Branch:** `arena/3716ae8d-tradebot3` (Arena fixed session branch; branched from `main` at `62713af9e466cd393c61be0df37e5de0872919cc`)
+> **Active Session ID:** `arena-ff314ece` (prior completed session: `arena-3716ae8d`, PR #1 merged)
+> **Working Branch:** `arena/ff314ece-tradebot3` (Arena fixed session branch; branched from `main` at `08ad596f66ebccb189754df5fa6dadac6365989c`)
 > **Last Updated:** 2026-11-22 (UTC)
 
 ---
@@ -26,6 +26,9 @@
 | T-04 | GitHub Pages site: Landing Dashboard, 5 Separate Category Subpages, Portfolio/Strategy Lab, API Verification/Suggestions, and Flagged for Review page | `done` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `.nojekyll`, `index.html`, `portfolio.html`, `verification.html`, `flagged-for-review.html`, `categories/*.html`, `assets/css/styles.css`, `assets/js/dashboard.js`, `assets/js/category-page.js`, `assets/js/portfolio-page.js`, `assets/js/verification-page.js` |
 | T-05 | Automated verification script, link integrity check, live HTTP server testing, PR creation, merge to `main`, and GitHub Pages deploy confirmation | `done` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `scripts/verify_site.py`, `COORDINATION.md` |
 | R-01 | Flagged Irregularities IRREG-01 through IRREG-08 & unverified static fields (published on `flagged-for-review.html`) | `needs review` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `flagged-for-review.html`, `assets/js/data.js` |
+| T-06 | Independent line-by-line repo review & official-source re-verification of Kalshi Demo API docs, all 29 markets, catalyst links, and irregularities | `in progress` | `arena-ff314ece` | `arena/ff314ece-tradebot3` | `COORDINATION.md`, `EXECUTIVE_SUMMARY.md`, `assets/js/data.js` |
+| T-07 | Fix verified discrepancies/bugs, add interactive enhancements (live chart hover tooltip, live orderbook REST fetch, live demo execution path, category analytics chart, alert search/filter & sound toggle), and update Flagged for Review | `in progress` | `arena-ff314ece` | `arena/ff314ece-tradebot3` | `assets/js/*.js`, `assets/css/styles.css`, `*.html`, `categories/*.html` |
+| T-08 | Expand automated verification suite, live preview check, PR creation to `main`, merge, and GitHub Pages deploy confirmation | `in progress` | `arena-ff314ece` | `arena/ff314ece-tradebot3` | `scripts/verify_site.py`, `COORDINATION.md`, `README.md` |
 
 ---
 
