@@ -1,0 +1,17 @@
+  [warn] pagination cap reached for /markets (25000 items)
+  [warn] pagination cap reached for /markets (10000 items)
+Scanning Kalshi public market data ...
+Selected 0 markets across 0 events
+Legacy audit: 3/29 claimed tickers exist in the live API
+Wrote assets/data/snapshot.json (6.0 KB) at 2026-11-22T07:26:22Z
+  gas-prices  markets=  0 events=  0
+  elections   markets=  0 events=  0
+  culture     markets=  0 events=  0
+  crypto      markets=  0 events=  0
+  golf        markets=  0 events=  0
+Warnings (5):
+  - Topic classifier: 35000 markets outside the five topics were ignored by design.
+  - Reference link not reachable (403): https://apnews.com/hub/elections 
+  - Reference link not reachable (429): https://kalshi.com/category/elections 
+  - Reference link not reachable (403): https://thegameawards.com/ 
+  - Reference link not reachable (None): https://www.masters.com/ TimeoutError: The read operation timed out
