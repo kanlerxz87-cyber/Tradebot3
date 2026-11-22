@@ -27,7 +27,7 @@ let selectedAlertTopic = 'all';
 let alertSearchQuery = '';
 let selectedMarker = null;
 
-// High-ROI desktop notification + audio ping state (opt-in, P2 suggestion implementation)
+// Model-filter desktop notification + audio ping state (opt-in)
 let notifyEnabled = false;
 let lastNotifiedAlertId = null;
 
@@ -61,7 +61,7 @@ function maybeNotifyHighRoi() {
   playAlertPing(latest.direction);
   try {
     if ('Notification' in window && Notification.permission === 'granted') {
-      const n = new Notification(`High-ROI Swing ${latest.delta >= 0 ? '+' : ''}$${latest.delta.toFixed(2)} — ${latest.ticker}`, {
+      const n = new Notification(`Model Filter Swing ${latest.delta >= 0 ? '+' : ''}$${latest.delta.toFixed(2)} — ${latest.ticker}`, {
         body: `${latest.title}\n$${latest.fromPrice.toFixed(2)} → $${latest.toPrice.toFixed(2)} · ${latest.roi ? latest.roi.reason : ''}`,
         tag: latest.id
       });
@@ -411,7 +411,7 @@ function bindEvents() {
   if (soundBtn) {
     soundBtn.addEventListener('click', () => {
       engine.soundEnabled = !engine.soundEnabled;
-      soundBtn.textContent = engine.soundEnabled ? 'High-ROI Sound Ping: ON' : 'High-ROI Sound Ping: OFF';
+      soundBtn.textContent = engine.soundEnabled ? 'Model Alert Sound Ping: ON' : 'Model Alert Sound Ping: OFF';
       if (engine.soundEnabled) engine.playAlertPing();
     });
   }
@@ -449,10 +449,10 @@ function bindEvents() {
       if (notifyEnabled) {
         const latest = engine.highRoiAlerts[0];
         lastNotifiedAlertId = latest ? latest.id : null; // don't replay history
-        notifyBtn.textContent = 'High-ROI Alerts: ON';
+        notifyBtn.textContent = 'Model Alerts: ON';
         notifyBtn.classList.add('btn-alert-on');
       } else {
-        notifyBtn.textContent = 'Enable High-ROI Alerts';
+        notifyBtn.textContent = 'Enable Model Alerts';
         notifyBtn.classList.remove('btn-alert-on');
       }
     });

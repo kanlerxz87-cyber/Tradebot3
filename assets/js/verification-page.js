@@ -1,6 +1,6 @@
 /**
  * Controller for:
- * - verification.html (Verified Kalshi Demo API Endpoints, Repo Line-by-Line Audit, Live/Interactive Suggestions)
+ * - verification.html (Verified Kalshi Demo API endpoints, repository audit, future-upgrade suggestions)
  * - flagged-for-review.html (All Flagged Irregularities & Unverified Market Fields with Source Links)
  */
 
@@ -92,14 +92,16 @@ function renderFlaggedPage() {
   const unverifiedBody = document.getElementById('unverified-fields-body');
   if (unverifiedBody) {
     const flaggedRows = VERIFIED_MARKETS.filter(
-      (m) => m.volumeUsd === null || m.resolution === null || m.verifiedRestingLiquidity === null
+      (m) => m.volumeUsd === null || m.resolution === null || m.observedPrice === null || m.observedSwing === null || m.verifiedRestingLiquidity === null || m.status === 'Needs Review'
     );
     unverifiedBody.innerHTML = flaggedRows
       .map((m) => {
         const missingFields = [];
-        if (m.volumeUsd === null) missingFields.push('Dollar Volume (blank)');
-        if (m.resolution === null) missingFields.push('Final YES/NO Settlement (blank)');
-        if (m.verifiedRestingLiquidity === null) missingFields.push('Live Resting Orderbook Depth (dynamic)');
+        if (m.volumeUsd === null) missingFields.push('Production event-volume snapshot (blank)');
+        if (m.resolution === null || m.status === 'Needs Review') missingFields.push('Lifecycle / final YES-NO result (needs review)');
+        if (m.observedPrice === null) missingFields.push('Historical observed price (blank; no timestamped catalog quote)');
+        if (m.observedSwing === null) missingFields.push('Historical price swing (blank; no verified price series)');
+        if (m.verifiedRestingLiquidity === null) missingFields.push('Resting depth (dynamic; shown only after successful Demo REST request)');
         return `
         <tr>
           <td class="mono"><strong>${escapeHtml(m.ticker)}</strong></td>

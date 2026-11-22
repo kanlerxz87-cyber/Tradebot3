@@ -1,8 +1,8 @@
 /**
- * Tradebot3 Live Alerting, Orderbook, Portfolio & Automated Strategy Engine
+ * Tradebot3 alerting, orderbook, paper portfolio and paper strategy engine
  * - Enforces >= $0.10 swing alerts in either direction into TWO scrolling chats:
  *   1) All Events Feed
- *   2) High-ROI Model Selective Feed
+ *   2) Illustrative model filter (not a forecast)
  * - Generates Seconds / Minutes / Hours chart histories + pinned >= $0.10 catalyst markers
  * - Tracks Demo Portfolio positions, realized/unrealized P&L, trade categorization,
  *   automated simulated strategies, and custom category-based strategies.
@@ -18,7 +18,7 @@ export const SWING_ALERT_THRESHOLD = 0.10; // >= $0.10 in either direction
 export const TRADE_CATEGORIES = [
   'Swing Mean-Reversion',
   'Momentum Breakout',
-  'High-ROI Model',
+  'Illustrative Model',
   'News Catalyst',
   'Spread Capture',
   'Manual'
@@ -51,15 +51,15 @@ export const DEFAULT_STRATEGIES = [
   },
   {
     id: 'strat-high-roi',
-    name: 'High-ROI Model Selective Auto-Trader',
-    category: 'High-ROI Model',
+    name: 'Illustrative Model Filter (paper test)',
+    category: 'Illustrative Model',
     topicFilter: 'all',
     enabled: true,
     minSwing: 0.10,
     minExpectedRoi: 15,
     maxContracts: 35,
     rule: 'model-edge',
-    description: 'Executes automatically only on alerts passing the High-ROI Model selective chat filter (edge >= $0.06, Exp ROI >= 15%).'
+    description: 'Paper-only rule test. Model values are an illustrative heuristic, not a validated forecast, and this rule never sends an order.'
   },
   {
     id: 'strat-spread-capture',
@@ -150,13 +150,24 @@ export function buildSimulatedOrderbook(price, volumeUsd, tickerSeed = 1) {
 }
 
 /**
- * Evaluate whether an event/swing qualifies for the High-ROI Model Selective Feed.
+ * Evaluate whether an event/swing qualifies for the Illustrative model filter (not a forecast).
  */
 export function evaluateHighRoi(market, currentPrice, delta = 0, orderbook = null) {
   if (market.status === 'Resolved') {
     return { qualified: false, edge: 0, expectedRoiPct: 0, side: 'NONE', liquidityScore: 0, reason: 'Market settled' };
   }
-  const fair = market.modelFairValue ?? currentPrice;
+  const fair = market.modelFairValue;
+  if (!Number.isFinite(fair)) {
+    return {
+      qualified: false,
+      edge: 0,
+      expectedRoiPct: 0,
+      side: 'NONE',
+      liquidityScore: 0,
+      fairValue: null,
+      reason: 'No model fair value is defined for this row; the illustrative model feed stays empty rather than inventing an edge from the market price.'
+    };
+  }
   const rawEdge = +(fair - currentPrice).toFixed(3);
   const side = rawEdge >= 0 ? 'YES' : 'NO';
   const entryCost = side === 'YES' ? currentPrice : +(1 - currentPrice).toFixed(2);
@@ -179,7 +190,7 @@ export function evaluateHighRoi(market, currentPrice, delta = 0, orderbook = nul
     edge: +netEdge.toFixed(2),
     expectedRoiPct,
     liquidityScore,
-    reason: `${swingNote} · Model Fair $${fair.toFixed(2)} vs $${currentPrice.toFixed(2)} -> Buy ${side} (Net Edge $${netEdge.toFixed(2)}, Exp ROI +${expectedRoiPct}%, Liq ${liquidityScore}/100)`
+    reason: `${swingNote} · Illustrative heuristic fair $${fair.toFixed(2)} (not a validated forecast) vs $${currentPrice.toFixed(2)} -> Buy ${side} (Net Edge $${netEdge.toFixed(2)}, Exp ROI +${expectedRoiPct}%, Liq ${liquidityScore}/100)`
   };
 }
 
@@ -815,31 +826,6 @@ export class TradebotEngine {
         message: `Live orderbook REST fetch blocked or unavailable for ${exactTicker} (${err.message}). Displaying Demo Simulated Depth (see IRREG-02 / IRREG-07).`
       };
     }
-  }
-
-  async executeLiveOrPaperTrade(orderParams, { useLiveDemoApi = false } = {}) {
-    if (useLiveDemoApi && this.client.authenticated) {
-      const targetMarket = this.getMarket(orderParams.ticker);
-      const exactTicker = (targetMarket && targetMarket.marketTicker) || orderParams.ticker;
-      const apiRes = await this.client.createOrderFromYesNo({
-        ticker: exactTicker,
-        action: orderParams.action,
-        side: orderParams.side,
-        contracts: orderParams.contracts,
-        price: orderParams.price,
-        postOnly: Boolean(orderParams.postOnly)
-      });
-      const mirrored = this.executePaperTrade({
-        ...orderParams,
-        note: `${orderParams.note || 'Live Demo Order'} [Kalshi Demo ${exactTicker} order_id: ${apiRes.order_id || 'submitted'}]`
-      });
-      mirrored.mode = 'Kalshi Demo REST (Live)';
-      this.saveState();
-      this.notify('portfolio', mirrored);
-      return { trade: mirrored, liveApiResponse: apiRes };
-    }
-    const trade = this.executePaperTrade(orderParams);
-    return { trade, liveApiResponse: null };
   }
 }
 

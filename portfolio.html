@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Portfolio, Trade Execution &amp; Automated Strategies — Tradebot3</title>
+  <title>Paper Portfolio, Paper Trades &amp; Strategy Tests — Tradebot3</title>
   <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body data-root-depth="0">
@@ -18,7 +18,7 @@
         </p>
       </div>
       <div class="hero-controls">
-        <button id="btn-run-sim-burst" class="btn btn-primary">Run Automated Strategy Sim Burst (3 Swings)</button>
+        <button id="btn-run-sim-burst" class="btn btn-primary">Run Paper Strategy Sim Burst (3 Swings)</button>
         <button id="btn-reset-portfolio" class="btn">Reset Paper Simulator</button>
       </div>
     </section>
@@ -69,7 +69,7 @@
       </div>
     </section>
 
-    <!-- Manual Trade Execution Ticket -->
+    <!-- Manual Paper Trade Ticket -->
     <section class="card">
       <div class="card-header">
         <h2>Simulate a Paper Trade on an Event</h2>
@@ -112,12 +112,9 @@
             <input id="trade-note" type="text" placeholder="e.g., Post-swing mean reversion" />
           </div>
         </div>
-        <div style="margin-bottom:10px;">
-          <label class="tiny" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
-            <input id="trade-live-demo" type="checkbox" style="width:auto;" />
-            Optional: Submit signed Create Order V2 to Live Kalshi Demo REST (only when authenticated above; Paper Simulation otherwise)
-          </label>
-        </div>
+        <p class="tiny muted" style="margin:0 0 10px;">
+          This ticket records a local paper simulation only. No request is sent to Kalshi, even after an authenticated balance check.
+        </p>
         <button type="submit" class="btn btn-primary">Record Paper Simulation Trade</button>
         <div id="trade-feedback" style="margin-top:8px;"></div>
       </form>
@@ -149,7 +146,7 @@
       </div>
     </section>
 
-    <!-- Trade Categorization Analysis + Automated Strategies -->
+    <!-- Trade Categorization Analysis + Paper Strategies -->
     <section class="grid-2" style="margin-bottom:18px;">
       <div class="card" style="margin-bottom:0;">
         <div class="card-header">
@@ -179,8 +176,8 @@
 
       <div class="card" style="margin-bottom:0;">
         <div class="card-header">
-          <h2>Automated Simulated Trading Strategies</h2>
-          <span class="tiny muted">Strategies auto-execute only on locally simulated &gt;= $0.10 swings</span>
+          <h2>Simulated Paper Strategies</h2>
+          <span class="tiny muted">Strategies run only on locally simulated &gt;= $0.10 swings and never send an order</span>
         </div>
         <div id="strategies-list"></div>
       </div>
@@ -189,14 +186,14 @@
     <!-- Create Custom Strategy Based on Trade Category -->
     <section id="custom-strategy-section" class="card">
       <div class="card-header">
-        <h2>Create Custom Automated Strategy (From Trade Category)</h2>
+        <h2>Create Custom Paper Strategy (From Trade Category)</h2>
         <span class="tiny muted">New strategies participate in simulated &gt;= $0.10 paper ticks only</span>
       </div>
       <form id="custom-strategy-form">
         <div class="form-grid">
           <div>
             <label class="field-label" for="cs-name">Strategy Name</label>
-            <input id="cs-name" type="text" placeholder="e.g., Crypto Dip High-ROI Buyer" required />
+            <input id="cs-name" type="text" placeholder="e.g., Crypto Dip Rule Test" required />
           </div>
           <div>
             <label class="field-label" for="cs-category">Trade Category</label>
@@ -216,7 +213,7 @@
           <div>
             <label class="field-label" for="cs-rule">Execution Rule</label>
             <select id="cs-rule">
-              <option value="model-edge">High-ROI Model Edge</option>
+              <option value="model-edge">Illustrative Model Edge (heuristic)</option>
               <option value="fade">Mean-Reversion (Fade Swing)</option>
               <option value="follow">Momentum (Follow Swing)</option>
               <option value="spread">Liquidity Spread Capture</option>
@@ -246,7 +243,7 @@
     <!-- Full Trade History Ledger -->
     <section class="card">
       <div class="card-header">
-        <h2>Trade Execution &amp; Settlement Ledger</h2>
+        <h2>Paper Trade &amp; Settlement Ledger</h2>
         <span class="tiny muted">All manual, automated strategy, and resolved trades</span>
       </div>
       <div class="table-wrap">

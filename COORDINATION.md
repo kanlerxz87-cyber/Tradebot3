@@ -4,9 +4,10 @@
 > **Live Site (GitHub Pages):** https://kanlerxz87-cyber.github.io/Tradebot3/
 > **Active Session ID:** `arena-83838475` (Session 2b full refresh + notify toggle; priors merged: `arena-1a3afb37` T-07 via PR #4, `arena-59730b38` via PR #6/#8, `arena-3716ae8d` via PR #1, `arena-a8cfdaeb` via PR #2/#3)
 > **Working Branch:** `arena/83838475-tradebot3` (Arena fixed session branch; branched from `main` at `08ad596f66ebccb189754df5fa6dadac6365989c`, reconciled onto `9644264`)
-> **Last Updated:** 2026-11-22 (UTC)
+> **Last Updated:** 2026-11-22 (UTC) — T-06 audit merged via PR #15 (`main` @ `2e964ce`)
 >
 > This checkout contains prior T-01–T-06 sample-audit and Session 2 API/data refresh work on `main`. T-07 is a separate simulator/runtime-integrity follow-up on the current branch above.
+> A later additive audit from `arena/e9a6c584-tradebot3` (PR #15) is recorded at the bottom of this file.
 
 ---
 
@@ -271,13 +272,57 @@
 
 ---
 
-## Session `arena-ca98b078` Task Board & Verification Log (2026-11-22 UTC)
+## Session `arena/e9a6c584-tradebot3` — T-06 Post-Merge Factual Audit (2026-11-22 UTC)
+
+**Branch:** `arena/e9a6c584-tradebot3` (branched from `main` @ `08ad596f`, reconciled onto `main` @ `09e7d98`)
+**PR:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/15
+
+| Task ID | Task Description | Status | File Scope |
+| --- | --- | --- | --- |
+| T-06 | Post-merge factual audit: reconcile "live"/model/execution claims with the shipped code, fix a self-contradicting order toggle, harden the illustrative model and verifier | `done` | `COORDINATION.md`, `README.md`, `EXECUTIVE_SUMMARY.md`, `index.html`, `portfolio.html`, `verification.html`, `assets/js/{data,engine,kalshi-client,portfolio-page,dashboard,ui-common,verification-page}.js`, `scripts/verify_site.py` |
+
+### Findings and fixes
+
+1. **Contradictory order path (High).** `portfolio.html` advertised "Optional: Submit signed Create Order V2 to Live Kalshi Demo REST" while its own hero, `README.md` and IRREG-16 stated that the UI never submits orders. Removed the `trade-live-demo` toggle, the `executeLiveOrPaperTrade` branch, and the `createOrderV2` / `createOrderFromYesNo` client methods. The client is now read-only (public market data plus optional authenticated `GET /portfolio/balance`); `mapYesNoOrderToV2` remains pure reference material for the documented Create Order V2 mapping.
+2. **Fabricated fair value (Medium).** `evaluateHighRoi()` used `market.modelFairValue ?? currentPrice`, silently manufacturing a zero-edge "fair value" from the quote for rows without a model value. It now returns no signal in that case, and alert copy labels remaining model values as an illustrative heuristic, not a forecast.
+3. **Retired "High-ROI" labelling (Low).** UI copy, trade categories, strategy names, notification titles, README and EXECUTIVE_SUMMARY now describe the filter as illustrative; a `localStorage` migration renames any persisted `High-ROI Model` category to `Illustrative Model`.
+4. **Doc/page reconciliation (Low).** Verification page states the deployment is static and read-only; topic/model copy no longer implies validated ROI or exchange execution; `flagged-for-review.html` gains **IRREG-22** and updated IRREG-16/20 text describing the removal.
+
+### Reconciliation decision
+
+The branch originally carried a wholesale rewrite of the catalog (static quotes, swings and model values blanked) written against `main` @ `08ad596f`. By the time it was pushed, `main` had advanced 29 commits with independent 29-market re-verification (PRs #1–#14) that added dated official values for all rows. Rather than revert that verified work, the branch was merged onto `main` @ `09e7d98` and only the additive, non-destructive corrections above were kept. No market value, source link or prior session's audit entry was removed.
+
+### Verification performed (this audit, on the reconciled tree)
+
+- `node --check assets/js/*.js` — all 9 ES modules parse.
+- `python3 scripts/verify_site.py` — **ALL VERIFICATION CHECKS PASSED**:
+  - 23 required files; 35 internal links across 9 pages, 0 broken; all JS `getElementById` references resolve.
+  - 5-topic isolation over all 29 rows; every row keeps an official HTTPS source; `CONTROLS-2026` and `KXAAAGASCDNY-26NOV19` settlements and the single unverified volume still reconcile.
+  - Orderbook `orderbook_fp` math: YES bid `$0.42` + NO bid `$0.56` → implied YES ask `$0.44`, spread `$0.02`; Create Order V2 YES/NO mapping still matches the documented reciprocal rule.
+  - New: `evaluateHighRoi()` with `modelFairValue` removed returns `qualified: false` and `fairValue: null` (no quote-as-fair-value fallback).
+  - New: no app module or page contains `createOrderV2`, `createOrderFromYesNo`, `executeLiveOrPaperTrade`, a POST request, or the `trade-live-demo` toggle.
+  - New: user-facing docs/pages contain no retired high-ROI, live-order or fabricated fair-value claims (remediation notes are exempted).
+  - Engine still starts with zero alerts/trades, paper fills stay labeled paper, and the clean `$10,000` baseline holds.
+- Local `python3 -m http.server` smoke test: HTTP 200 on all pages, JS modules and docs.
+- **Not verified:** a live browser session against the real Kalshi Demo API, CORS behaviour, WebSocket behaviour, rendered layout, or the numeric accuracy of any catalog value (the verifier checks sources and structure, not page contents).
+
+### PR record
+
+- **Source Branch:** `arena/e9a6c584-tradebot3` -> `main`
+- **Commits:** claim `0a6dc10`, audit `ab717dc`, board update `9cf0267`, reconciled audit `cbeb39f`
+- **PR URL:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/15
+- **Merge Method & Result:** `gh pr merge 15 --merge` — MERGED 2026-11-22T07:52:05Z as commit `2e964ce5292573d25edb9ed744fdb9c0f64bcf9b` after `python3 scripts/verify_site.py` reported ALL VERIFICATION CHECKS PASSED.
+- **GitHub Pages:** build triggered for `2e964ce` at 2026-11-22T07:52:06Z (status observed as `building`); live URL https://kanlerxz87-cyber.github.io/Tradebot3/
+- **Post-merge state:** `main` keeps all prior 29-market re-verification and audit records; the T-06 changes are limited to read-only execution enforcement, the illustrative-model fallback fix, label/doc reconciliation, IRREG-22, and the expanded verifier.
+- **Follow-up (`arena/e9a6c584-tradebot3`, PR #17):** portfolio page title/headings and the dashboard quick-ticket wording were relabelled from "trade execution / automated strategies" to paper terminology; no functional change.
+
+---
+
+## Session `arena-ca98b078` — Binary Contract `marketTicker` & Read-Only REST v2 Audit (2026-11-22 UTC)
 
 | Task ID | Task Description | Status | Owning Session | Branch | File Scope |
 | --- | --- | --- | --- | --- | --- |
-| T-15 | Enrich all 29/29 `VERIFIED_MARKETS` with exact Kalshi REST API v2 `marketTicker`, `eventTicker`, `strikeVolumeFp`, `demoObservedPrice`, `apiMarketUrl` (`/markets` vs `/historical/markets`), official settlement-source catalysts (`gasprices.aaa.com`, `cfbenchmarks.com`, `masters.com`, `pgatour.com`, `rottentomatoes.com`), `REST Get Historical Markets` endpoint, and `IRREG-22..24` | `in_progress` | `arena-ca98b078` | `arena/ca98b078-tradebot3` | `assets/js/data.js`, `flagged-for-review.html`, `EXECUTIVE_SUMMARY.md` |
-| T-16 | Fix event-ticker vs contract-`marketTicker` bug in `fetchLiveOrderbook` & `executeLiveOrPaperTrade` (25/29 multi-strike markets previously queried parent event tickers and hit `IRREG-05` empty books), label live Demo REST orderbook badge & 30s snapshot retention, and surface `marketTicker` + `REST v2 JSON` links in UI | `in_progress` | `arena-ca98b078` | `arena/ca98b078-tradebot3` | `assets/js/kalshi-client.js`, `assets/js/engine.js`, `assets/js/ui-common.js`, `assets/js/dashboard.js`, `assets/js/category-page.js` |
-| T-17 | Expand `scripts/verify_site.py` for 29/29 `marketTicker` & official settlement-host checks, run verification & HTTP smoke checks, open/merge PR to `main`, and verify GitHub Pages deploy | `in_progress` | `arena-ca98b078` | `arena/ca98b078-tradebot3` | `scripts/verify_site.py`, `COORDINATION.md` |
-
-
+| T-15 | Enrich all 29/29 `VERIFIED_MARKETS` with exact Kalshi REST API v2 `marketTicker`, `eventTicker`, `strikeVolumeFp`, `demoObservedPrice`, `apiMarketUrl` (`/markets` vs `/historical/markets`), official settlement-source catalysts (`gasprices.aaa.com`, `cfbenchmarks.com`, `masters.com`, `pgatour.com`, `rottentomatoes.com`), `REST Get Historical Markets` endpoint, and `IRREG-23..25` | `done` | `arena-ca98b078` | `arena/ca98b078-tradebot3` | `assets/js/data.js`, `flagged-for-review.html`, `EXECUTIVE_SUMMARY.md` |
+| T-16 | Fix event-ticker vs contract-`marketTicker` bug in read-only `fetchLiveOrderbook` (`Pull Demo Book` previously queried parent event tickers on 25/29 multi-strike rows and hit `IRREG-05` empty books), render `Live Demo REST Book` badge in `ui-common.js` with 30s snapshot retention across simulated ticks, and surface `marketTicker` + `REST v2 JSON` links in UI while keeping the client strictly read-only (`T-06`) | `done` | `arena-ca98b078` | `arena/ca98b078-tradebot3` | `assets/js/kalshi-client.js`, `assets/js/engine.js`, `assets/js/ui-common.js`, `assets/js/dashboard.js`, `assets/js/category-page.js` |
+| T-17 | Expand `scripts/verify_site.py` for 29/29 `marketTicker`, `IRREG-23..25`, `fetchLiveOrderbook('KXPRESNOMD-28') -> 'KXPRESNOMD-28-JOSS'` routing & official settlement-host checks, reconcile cleanly onto `origin/main` (`9026f3b`), open/merge PR to `main`, and verify GitHub Pages deploy | `done` | `arena-ca98b078` | `arena/ca98b078-tradebot3` | `scripts/verify_site.py`, `COORDINATION.md` |
 

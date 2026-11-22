@@ -7,20 +7,25 @@ An interactive Kalshi market reference catalog, local alerting/portfolio simulat
 > **Session 2 re-verification (2026-11-22 UTC, `arena/83838475`):** all 29 market rows re-checked line by line
 > against live official Kalshi pages; 22 rows updated with fresh verified prices/volumes/resolutions
 > (12 resolved, 1 unverified volume left), API specs re-confirmed against docs.kalshi.com, and an opt-in
-> High-ROI desktop-notification + audio-ping toggle added to the landing dashboard. See
+> desktop-notification + audio-ping toggle added to the landing dashboard. See
 > `EXECUTIVE_SUMMARY.md` §0 and `COORDINATION.md` for the full correction log.
+>
+> **T-06 factual audit (2026-11-22 UTC, `arena/e9a6c584-tradebot3`, PR #15):** removed the optional
+> demo-order toggle and the order-submitting client methods so the site matches its own paper-only copy,
+> removed the model's quote-as-fair-value fallback, and clarified that catalog values, chart history and
+> depth are snapshot or simulated data.
 
 ---
 
 ## Pages & Structure
-- **`index.html`** — Landing page, Executive Summary, Highest-volume catalog events across the 5 topics, Dual scrolling paper-simulation alert chats (`>= $0.10` swings: All Events vs. High-ROI Model), Interactive Price Chart (Seconds / Minutes / Hours + simulated jump markers with contextual source links), and Orderbook Liquidity Ladder.
+- **`index.html`** — Landing page, Executive Summary, Highest-volume catalog events across the 5 topics, Dual scrolling paper-simulation alert chats (`>= $0.10` swings: All Events vs. an illustrative model filter), Interactive Price Chart (Seconds / Minutes / Hours + simulated jump markers with contextual source links), and Orderbook Liquidity Ladder.
 - **`categories/gas-prices.html`** — Gas Prices dedicated subpage (static reference table + simulated chart & orderbook).
 - **`categories/elections.html`** — Elections reference subpage (static data; simulated chart/depth).
 - **`categories/culture.html`** — Culture reference subpage (static data; simulated chart/depth).
 - **`categories/crypto.html`** — Crypto reference subpage (static data; simulated chart/depth).
 - **`categories/golf.html`** — Golf reference subpage (static data; simulated chart/depth).
-- **`portfolio.html`** — Kalshi Demo API connector (RSA-PSS Web Crypto signing + Paper Demo Mode), Paper Trade Simulator, local Portfolio Equity & Positions Tracker, Trade Categorization & Analysis, and Automated Strategy Simulator / Custom Strategy Builder.
-- **`verification.html`** — Kalshi Demo API endpoint references, repository audit, and Interactive/Live Enhancement Suggestions.
+- **`portfolio.html`** — Kalshi Demo API connector (Ed25519/RSA-PSS Web Crypto signing for a read-only balance check + Paper Demo Mode), Paper Trade Simulator, local Portfolio Equity & Positions Tracker, Trade Categorization & Analysis, and paper strategy tester / custom strategy builder. No order is ever submitted.
+- **`verification.html`** — Kalshi Demo API endpoint references, repository audit, and suggestions for future live upgrades.
 - **`flagged-for-review.html`** — Transparent table of all flagged irregularities and unverified fields with official source links.
 - **`EXECUTIVE_SUMMARY.md`** — Full executive summary document.
 - **`COORDINATION.md`** — Shared task board, claims, official sources, verification log, and PR/deploy record.
