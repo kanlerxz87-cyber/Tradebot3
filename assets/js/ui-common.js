@@ -42,7 +42,7 @@ export function renderHeader(activeKey) {
           <span class="brand-mark">TB3</span>
           <div>
             <div class="brand-title">Tradebot3 · Kalshi Demo</div>
-            <div class="brand-sub">5-Topic Live Event &amp; Swing Alert Dashboard</div>
+            <div class="brand-sub">5-Topic Catalog &amp; Paper-Simulation Dashboard</div>
           </div>
         </a>
         <nav class="nav-links" aria-label="Primary Navigation">
@@ -70,7 +70,7 @@ export function renderFooter() {
       <div class="container footer-inner">
         <div>
           <strong>Tradebot3 — Kalshi Demo Dashboard</strong> · Strictly scoped to Gas Prices, Elections, Culture, Crypto &amp; Golf.
-          <div class="muted small">Last verified against official Kalshi docs &amp; market pages: ${escapeHtml(LAST_VERIFIED_UTC)}. Unconfirmable values are left blank and flagged as Unverified.</div>
+          <div class="muted small">Catalog source timestamp: ${escapeHtml(LAST_VERIFIED_UTC)}. This follow-up did not recheck every market value; see Flagged for Review (IRREG-10).</div>
         </div>
         <div class="footer-links">
           <a href="${prefix}EXECUTIVE_SUMMARY.md">Executive Summary</a>
@@ -124,7 +124,7 @@ export function formatResolutionBadge(market) {
     return `<span class="badge badge-no">Resolved NO ($0.00)</span>`;
   }
   if (market.resolution === 'OPEN') {
-    return `<span class="badge badge-open">Live / Open</span>`;
+    return `<span class="badge badge-open">Catalog Open · not live-checked</span>`;
   }
   return formatUnverifiedCell('Unverified');
 }
@@ -143,8 +143,8 @@ export function renderOrderbookHtml(orderbook, ticker) {
   if (!orderbook) return '<p class="muted">No orderbook data loaded.</p>';
   const prefix = getRootPrefix();
   const simBadge = orderbook.simulated
-    ? `<span class="badge badge-sim" title="Live Kalshi Demo resting depth requires runtime API pull; simulated ladder shown for interactive testing">Demo Simulated Depth · <a href="${prefix}flagged-for-review.html">IRREG-07</a></span>`
-    : `<span class="badge badge-yes">Live Kalshi Demo REST Orderbook</span>`;
+    ? `<span class="badge badge-sim" title="Synthetic local orderbook depth; not exchange liquidity">Demo Simulated Depth · <a href="${prefix}flagged-for-review.html">IRREG-07</a></span>`
+    : `<span class="badge badge-unverified">Orderbook source not identified</span>`;
 
   const maxCount = Math.max(
     1,
@@ -225,10 +225,10 @@ export function renderAlertItemHtml(alert, isHighRoiFeed = false) {
   const dirIcon = alert.direction === 'UP' ? '▲' : '▼';
   const dirCls = alert.direction === 'UP' ? 'chat-up' : 'chat-down';
   const simTag = alert.simulated
-    ? '<span class="badge badge-sim">Live Demo Tick</span>'
+    ? '<span class="badge badge-sim">SIMULATED PAPER TICK</span>'
     : alert.verifiedSwing
     ? '<span class="badge badge-verified">Verified Observed Swing</span>'
-    : '<span class="badge badge-unverified" title="Seeded from catalog; not an observed Kalshi tick. See Flagged for Review.">Unverified Catalog Alert</span>';
+    : '<span class="badge badge-unverified">Unverified Catalog Alert</span>';
   const roiHtml =
     isHighRoiFeed && alert.roi
       ? `<div class="roi-callout"><strong>High-ROI Model Signal:</strong> ${escapeHtml(alert.roi.reason)}</div>`
@@ -251,7 +251,7 @@ export function renderAlertItemHtml(alert, isHighRoiFeed = false) {
       </div>
       ${roiHtml}
       <div class="chat-msg-footer">
-        <span class="tiny muted">${escapeHtml(alert.catalystLabel)}</span>
+        <span class="tiny muted">${escapeHtml(alert.catalystLabel)} · linked source is context only; no causal link is established.</span>
         <div class="chat-actions">
           <a class="source-link tiny" href="${escapeHtml(alert.catalystUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(alert.catalystSource)} ↗</a>
           <button class="btn-xs btn-inspect" data-ticker="${escapeHtml(alert.ticker)}">Chart</button>

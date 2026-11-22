@@ -45,8 +45,8 @@ function renderTopicHeaderAndKpis() {
 
   const heroTitle = document.getElementById('topic-hero-title');
   const heroDesc = document.getElementById('topic-hero-desc');
-  if (heroTitle) heroTitle.innerHTML = `${formatTopicBadge(topicId)} ${escapeHtml(topicInfo.name)} — Kalshi Live &amp; Resolved Events`;
-  if (heroDesc) heroDesc.textContent = topicInfo.description;
+  if (heroTitle) heroTitle.innerHTML = `${formatTopicBadge(topicId)} ${escapeHtml(topicInfo.name)} — Kalshi Reference Catalog &amp; Resolved Events`;
+  if (heroDesc) heroDesc.textContent = `${topicInfo.description} Static catalog reference; no live feed or exchange order execution is connected.`;
 
   const kpiEl = document.getElementById('topic-kpi-strip');
   if (kpiEl) {
@@ -54,22 +54,22 @@ function renderTopicHeaderAndKpis() {
       <div class="kpi-card">
         <div class="kpi-label">${escapeHtml(topicInfo.name)} Contracts</div>
         <div class="kpi-value">${list.length}</div>
-        <div class="kpi-sub">${openCount} Open · ${yesCount} YES · ${noCount} NO</div>
+        <div class="kpi-sub">${openCount} catalog Open · ${yesCount} catalog YES · ${noCount} catalog NO</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">Verified Dollar Volume</div>
+        <div class="kpi-label">Catalog Dollar Volume</div>
         <div class="kpi-value">$${totalVol.toLocaleString('en-US')}</div>
-        <div class="kpi-sub">Excluding unverified blank volume cells</div>
+        <div class="kpi-sub">Static reference only; not a live volume feed</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Topic &gt;= $0.10 Alerts</div>
         <div class="kpi-value">${engine.allAlerts.filter((a) => a.topic === topicId).length}</div>
-        <div class="kpi-sub">${engine.highRoiAlerts.filter((a) => a.topic === topicId).length} flagged High-ROI</div>
+        <div class="kpi-sub">${engine.highRoiAlerts.filter((a) => a.topic === topicId).length} passed illustrative model filter</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">Official Hub</div>
+        <div class="kpi-label">Official Market Page</div>
         <div class="kpi-value" style="font-size:15px;margin-top:8px;">${formatSourceLink(topicInfo.officialHubUrl, 'Kalshi Official')}</div>
-        <div class="kpi-sub">All table rows carry official links</div>
+        <div class="kpi-sub">Catalog rows include Kalshi market links</div>
       </div>
     `;
   }
@@ -102,7 +102,7 @@ function renderTopicChartAndOrderbook() {
         ${formatDeltaBadge(market.lastDelta)}
         ${formatSourceLink(market.sourceUrl, 'Kalshi Official')}
       </div>
-      <div class="tiny muted" style="margin-top:4px;">${escapeHtml(market.roi.reason)}</div>
+      <div class="tiny muted" style="margin-top:4px;">Illustrative paper-model output (not a validated ROI forecast): ${escapeHtml(market.roi.reason)}</div>
     `;
   }
 
@@ -139,13 +139,13 @@ function renderCatalysts(market) {
          </div>`
       : '';
   el.innerHTML = markers.length
-    ? `${activeHtml}<strong>Catalyst Jump Links (&gt;= $0.10):</strong><ul class="catalyst-list">${markers
+    ? `${activeHtml}<strong>Simulated Swing Markers &amp; Contextual Links (&gt;= $0.10):</strong><div class="tiny muted">These linked pages are not verified as causes of the synthetic price changes.</div><ul class="catalyst-list">${markers
         .map(
           (mk) =>
             `<li><span class="delta ${mk.delta >= 0 ? 'delta-up' : 'delta-down'}">${mk.delta >= 0 ? '+' : ''}$${mk.delta.toFixed(2)}</span> ${escapeHtml(mk.label)} — ${formatSourceLink(mk.url, mk.sourceName)}</li>`
         )
         .join('')}</ul>`
-    : `${activeHtml}<span class="muted">No &gt;= $0.10 catalyst markers logged yet on ${escapeHtml(market.ticker)}.</span>`;
+    : `${activeHtml}<span class="muted">No simulated &gt;= $0.10 swing markers logged yet on ${escapeHtml(market.ticker)}.</span>`;
 }
 
 function renderTopicAlerts() {
@@ -157,12 +157,12 @@ function renderTopicAlerts() {
   if (allEl) {
     allEl.innerHTML = topicAlerts.length
       ? topicAlerts.map((a) => renderAlertItemHtml(a, false)).join('')
-      : `<p class="muted small">No &gt;= $0.10 swings logged yet for ${escapeHtml(topicInfo.name)}. Click "Trigger &gt;= $0.10 Swing" to test.</p>`;
+      : `<p class="muted small">No simulated &gt;= $0.10 swings logged yet for ${escapeHtml(topicInfo.name)}. Click "Trigger &gt;= $0.10 Swing" to test.</p>`;
   }
   if (roiEl) {
     roiEl.innerHTML = topicRoi.length
       ? topicRoi.map((a) => renderAlertItemHtml(a, true)).join('')
-      : `<p class="muted small">No ${escapeHtml(topicInfo.name)} swings currently meet High-ROI Model thresholds.</p>`;
+      : `<p class="muted small">No ${escapeHtml(topicInfo.name)} paper swings currently meet the illustrative model thresholds.</p>`;
   }
 }
 
@@ -279,7 +279,7 @@ function bindEvents() {
         });
         if (fb) {
           fb.className = 'status-banner ok';
-          fb.textContent = `Demo Order Filled (${trade.id}): BUY ${trade.contracts} ${trade.side} on ${trade.ticker} @ $${trade.price.toFixed(2)}.`;
+          fb.textContent = `Paper simulation recorded (not sent to Kalshi) (${trade.id}): BUY ${trade.contracts} ${trade.side} on ${trade.ticker} @ $${trade.price.toFixed(2)}.`;
         }
       } catch (err) {
         if (fb) {

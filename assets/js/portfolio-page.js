@@ -251,8 +251,9 @@ function bindEvents() {
         );
         if (fb) {
           fb.className = 'status-banner ok';
-          const liveNote = liveApiResponse ? ` [Sent Live to Kalshi Demo REST · order_id=${liveApiResponse.order_id || 'ok'}]` : '';
-          fb.textContent = `Order Filled (${trade.id}): ${trade.action} ${trade.contracts} ${trade.side} on ${trade.ticker} @ $${trade.price.toFixed(2)} [${trade.category}]${liveNote}.`;
+          fb.textContent = liveApiResponse
+            ? `Sent to Kalshi Demo REST (order_id=${liveApiResponse.order_id || 'ok'}) & recorded (${trade.id}): ${trade.action} ${trade.contracts} ${trade.side} on ${trade.ticker} @ $${trade.price.toFixed(2)} [${trade.category}].`
+            : `Paper simulation recorded (not sent to Kalshi) (${trade.id}): ${trade.action} ${trade.contracts} ${trade.side} on ${trade.ticker} @ $${trade.price.toFixed(2)} [${trade.category}].`;
         }
       } catch (err) {
         if (fb) {

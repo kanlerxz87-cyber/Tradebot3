@@ -27,6 +27,51 @@ let selectedAlertTopic = 'all';
 let alertSearchQuery = '';
 let selectedMarker = null;
 
+// High-ROI desktop notification + audio ping state (opt-in, P2 suggestion implementation)
+let notifyEnabled = false;
+let lastNotifiedAlertId = null;
+
+function playAlertPing(direction) {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = direction === 'UP' ? 880 : 587.33;
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.4);
+    osc.onended = () => ctx.close().catch(() => {});
+  } catch (_) {
+    // Audio unavailable — desktop notification still fires
+  }
+}
+
+function maybeNotifyHighRoi() {
+  if (!notifyEnabled) return;
+  const latest = engine.highRoiAlerts[0];
+  if (!latest || latest.id === lastNotifiedAlertId) return;
+  lastNotifiedAlertId = latest.id;
+  playAlertPing(latest.direction);
+  try {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const n = new Notification(`High-ROI Swing ${latest.delta >= 0 ? '+' : ''}$${latest.delta.toFixed(2)} — ${latest.ticker}`, {
+        body: `${latest.title}\n$${latest.fromPrice.toFixed(2)} → $${latest.toPrice.toFixed(2)} · ${latest.roi ? latest.roi.reason : ''}`,
+        tag: latest.id
+      });
+      n.onclick = () => window.focus();
+    }
+  } catch (_) {
+    // Notification blocked — chat feed still updates live
+  }
+}
+
 function renderKpis() {
   const openCount = engine.markets.filter((m) => m.status === 'Open').length;
   const resolvedCount = engine.markets.filter((m) => m.status === 'Resolved').length;
@@ -39,17 +84,17 @@ function renderKpis() {
     <div class="kpi-card">
       <div class="kpi-label">Tracked Kalshi Events</div>
       <div class="kpi-value">${engine.markets.length}</div>
-      <div class="kpi-sub">${openCount} Live/Open · ${resolvedCount} Resolved (5 topics only)</div>
+      <div class="kpi-sub">${openCount} catalog-marked Open · ${resolvedCount} catalog-marked Resolved (static reference)</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Verified Dollar Volume</div>
+      <div class="kpi-label">Catalog Dollar Volume</div>
       <div class="kpi-value">$${(totalVol / 1e9).toFixed(2)}B</div>
-      <div class="kpi-sub">Sum of verified official Kalshi volumes</div>
+      <div class="kpi-sub">Static catalog values; not a live volume feed</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">&gt;= $0.10 Swing Alerts</div>
       <div class="kpi-value">${engine.allAlerts.length} / ${engine.highRoiAlerts.length}</div>
-      <div class="kpi-sub">All Events / High-ROI Selective</div>
+      <div class="kpi-sub">All Events / Illustrative Model Selective</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Demo Portfolio Equity</div>
@@ -72,7 +117,7 @@ function renderTopicCards() {
       <a class="topic-card" href="${t.pagePath}">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           ${formatTopicBadge(topicId)}
-          <span class="tiny muted">${open} Live · ${resolved} Resolved</span>
+          <span class="tiny muted">${open} catalog Open · ${resolved} catalog Resolved</span>
         </div>
         <strong style="font-size:15px;">${escapeHtml(t.name)}</strong>
         <div class="tiny muted">${escapeHtml(t.description)}</div>
@@ -113,13 +158,13 @@ function renderDualChats() {
   if (allEl) {
     allEl.innerHTML = filteredAll.length
       ? filteredAll.map((a) => renderAlertItemHtml(a, false)).join('')
-      : '<p class="muted small">No matching &gt;= $0.10 price swings. Clear filters or click "Trigger &gt;= $0.10 Swing".</p>';
+      : '<p class="muted small">No matching alerts yet. Automatic ticks are a paper simulation, not Kalshi live market observations.</p>';
   }
 
   if (roiEl) {
     roiEl.innerHTML = filteredRoi.length
       ? filteredRoi.map((a) => renderAlertItemHtml(a, true)).join('')
-      : '<p class="muted small">No matching swings currently meet High-ROI Model thresholds (Net Edge &gt;= $0.05 &amp; Exp ROI &gt;= 15%).</p>';
+      : '<p class="muted small">No simulated paper ticks currently meet the illustrative model thresholds (Net Edge >= $0.05 &amp; Exp ROI >= 15%). This is not a validated ROI forecast.</p>';
   }
 }
 
@@ -159,7 +204,7 @@ function renderChartAndOrderbook() {
       engine.getMarketsByTopic(topicId).forEach((m) => {
         const opt = document.createElement('option');
         opt.value = m.ticker;
-        opt.textContent = `${m.ticker} (${m.status}) — ${m.title}`;
+        opt.textContent = `${m.ticker} — ${m.title}`;
         grp.appendChild(opt);
       });
       selectEl.appendChild(grp);
@@ -176,10 +221,10 @@ function renderChartAndOrderbook() {
         ${formatResolutionBadge(market)}
         <span class="mono" style="font-size:15px;font-weight:700;">Current: $${market.currentPrice.toFixed(2)}</span>
         ${formatDeltaBadge(market.lastDelta)}
-        <span class="tiny muted">Verified Vol: ${market.volumeUsd ? '$' + market.volumeUsd.toLocaleString() : 'Unverified'}</span>
+        <span class="tiny muted">Static catalog volume: ${market.volumeUsd ? '$' + market.volumeUsd.toLocaleString() : 'Unverified'}</span>
         ${formatSourceLink(market.sourceUrl, 'Official Kalshi Market')}
       </div>
-      <div class="tiny muted" style="margin-top:4px;">${escapeHtml(market.roi.reason)} · Hover chart for exact price/time crosshair</div>
+      <div class="tiny muted" style="margin-top:4px;">Illustrative model only (not a forecast): ${escapeHtml(market.roi.reason)}</div>
     `;
   }
 
@@ -198,6 +243,7 @@ function renderChartAndOrderbook() {
     obEl.innerHTML = renderOrderbookHtml(market.orderbook, market.ticker);
   }
 
+  // Update quick trade defaults (syncing YES vs NO price accurately)
   syncQuickTradePrice(false);
 }
 
@@ -205,28 +251,27 @@ function renderCatalystPanel(market) {
   const el = document.getElementById('chart-catalysts');
   if (!el) return;
   const markers = market.series.jumpMarkers || [];
-  const activeHtml =
-    selectedMarker && selectedMarker.ticker === market.ticker
-      ? `<div class="status-banner ok" style="margin-bottom:8px;">
-           <strong>Selected &gt;= $0.10 Jump Marker (${selectedMarker.delta >= 0 ? '+' : ''}$${selectedMarker.delta.toFixed(2)}):</strong>
-           ${escapeHtml(selectedMarker.label)} ·
-           ${formatSourceLink(selectedMarker.url, selectedMarker.sourceName)}
-         </div>`
-      : '';
+  const activeHtml = selectedMarker && selectedMarker.ticker === market.ticker
+    ? `<div class="status-banner ok" style="margin-bottom:8px;">
+         <strong>Selected >= $0.10 Jump Marker (${selectedMarker.delta >= 0 ? '+' : ''}$${selectedMarker.delta.toFixed(2)}):</strong>
+         ${escapeHtml(selectedMarker.label)} ·
+         ${formatSourceLink(selectedMarker.url, selectedMarker.sourceName)}
+       </div>`
+    : '';
 
   if (!markers.length) {
     el.innerHTML = `
       ${activeHtml}
-      <strong>Sharp Jump Catalysts (&gt;= $0.10):</strong>
-      <span class="muted">No &gt;= $0.10 catalyst markers logged for ${escapeHtml(market.ticker)} yet. Click "Trigger &gt;= $0.10 Swing" or select a market with verified catalysts.</span>
+      <strong>Simulated Swing Markers (&gt;= $0.10):</strong>
+      <span class="muted">No simulated &gt;= $0.10 swing markers for ${escapeHtml(market.ticker)} yet. Use "Trigger &gt;= $0.10 Swing" to test the paper simulator.</span>
     `;
     return;
   }
 
   el.innerHTML = `
     ${activeHtml}
-    <strong>Events &amp; Verified Website Links Linked to &gt;= $0.10 Jumps on ${escapeHtml(market.ticker)}</strong>
-    <span class="tiny muted">(Click any diamond marker on the chart to inspect)</span>
+      <strong>Simulated &gt;= $0.10 Ticks on ${escapeHtml(market.ticker)}</strong>
+      <span class="tiny muted">Linked pages are contextual references, not verified causes of these synthetic price changes. Click a diamond marker for details.</span>
     <ul class="catalyst-list">
       ${markers
         .map(
@@ -257,12 +302,11 @@ function renderMarketsTable() {
       return true;
     });
     if (!items.length) return;
-
     rows.push(`
       <tr class="topic-group-row">
         <td colspan="9">
           ${formatTopicBadge(topicId)}
-          <span style="margin-left:6px;">${escapeHtml(t.name)} — ${items.length} Verified Markets (Sorted by Dollar Volume)</span>
+          <span style="margin-left:6px;">${escapeHtml(t.name)} — ${items.length} Catalog Markets (Sorted by Published Volume)</span>
           <a href="${t.pagePath}" style="float:right;font-size:12px;">Open ${escapeHtml(t.name)} Subpage →</a>
         </td>
       </tr>
@@ -284,7 +328,7 @@ function renderMarketsTable() {
           <td class="mono"><strong>${formatPrice(m.currentPrice)}</strong> ${formatDeltaBadge(m.lastDelta)}</td>
           <td class="mono">${formatPrice(m.observedPrice)}</td>
           <td>${formatResolutionBadge(m)}</td>
-          <td class="tiny">${m.roi.qualified ? `<span class="badge badge-verified">High ROI (+${m.roi.expectedRoiPct}%)</span>` : '<span class="muted">Watch</span>'}</td>
+          <td class="tiny">${m.roi.qualified ? `<span class="badge badge-verified">Illustrative Model (+${m.roi.expectedRoiPct}%)</span>` : '<span class="muted">Watch</span>'}</td>
           <td>${formatSourceLink(m.sourceUrl, m.sourceLabel)}</td>
           <td>
             <button class="btn-xs btn-inspect" data-ticker="${escapeHtml(m.ticker)}">Chart</button>
@@ -294,9 +338,7 @@ function renderMarketsTable() {
     });
   });
 
-  tbody.innerHTML = rows.length
-    ? rows.join('')
-    : '<tr><td colspan="9" class="muted">No markets match the selected topic and status filters.</td></tr>';
+  tbody.innerHTML = rows.join('');
 }
 
 function bindEvents() {
@@ -306,7 +348,6 @@ function bindEvents() {
       selectedTicker = e.target.value;
       selectedMarker = null;
       renderChartAndOrderbook();
-      syncQuickTradePrice(true);
       renderMarketsTable();
     });
   }
@@ -365,8 +406,8 @@ function bindEvents() {
     liveBtn.addEventListener('click', () => {
       const running = engine.toggleLive();
       liveBtn.innerHTML = running
-        ? '<span class="live-dot"></span>Live Stream: ON'
-        : '<span class="live-dot paused"></span>Live Stream: PAUSED';
+        ? '<span class="live-dot"></span>Paper Simulation: ON'
+        : '<span class="live-dot paused"></span>Paper Simulation: PAUSED';
     });
   }
 
@@ -376,6 +417,29 @@ function bindEvents() {
       const m = engine.getMarket(selectedTicker);
       const target = m && m.status === 'Open' ? m.ticker : null;
       engine.runTick(target);
+    });
+  }
+
+  const notifyBtn = document.getElementById('btn-alert-notify');
+  if (notifyBtn) {
+    notifyBtn.addEventListener('click', async () => {
+      if (!notifyEnabled && 'Notification' in window && Notification.permission === 'default') {
+        try {
+          await Notification.requestPermission();
+        } catch (_) {
+          // Permission request dismissed — audio ping still works
+        }
+      }
+      notifyEnabled = !notifyEnabled;
+      if (notifyEnabled) {
+        const latest = engine.highRoiAlerts[0];
+        lastNotifiedAlertId = latest ? latest.id : null; // don't replay history
+        notifyBtn.textContent = 'High-ROI Alerts: ON';
+        notifyBtn.classList.add('btn-alert-on');
+      } else {
+        notifyBtn.textContent = 'Enable High-ROI Alerts';
+        notifyBtn.classList.remove('btn-alert-on');
+      }
     });
   }
 
@@ -395,7 +459,7 @@ function bindEvents() {
     });
   }
 
-  // Delegate clicks on ticker buttons, Chart buttons, orderbook rows & Pull Live Book button
+  // Delegate clicks on ticker buttons, Chart buttons, orderbook price rows & Pull Live Book button
   document.body.addEventListener('click', async (e) => {
     const pullObBtn = e.target.closest('.btn-pull-live-ob');
     if (pullObBtn && pullObBtn.dataset.ticker) {
@@ -448,7 +512,6 @@ function bindEvents() {
     if (qtSide) qtSide.addEventListener('change', () => syncQuickTradePrice(true));
     if (qtContracts) qtContracts.addEventListener('input', updateQuickTradeEstimate);
     if (qtPrice) qtPrice.addEventListener('input', updateQuickTradeEstimate);
-
     qtForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const msgEl = document.getElementById('qt-feedback');
@@ -468,7 +531,7 @@ function bindEvents() {
         });
         if (msgEl) {
           msgEl.className = 'status-banner ok';
-          msgEl.textContent = `Executed Demo Trade ${trade.id}: BUY ${trade.contracts} ${trade.side} on ${trade.ticker} @ $${trade.price.toFixed(2)}. Track in Portfolio & Strategies.`;
+          msgEl.textContent = `Paper simulation only (not sent to Kalshi): ${trade.id} BUY ${trade.contracts} ${trade.side} on ${trade.ticker} @ $${trade.price.toFixed(2)}. Track in Portfolio & Strategies.`;
         }
       } catch (err) {
         if (msgEl) {
@@ -493,10 +556,10 @@ document.addEventListener('DOMContentLoaded', () => {
     renderDualChats();
     renderChartAndOrderbook();
     renderMarketsTable();
+    maybeNotifyHighRoi();
   };
 
   renderAll();
-  syncQuickTradePrice(true);
   engine.subscribe(() => renderAll());
   engine.start();
 });

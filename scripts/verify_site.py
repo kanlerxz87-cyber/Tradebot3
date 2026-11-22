@@ -91,6 +91,7 @@ import {
 } from './assets/js/data.js';
 import { parseOrderbookFp, mapYesNoOrderToV2 } from './assets/js/kalshi-client.js';
 import { TradebotEngine } from './assets/js/engine.js';
+import { renderAlertItemHtml } from './assets/js/ui-common.js';
 
 // 1. Strict 5-topic check
 const expectedTopics = ['gas-prices', 'elections', 'culture', 'crypto', 'golf'];
@@ -108,11 +109,21 @@ for (const m of VERIFIED_MARKETS) {
 }
 
 // 2. Every table row has a valid https:// official sourceUrl
+const OFFICIAL_SOURCE_HOSTS = {
+  DEMO_API_ENDPOINTS: new Set(['docs.kalshi.com']),
+  VERIFIED_MARKETS: new Set(['kalshi.com']),
+  FLAGGED_IRREGULARITIES: new Set(['docs.kalshi.com', 'github.com', 'kalshi.com']),
+  REPO_AUDIT_ITEMS: new Set(['docs.kalshi.com', 'github.com', 'kalshi.com', 'kanlerxz87-cyber.github.io']),
+  INTERACTIVE_SUGGESTIONS: new Set(['docs.kalshi.com', 'www.eia.gov'])
+};
 const checkSources = (name, rows) => {
   if (!rows.length) throw new Error(`Empty dataset: ${name}`);
+  const allowedHosts = OFFICIAL_SOURCE_HOSTS[name];
   for (const r of rows) {
-    if (!r.sourceUrl || !r.sourceUrl.startsWith('https://')) {
-      throw new Error(`Missing/invalid sourceUrl in ${name}: ${JSON.stringify(r)}`);
+    let host = '';
+    try { host = new URL(r.sourceUrl).hostname; } catch (_) { /* reported below */ }
+    if (!r.sourceUrl || !r.sourceUrl.startsWith('https://') || !allowedHosts?.has(host)) {
+      throw new Error(`Missing or unexpected official source host in ${name}: ${JSON.stringify(r)}`);
     }
   }
 };
@@ -122,10 +133,13 @@ checkSources('FLAGGED_IRREGULARITIES', FLAGGED_IRREGULARITIES);
 checkSources('REPO_AUDIT_ITEMS', REPO_AUDIT_ITEMS);
 checkSources('INTERACTIVE_SUGGESTIONS', INTERACTIVE_SUGGESTIONS);
 
+const catalystHosts = new Set(['emersoncollegepolling.com', 'kalshi.com', 'wccftech.com', 'www.cnbc.com', 'www.eia.gov', 'www.pgatour.com']);
 for (const m of VERIFIED_MARKETS) {
   for (const c of m.catalysts || []) {
-    if (!c.url || !c.url.startsWith('https://')) {
-      throw new Error(`Invalid catalyst URL on ${m.ticker}: ${JSON.stringify(c)}`);
+    let host = '';
+    try { host = new URL(c.url).hostname; } catch (_) { /* reported below */ }
+    if (!c.url || !c.url.startsWith('https://') || !catalystHosts.has(host)) {
+      throw new Error(`Invalid/unexpected catalyst source host on ${m.ticker}: ${JSON.stringify(c)}`);
     }
   }
 }
@@ -160,17 +174,32 @@ const nyGas = VERIFIED_MARKETS.find((m) => m.ticker === 'KXAAAGASCDNY-26NOV19');
 if (!nyGas || nyGas.status !== 'Resolved' || nyGas.resolution !== 'YES' || nyGas.volumeUsd !== null) {
   throw new Error('KXAAAGASCDNY-26NOV19 settlement / unverified-volume check failed');
 }
-if (!FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-14') || !FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-15')) {
-  throw new Error('Missing IRREG-14 / IRREG-15 audit records');
+if (!FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-14') || !FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-20')) {
+  throw new Error('Missing IRREG-14 / IRREG-20 audit records');
 }
 
 // 4. Engine live tick, >= $0.10 swing alert, trade execution, resolution & custom strategy test
 const eng = new TradebotEngine();
+if (eng.allAlerts.length !== 0) throw new Error('Initial feed must not fabricate observed live alerts');
+if (eng.portfolio.trades.length !== 0) throw new Error('Paper portfolio must not start with fabricated example trades');
+if (eng.portfolio.cashBalance !== 10000 || Object.keys(eng.portfolio.positions).length !== 0) {
+  throw new Error('Paper portfolio must start at a clean $10,000 baseline with no positions');
+}
+if (eng.markets.some((m) => m.series.jumpMarkers.length !== 0)) throw new Error('Unobserved historical catalyst markers must not be fabricated');
+const sampleAlertHtml = renderAlertItemHtml({
+  ticker: 'KXPRESNOMD-28', title: 'Test', topic: 'elections', fromPrice: 0.2, toPrice: 0.31,
+  delta: 0.11, direction: 'UP', ts: Date.now(), simulated: true, catalystLabel: 'Synthetic paper tick',
+  catalystUrl: 'https://kalshi.com/markets', catalystSource: 'Kalshi', roi: null
+});
+if (!sampleAlertHtml.includes('SIMULATED PAPER TICK') || sampleAlertHtml.includes('Verified Observed Swing')) {
+  throw new Error('Synthetic alerts must never be labeled as verified observations');
+}
 const beforeAlerts = eng.allAlerts.length;
 eng.runTick('KXPRESNOMD-28');
 if (eng.allAlerts.length <= beforeAlerts) {
   throw new Error('Expected >= $0.10 forced swing alert to fire');
 }
+eng.client.lastStatus.connected = true; // Public REST success must not relabel local paper fills as exchange orders.
 const trade = eng.executePaperTrade({
   ticker: 'KXAAAGASMIN-26DEC31',
   action: 'BUY',
@@ -179,7 +208,9 @@ const trade = eng.executePaperTrade({
   price: 0.50,
   category: 'News Catalyst'
 });
-if (!trade || trade.contracts !== 10) throw new Error('Trade execution failed');
+if (!trade || trade.contracts !== 10 || trade.mode !== 'Paper Demo Simulation') {
+  throw new Error('Trade must be recorded as local paper simulation, never as exchange execution');
+}
 
 const res = eng.simulateResolution('KXAAAGASMIN-26DEC31', 'YES');
 if (!res || res.outcome !== 'YES') throw new Error('Simulated resolution failed');
