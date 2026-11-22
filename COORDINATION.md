@@ -30,7 +30,7 @@
 | T-05 | Portfolio, trade categorisation, strategy lab, paper settlement, optional read-only demo connection | `done` | `arena-cd42444b` | `arena/cd42444b-tradebot3` | `portfolio.html`, `assets/js/{portfolio,paper,strategy}.js` |
 | T-06 | Verification: `scripts/verify_site.py` (links, imports, DOM ids, schema, source coverage, topic isolation) | `done` | `arena-cd42444b` | `arena/cd42444b-tradebot3` | `scripts/verify_site.py` |
 | R-01 | Flagged irregularities IRREG-01…12 and the 29-row legacy audit | `needs review` | `arena-cd42444b` | `arena/cd42444b-tradebot3` | `flagged-for-review.html`, `assets/data/legacy-audit.json` |
-| T-07 | PR to `main`, merge, confirm Pages deploy, record result | `in progress` | `arena-cd42444b` | `arena/cd42444b-tradebot3` | `COORDINATION.md` |
+| T-07 | PR to `main`, merge, confirm Pages deploy, record result | `done` | `arena-cd42444b` | `arena/cd42444b-tradebot3` | `COORDINATION.md` |
 
 ## Official sources used
 
@@ -90,6 +90,36 @@
   official topic sources as candidates without causal claims.
 - **IRREG-12 (Low):** fees are excluded from paper P&L, and demo order placement is not shipped because its request
   schema could not be verified here.
+
+## Reconciliation with parallel sessions on `main` (2026-11-22)
+
+While this branch was being built, parallel sessions merged PRs #2–#17 into `main`, evolving the original
+static 29-market catalogue site (sessions `arena-3716ae8d`, `arena-a8cfdaeb`, `arena-59730b38`,
+`arena-1a3afb37`, `arena-83838475`, `arena-ff314ece`, `arena-340e65b6`, `arena-e9a6c584`).
+This branch (`arena-cd42444b`) is the final integration build requested for the live-data dashboard: it
+replaces the static catalogue with an automated pipeline (`scripts/fetch_kalshi_data.py`, refreshed every
+30 minutes by GitHub Actions) that publishes only values returned by Kalshi's official public Trade API.
+
+- **Conflict resolution:** merging `origin/main` (`9026f3b`, PR #17) into this branch conflicted in the
+  shared site files. The live-data versions were kept for all site code, pages, styles, README and
+  `scripts/verify_site.py`; the legacy static modules already deleted on this branch
+  (`assets/js/data.js`, `engine.js`, `kalshi-client.js`, `charts.js`, `ui-common.js`, `category-page.js`,
+  `portfolio-page.js`, `verification-page.js`) stay deleted — their dataset is preserved in
+  `archive/legacy-dataset-2026-11-22.json` and audited row-by-row in `assets/data/legacy-audit.json`
+  (only 3 of 29 claimed tickers exist in the live API).
+- **Nothing discarded silently:** `main`'s coordination board through PR #17 is preserved verbatim at
+  `archive/coordination-main-through-pr17-2026-11-22.md`, and its executive summary at
+  `archive/executive-summary-static-site-2026-11-22.md`. Findings from those sessions that remain valid
+  (paper-only execution, no fabricated fair values/alerts, read-only demo client, illustrative — not
+  validated — model filter) are all honoured by this build: simulated trades are paper-only in the
+  browser, the demo panel only performs signed read-only `GET /portfolio/balance|positions|fills`, the
+  model score is a published heuristic, and alerts come solely from official candlesticks.
+- **Additional irregularities recorded by parallel sessions (IRREG-13…IRREG-22 on archived board):**
+  stored-vs-official volume drift in sampled rows, static-catalogue staleness, synthetic tick/depth
+  labelling, a contradictory live-order toggle (removed on `main`; never present in this build), and a
+  quote-as-fair-value fallback (absent here — the score never invents a fair value). These are historical
+  records of the retired static site and remain available in the archive above; live counterparts are
+  IRREG-01…IRREG-12 in this board.
 
 ## Pull request & deployment record
 
