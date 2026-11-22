@@ -1,13 +1,12 @@
 /**
  * Tradebot3 Verified Data Catalog
- * All entries verified line by line against official Kalshi docs, official Kalshi market pages,
- * and verified external sources on 2026-11-22 (UTC).
+ * Snapshot data includes the Session 2 official re-check of 8 market pages, not a promise of live/current values.
+ * T-07 adds runtime-integrity notes; see the review pages for audit scope and remaining model caveats.
  *
  * STRICT VERIFICATION POLICY:
  * - Only 5 topics allowed: gas-prices, elections, culture, crypto, golf.
- * - Every entry includes an official sourceUrl and sourceLabel.
- * - Any value that could not be confirmed from an official source is explicitly `null`
- *   so tables render it blank and flag it as Unverified (linked to flagged-for-review.html).
+ * - Rows carry sourceUrl/sourceLabel links for review; links do not guarantee current values.
+ * - Unconfirmed fields are `null` and render blank/Unverified; values in this static catalog can become stale.
  */
 
 export const LAST_VERIFIED_UTC = '2026-11-22T07:27:00Z';
@@ -992,6 +991,26 @@ export const FLAGGED_IRREGULARITIES = [
     status: 'Needs Review',
     sourceUrl: 'https://kalshi.com/markets',
     sourceLabel: 'Kalshi Official Markets (live re-check)'
+  },
+  {
+    id: 'IRREG-15',
+    severity: 'High',
+    category: 'Live Data & Execution',
+    item: 'The GitHub Pages app uses local paper simulation, not a live Kalshi feed or order executor',
+    detail: 'The site does not establish an authenticated WebSocket connection or submit orders. Price ticks, chart history, orderbook depth, alerts, and portfolio fills are local simulations. The optional REST connector can test access/read balance only. This revision removes fabricated seeded alerts/trades and labels paper output explicitly.',
+    status: 'Needs Review',
+    sourceUrl: 'https://docs.kalshi.com/getting_started/quick_start_websockets',
+    sourceLabel: 'Kalshi Docs — Authenticated WebSocket Requirements'
+  },
+  {
+    id: 'IRREG-16',
+    severity: 'Medium',
+    category: 'Illustrative Strategy Model',
+    item: 'Model fair values and catalyst labels are not validated forecasts or proof of causation',
+    detail: 'The ROI model uses static modelFairValue values and synthetic orderbook/ticks; model values are illustrative and not independently calibrated against out-of-sample results. Linked news pages are context references only and do not establish that a story caused a contract price change. Do not treat scores as investment advice.',
+    status: 'Needs Review',
+    sourceUrl: 'https://kalshi.com/markets',
+    sourceLabel: 'Kalshi Markets (contract reference)'
   }
 ];
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tradebot3 — Kalshi Demo Live Dashboard (5 Topics)</title>
+  <title>Tradebot3 — Kalshi Demo Paper-Simulation Dashboard (5 Topics)</title>
   <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body data-root-depth="0">
@@ -13,23 +13,22 @@
     <!-- Hero + Executive Summary -->
     <section class="page-hero">
       <div>
-        <h1>Kalshi Demo Live Dashboard &amp; Executive Summary</h1>
+        <h1>Kalshi Demo Dashboard &amp; Executive Summary</h1>
         <p>
-          Tracks the highest-dollar live &amp; resolved Kalshi events strictly across five isolated topics —
+          Organizes a static Kalshi market reference catalog across five isolated topics —
           <strong>Gas Prices</strong>, <strong>Elections</strong>, <strong>Culture</strong>, <strong>Crypto</strong>, and <strong>Golf</strong>.
-          Real-time <strong>&gt;= $0.10 swing alerts</strong> stream into dual chats (All Events vs. High-ROI Model), paired with
-          interactive <strong>Seconds / Minutes / Hours</strong> price charts, jump catalyst source links, orderbook liquidity depth,
-          and automated Kalshi Demo trading strategies.
+          The dashboard has a <strong>local paper simulation</strong> for &gt;= $0.10 synthetic swings, interactive simulated charts and orderbook depth, and simulated strategies. It does <strong>not</strong> display a live market-data stream or place exchange orders.
         </p>
       </div>
       <div class="hero-controls">
-        <button id="btn-toggle-live" class="btn btn-primary"><span class="live-dot"></span>Live Stream: ON</button>
+        <button id="btn-toggle-live" class="btn btn-primary"><span class="live-dot"></span>Paper Simulation: ON</button>
         <button id="btn-trigger-swing" class="btn">Trigger &gt;= $0.10 Swing</button>
         <button id="btn-test-demo-api" class="btn">Test Demo REST API</button>
       </div>
     </section>
 
-    <div id="demo-api-status" class="status-banner">
+    <div id="demo-api-status" class="status-banner warn">
+      <strong>Static catalog + paper simulation — not a live market feed.</strong> Prices/volumes below are reference values, chart histories and depth are synthetic, alerts are generated locally, and trades do not reach Kalshi. Connect a live data relay/API integration before relying on live events. <br />
       Verified Demo Endpoints: <code class="mono">https://external-api.demo.kalshi.co/trade-api/v2</code> (recommended) &amp;
       <code class="mono">https://demo-api.kalshi.co/trade-api/v2</code> (also supported).
       WebSocket: <code class="mono">wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2</code>.
@@ -55,7 +54,7 @@
         <div class="card-header">
           <div>
             <h2>All Events Alert Chat (&gt;= $0.10 Swings)</h2>
-            <div class="tiny muted">Every sudden contract price move &gt;= $0.10 up or down across the 5 topics</div>
+            <div class="tiny muted">Every locally simulated price move &gt;= $0.10 up or down across the 5 topics</div>
           </div>
           <span class="badge badge-open" id="count-all-alerts">0</span>
         </div>
@@ -65,8 +64,8 @@
       <div class="card" style="margin-bottom:0;">
         <div class="card-header">
           <div>
-            <h2>High-ROI Model Selective Alert Chat</h2>
-            <div class="tiny muted">Filtered strictly to &gt;= $0.10 swings with Model Net Edge &gt;= $0.05 &amp; Exp ROI &gt;= 15%</div>
+            <h2>Illustrative Model Selective Alert Chat</h2>
+            <div class="tiny muted">Illustrative filter on simulated &gt;= $0.10 swings; model values are not a validated forecast</div>
           </div>
           <span class="badge badge-verified" id="count-roi-alerts">0</span>
         </div>
@@ -77,7 +76,7 @@
     <!-- Interactive Price Chart + Orderbook Liquidity -->
     <section id="interactive-chart-section" class="card">
       <div class="card-header">
-        <h2>Interactive Contract Price Chart &amp; Orderbook Liquidity</h2>
+        <h2>Paper-Simulated Contract Price Chart &amp; Illustrative Orderbook</h2>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <select id="chart-market-select" style="width:auto;min-width:290px;" aria-label="Select Kalshi Market"></select>
           <div class="seg-group" role="group" aria-label="Chart X-Axis Timeframe">
@@ -103,7 +102,7 @@
 
           <!-- Quick Trade Execution Ticket -->
           <form id="quick-trade-form" style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;">
-            <strong class="small">Quick Demo Trade Execution (Selected Market)</strong>
+            <strong class="small">Quick Paper Simulation Trade (Selected Market)</strong>
             <div class="form-grid" style="margin-top:6px;">
               <div>
                 <label class="field-label" for="qt-side">Side</label>
@@ -126,7 +125,7 @@
               </div>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-              <button type="submit" class="btn btn-primary btn-sm">Execute Demo Order</button>
+              <button type="submit" class="btn btn-primary btn-sm">Execute Paper Simulation Trade</button>
               <a class="small" href="portfolio.html">Open Full Portfolio &amp; Automated Strategies →</a>
             </div>
             <div id="qt-feedback" style="margin-top:8px;"></div>
@@ -139,8 +138,8 @@
     <section class="card">
       <div class="card-header">
         <div>
-          <h2>Verified Kalshi Events Table (Grouped by Topic · Sorted by Dollar Volume)</h2>
-          <div class="tiny muted">Every row links to an official Kalshi page. Unconfirmable values are left blank and flagged as Unverified.</div>
+          <h2>Kalshi Reference Catalog (Grouped by Topic · Sorted by Published Volume)</h2>
+          <div class="tiny muted">Static reference values only; not refreshed live. Every row links to a Kalshi market page. Unconfirmed fields remain blank and flagged Unverified.</div>
         </div>
         <div class="seg-group" role="group" aria-label="Filter Table by Topic">
           <button class="seg-btn active" data-topic-filter="all">All 5 Topics</button>
@@ -157,9 +156,9 @@
             <tr>
               <th>Ticker / Close</th>
               <th>Event &amp; Contract</th>
-              <th>Verified Dollar Volume</th>
-              <th>Live Demo Price</th>
-              <th>Verified Observed Price</th>
+              <th>Catalog Dollar Volume</th>
+              <th>Simulated Price</th>
+              <th>Static Catalog Price</th>
               <th>Lifecycle / Resolution</th>
               <th>ROI Model</th>
               <th>Official Source Link</th>
@@ -184,14 +183,14 @@
             <li><strong>Recommended Demo REST:</strong> <code class="mono">https://external-api.demo.kalshi.co/trade-api/v2</code> (<code class="mono">demo-api.kalshi.co</code> also supported).</li>
             <li><strong>Recommended Demo WebSocket:</strong> <code class="mono">wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2</code> (<code class="mono">demo-api.kalshi.co</code> also supported).</li>
             <li><strong>Orderbook Reciprocal Pricing:</strong> <code class="mono">orderbook_fp</code> returns bids only (<code class="mono">yes_dollars</code>, <code class="mono">no_dollars</code>); YES Ask = $1.00 − NO Bid.</li>
-            <li><strong>Candlesticks Constraint:</strong> REST candlesticks support 1m, 60m, and 1440m intervals only; Seconds charts require live tick aggregation (flagged in <a href="flagged-for-review.html">IRREG-04</a>).</li>
+            <li><strong>Candlesticks Constraint:</strong> REST candlesticks support 1m, 60m, and 1440m intervals only; Seconds charts require real tick aggregation (flagged in <a href="flagged-for-review.html">IRREG-04</a>).</li>
           </ul>
         </div>
         <div>
           <h3 class="small" style="margin-top:0;">Trading, Lifecycle &amp; Verification Discipline</h3>
           <ul class="small" style="padding-left:18px;margin-bottom:0;">
             <li><strong>Strict 5-Topic Scope:</strong> Gas Prices, Elections, Culture, Crypto, and Golf only — isolated into dedicated subpages.</li>
-            <li><strong>Lifecycle Resolution:</strong> Tracks live open events through settlement (Resolved YES = $1.00, Resolved NO = $0.00).</li>
+            <li><strong>Lifecycle Resolution:</strong> Catalog status is static; settlement controls in Portfolio simulate YES/NO outcomes.</li>
             <li><strong>Automated Strategy Testing:</strong> Swing Mean-Reversion, Momentum Breakout, High-ROI Model Auto-Trader, Spread Capture, plus custom category-based strategies on <a href="portfolio.html">Portfolio &amp; Strategies</a>.</li>
             <li><strong>Zero Hallucination Policy:</strong> Unverified values are left blank and published transparently on <a href="flagged-for-review.html">Flagged for Review</a>.</li>
           </ul>

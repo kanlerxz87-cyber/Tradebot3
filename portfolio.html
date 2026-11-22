@@ -12,16 +12,14 @@
   <main class="page-main container">
     <section class="page-hero">
       <div>
-        <h1>Kalshi Demo Portfolio, Trade Execution &amp; Strategy Lab</h1>
+        <h1>Kalshi Paper Portfolio &amp; Strategy Simulation Lab</h1>
         <p>
-          Connect to your Kalshi Demo account (or trade immediately with the built-in $10,000 Paper Demo account),
-          execute YES/NO contracts, track open positions through YES/NO resolution, categorize trades, analyze performance by category,
-          and run or create automated simulated trading strategies.
+          Track a local $10,000 paper balance, simulate YES/NO entries and settlements, categorize simulated results, and test automated strategies. The UI does not submit orders to Kalshi; its API connector checks REST access and account balance only.
         </p>
       </div>
       <div class="hero-controls">
         <button id="btn-run-sim-burst" class="btn btn-primary">Run Automated Strategy Sim Burst (3 Swings)</button>
-        <button id="btn-reset-portfolio" class="btn">Reset Demo Account</button>
+        <button id="btn-reset-portfolio" class="btn">Reset Paper Simulator</button>
       </div>
     </section>
 
@@ -33,7 +31,7 @@
       <div class="card" style="margin-bottom:0;">
         <div class="card-header">
           <h2>Portfolio Equity Curve</h2>
-          <span class="tiny muted">Real-time mark-to-market equity (Baseline $10,000)</span>
+          <span class="tiny muted">Paper simulation equity (local baseline $10,000)</span>
         </div>
         <div style="height:220px;">
           <canvas id="equity-curve-chart" style="width:100%;height:100%;display:block;border:1px solid #e2e8f0;border-radius:8px;"></canvas>
@@ -61,11 +59,11 @@
           </div>
           <div style="margin-bottom:10px;">
             <label class="field-label" for="api-private-key">RSA PKCS#8 Private Key PEM (Optional · Signed in Browser via Web Crypto RSA-PSS · Never Stored)</label>
-            <textarea id="api-private-key" rows="2" placeholder="-----BEGIN PRIVATE KEY----- (optional for live Demo /portfolio/balance)"></textarea>
+            <textarea id="api-private-key" rows="2" placeholder="-----BEGIN PRIVATE KEY----- (optional for account-balance read only)"></textarea>
           </div>
           <button type="submit" class="btn btn-primary btn-sm">Test / Connect Kalshi Demo API</button>
           <div id="api-conn-feedback" class="status-banner" style="margin-top:8px;margin-bottom:0;">
-            Paper Demo Mode active ($10,000 mock balance). No API credentials are stored in this repository.
+            Paper simulation only ($10,000 local mock balance). API connector does not send orders. Any entered key stays in this browser session; no credential is included in the repository.
           </div>
         </form>
       </div>
@@ -74,7 +72,7 @@
     <!-- Manual Trade Execution Ticket -->
     <section class="card">
       <div class="card-header">
-        <h2>Execute Trade on Event (Demo Account)</h2>
+        <h2>Simulate a Paper Trade on an Event</h2>
         <span class="tiny muted">Tag every trade with a category to analyze category-level ROI and build automated strategies</span>
       </div>
       <form id="execute-trade-form">
@@ -114,7 +112,7 @@
             <input id="trade-note" type="text" placeholder="e.g., Post-swing mean reversion" />
           </div>
         </div>
-        <button type="submit" class="btn btn-primary">Submit Demo Trade</button>
+        <button type="submit" class="btn btn-primary">Record Paper Simulation Trade</button>
         <div id="trade-feedback" style="margin-top:8px;"></div>
       </form>
     </section>
@@ -173,7 +171,7 @@
       <div class="card" style="margin-bottom:0;">
         <div class="card-header">
           <h2>Automated Simulated Trading Strategies</h2>
-          <span class="tiny muted">Active strategies auto-execute on live &gt;= $0.10 swings</span>
+          <span class="tiny muted">Strategies auto-execute only on locally simulated &gt;= $0.10 swings</span>
         </div>
         <div id="strategies-list"></div>
       </div>
@@ -183,7 +181,7 @@
     <section id="custom-strategy-section" class="card">
       <div class="card-header">
         <h2>Create Custom Automated Strategy (From Trade Category)</h2>
-        <span class="tiny muted">New strategies immediately participate in live &amp; simulated &gt;= $0.10 swing ticks</span>
+        <span class="tiny muted">New strategies participate in simulated &gt;= $0.10 paper ticks only</span>
       </div>
       <form id="custom-strategy-form">
         <div class="form-grid">
