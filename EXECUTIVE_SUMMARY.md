@@ -3,7 +3,15 @@
 **Date:** 2026-11-22 (UTC)  
 **Repository:** `kanlerxz87-cyber/Tradebot3`  
 **Live GitHub Pages Site:** https://kanlerxz87-cyber.github.io/Tradebot3/  
-**Audit Branch:** `arena/ff314ece-tradebot3` (Full line-by-line re-verification & upgrade of PR #1)
+**Branches:** `arena/3716ae8d-tradebot3` (PR #1) · `arena/a8cfdaeb-tradebot3` (PR #2/#3) · `arena/59730b38-tradebot3` (PR #6/#8) · `arena/ff314ece-tradebot3` (Full 29/29 market verification, Ed25519+V2 client & interactive dashboard upgrades)
+
+---
+
+## Multi-Session Verification Summary (`arena-a8cfdaeb`, `arena-59730b38`, & `arena-ff314ece`, 2026-11-22 UTC)
+
+- **Session `arena-a8cfdaeb` (PR #2/#3):** Independently sampled 6 Kalshi markets, flagged mismatches (`IRREG-09..13`) on `flagged-for-review.html`, and relabeled seeded catalog swing alerts as `Unverified Catalog Alert` unless generated from verified live ticks.
+- **Session `arena-59730b38` (PR #6/#8):** Re-checked API docs and 8 live Kalshi markets, refreshed 7 stale rows (incl. `CONTROLS-2026` Resolved YES), added the `external-feeds` WS row, extended WS tier limits with Expert & Prestige, and logged `IRREG-14`.
+- **Session `arena-ff314ece` (Full 29/29 Audit & Interactive Upgrade):** Audited all 29 of 29 live `kalshi.com` market pages + 14 Kalshi docs pages, confirmed `KXAAAGASCDNY-26NOV19` settled YES, filled 6 additional previously blank official dollar volumes (`KXAAAGASMAXCA`, `KXBTCY`, `KXBTCMINY`, `KXBTC50VS100`, `KXPGATOUR-USO26`, `KXPGAMASTERS-26`), replaced the 2025 PGA Tour `/past-results` link with the live 2026 RSM Classic `/leaderboard`, upgraded `kalshi-client.js` with Ed25519 (recommended default) + PKCS#1/PKCS#8 RSA-PSS + `mapYesNoOrderToV2` + live orderbook pull, fixed the Quick Trade NO-side price synchronization bug, added hover crosshair tooltips, alert filters/sound ping, status filter, and Category P&L Bar Chart, and documented all remediations in `IRREG-15`.
 
 ---
 
@@ -56,8 +64,8 @@ Every API endpoint, signing algorithm, channel name, and rate-limit tier was re-
 
 ---
 
-## 4. Flagged Irregularities & PR #2 Audit Remediations (`flagged-for-review.html`)
-All technical caveats, unverified fields, and audit corrections (`IRREG-01` through `IRREG-09`) are published transparently on `flagged-for-review.html`:
+## 4. Flagged Irregularities & Multi-Session Audit Remediations (`flagged-for-review.html`)
+All technical caveats, unverified fields, and audit corrections (`IRREG-01` through `IRREG-15`) are published transparently on `flagged-for-review.html`:
 - **IRREG-01:** Standard browser `WebSocket` cannot attach Kalshi's required handshake auth headers (`KALSHI-ACCESS-*`); real authenticated WS streaming requires a server/worker relay proxy.
 - **IRREG-02:** Static GitHub Pages browser `fetch()` requests to Kalshi Demo API may encounter CORS restrictions and require user-owned demo credentials for private endpoints; simulated ticks and paper fills are explicitly labeled.
 - **IRREG-03:** Kalshi officially warns that Demo environment market prices and liquidity do not reflect production markets ([source](https://docs.kalshi.com/getting_started/demo_env)).
@@ -66,7 +74,9 @@ All technical caveats, unverified fields, and audit corrections (`IRREG-01` thro
 - **IRREG-06:** Both recommended (`external-api.demo.kalshi.co`) and legacy shared (`demo-api.kalshi.co`) demo hostnames are officially supported, with `external-api` recommended.
 - **IRREG-07:** After 2026-11-22 live re-verification filled 7 previously blank volumes directly from official `kalshi.com` pages, only `KXAAAGASCDNY-26NOV19` volume (omitted on its settled page) and live dynamic orderbook depth remain statically unverified (`null` / blank + `Unverified`).
 - **IRREG-08:** Initial repository commit (`62713af`) contained only an 11-byte `README.md`.
-- **IRREG-09 (Remediated in PR #2):** Line-by-line audit of PR #1 caught and fixed 2 newly settled markets (`CONTROLS-2026` YES, `KXAAAGASCDNY-26NOV19` YES), 7 missing dollar volumes, 16 stale prices/volumes/catalysts (including fixing the RSM Classic catalyst URL from 2025 `/past-results` to live 2026 `/leaderboard`), Ed25519 + PKCS#1 RSA client support, Create Order V2 YES/NO mapping, and the Quick Trade NO-side price synchronization bug.
+- **IRREG-09..13 (Static Audit — `arena-a8cfdaeb`, PR #2):** Relabeled seeded catalog alerts as `Unverified Catalog Alert`, documented 6-market sample mismatches, and noted dedicated WS hosts (`user-ws` and `external-feeds`).
+- **IRREG-14 (Session 2 Refresh — `arena-59730b38`, PR #6):** Corrected 7 stale/incorrect rows from 8 live-checked markets (including `CONTROLS-2026` Resolved YES) and added the `external-feeds` WS row.
+- **IRREG-15 (Full 29/29 Audit & Code Remediations — `arena-ff314ece`):** Completed verification of all remaining 21 of 29 live Kalshi markets + 14 Kalshi docs pages; confirmed `KXAAAGASCDNY-26NOV19` Resolved YES; filled 6 additional previously blank volumes; updated RSM Classic link to live 2026 `/leaderboard`; upgraded `kalshi-client.js` with Ed25519 + PKCS#1/PKCS#8 RSA-PSS + Create Order V2 YES/NO mapping + live orderbook pull; fixed Quick Trade NO-side price synchronization bug.
 
 ---
 

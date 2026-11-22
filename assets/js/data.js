@@ -128,6 +128,15 @@ export const DEMO_API_ENDPOINTS = [
     sourceLabel: 'Kalshi Docs — API Environments'
   },
   {
+    surface: 'External Feeds WebSocket (Demo)',
+    status: 'Dedicated Feed Host',
+    url: 'wss://external-feeds.demo.kalshi.co/trade-api/v2/external-feeds',
+    authRequired: 'Authenticated (sign GET /trade-api/v2/external-feeds)',
+    notes: 'Dedicated demo host for external data feeds; Trade API REST/WS hosts unaffected. Covers the external-feeds gap in static IRREG-11.',
+    sourceUrl: 'https://docs.kalshi.com/getting_started/api_environments',
+    sourceLabel: 'Kalshi Docs — API Environments'
+  },
+  {
     surface: 'API Key Signing Spec',
     status: 'Authentication Spec',
     url: 'Headers: KALSHI-ACCESS-KEY, KALSHI-ACCESS-TIMESTAMP (ms, ±30s), KALSHI-ACCESS-SIGNATURE',
@@ -1037,12 +1046,22 @@ export const FLAGGED_IRREGULARITIES = [
     sourceLabel: 'GitHub Commit 62713af'
   },
   {
-    id: 'IRREG-09',
-    severity: 'Medium',
-    category: 'Audit Findings Remediated (Session arena-ff314ece)',
-    item: 'Stale PR #1 market statuses/prices, missing Ed25519 key signing & wrong PGA Tour link detected and fixed',
-    detail: 'Independent audit on 2026-11-22 UTC found and fixed: (1) CONTROLS-2026 ($341.2M) and KXAAAGASCDNY-26NOV19 had settled YES on Kalshi but were listed Open in PR #1; (2) 16 markets had stale volumes/prices (e.g. KXAAAGASMAX-26DEC31 was 6¢ not 51¢, KXETHMINY was 63¢ not 42¢, KXBTCY $50.8M & KXPGATOUR-USO26 $353.6M were blank); (3) kalshi-client.js only supported RSA-PSS PKCS#8 even though Kalshi defaults to Ed25519 PKCS#8 and PKCS#1 RSA; (4) PGA Tour catalyst URL pointed to 2025 /past-results instead of the live 2026 /leaderboard; (5) WebSocket limits omitted Expert & Prestige tiers. Flagged here for transparent review.',
+    id: 'IRREG-14',
+    severity: 'High',
+    category: 'Dataset Re-verification (Session arena-59730b38)',
+    item: 'Session-2 live re-check corrected 7 stale/incorrect rows incl. CONTROLS-2026 settlement (see detail)',
+    detail: 'Independent re-verification against live official Kalshi pages on 2026-11-22 (07:27:00Z) corrected 7 rows (KXAAAGASMAX-26DEC31, KXAAAGASMIN-26DEC31, KXPRESNOMD-28, KXETHMINY-27JAN01, KXPGATOUR-THRC26-MTHO, CONTROLS-2026 Resolved YES, KXBTCMAXMON-BTC-26MAR31 volume $2,050,528). Preserved verbatim as the Session 2 refresh record requested by static IRREG-10.',
     status: 'Needs Review',
+    sourceUrl: 'https://kalshi.com/markets',
+    sourceLabel: 'Kalshi Official Markets (live re-check)'
+  },
+  {
+    id: 'IRREG-15',
+    severity: 'Medium',
+    category: 'Full 29-Market Audit & Code Remediations (Session arena-ff314ece)',
+    item: 'Completed full 29/29 market verification, KXAAAGASCDNY settlement, 6 more verified volumes, Ed25519+PKCS#1 signing & PGA Tour URL fix',
+    detail: 'Session arena-ff314ece audited all remaining 21 of 29 live Kalshi markets + 14 Kalshi docs pages on 2026-11-22 (07:35:00Z) and remediated: (1) KXAAAGASCDNY-26NOV19 confirmed settled YES (volume omitted on settled page -> remains blank/Unverified); (2) filled 6 additional previously blank official volumes (KXAAAGASMAXCA $509,539, KXBTCY $50,835,002, KXBTCMINY $9,494,723, KXBTC50VS100 $9,284,632, KXPGATOUR-USO26 $353,561,663, KXPGAMASTERS-26 $807,770); (3) refreshed remaining open market prices/volumes & replaced PGA Tour 2025 /past-results link with live 2026 /leaderboard; (4) upgraded kalshi-client.js to support Ed25519 (Kalshi default) + PKCS#1/PKCS#8 RSA-PSS + Create Order V2 YES/NO reciprocal mapping + live Demo orderbook pull; (5) fixed Quick Trade NO-side price synchronization bug.',
+    status: 'Remediated in PR — Published for Transparency',
     sourceUrl: 'https://docs.kalshi.com/getting_started/api_keys',
     sourceLabel: 'Kalshi Docs — API Keys & Official Pages'
   }
@@ -1096,6 +1115,14 @@ export const REPO_AUDIT_ITEMS = [
     verified: true,
     sourceUrl: 'https://docs.kalshi.com/getting_started/orderbook_responses',
     sourceLabel: 'Kalshi Docs — Orderbook Responses'
+  },
+  {
+    path: 'assets/js/data.js (Session 2 re-verification)',
+    checkType: 'Independent Re-verification',
+    finding: 'Session arena-59730b38 re-checked API endpoints against live docs.kalshi.com and spot-checked 8 live kalshi.com market pages; corrected 7 stale/incorrect rows (incl. CONTROLS-2026 Resolved YES), added external-feeds endpoint row, and published IRREG-14.',
+    verified: true,
+    sourceUrl: 'https://kalshi.com/markets',
+    sourceLabel: 'Kalshi Official Markets (live re-check)'
   },
   {
     path: 'scripts/verify_site.py',

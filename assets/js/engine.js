@@ -480,12 +480,13 @@ export class TradebotEngine {
         toPrice: m.currentPrice,
         delta: +delta.toFixed(2),
         direction: delta >= 0 ? 'UP' : 'DOWN',
-        catalystLabel: primaryCat ? primaryCat.label : 'Verified Kalshi >= $0.10 price swing observed',
+        catalystLabel: primaryCat ? primaryCat.label : 'Catalog-listed >= $0.10 move (unverified tick; see Flagged for Review)',
         catalystUrl: primaryCat ? primaryCat.url : m.sourceUrl,
         catalystSource: primaryCat ? primaryCat.sourceName : m.sourceLabel,
         verifiedSourceUrl: m.sourceUrl,
         roi: evaluateHighRoi(m, m.currentPrice, delta, m.orderbook),
-        simulated: false
+        simulated: false,
+        verifiedSwing: false
       };
       this.allAlerts.unshift(alert);
       if (alert.roi.qualified) {

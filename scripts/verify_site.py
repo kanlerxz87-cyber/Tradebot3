@@ -160,8 +160,8 @@ const nyGas = VERIFIED_MARKETS.find((m) => m.ticker === 'KXAAAGASCDNY-26NOV19');
 if (!nyGas || nyGas.status !== 'Resolved' || nyGas.resolution !== 'YES' || nyGas.volumeUsd !== null) {
   throw new Error('KXAAAGASCDNY-26NOV19 settlement / unverified-volume check failed');
 }
-if (!FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-09')) {
-  throw new Error('Missing IRREG-09 audit record');
+if (!FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-14') || !FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-15')) {
+  throw new Error('Missing IRREG-14 / IRREG-15 audit records');
 }
 
 // 4. Engine live tick, >= $0.10 swing alert, trade execution, resolution & custom strategy test
