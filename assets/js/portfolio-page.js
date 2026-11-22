@@ -246,7 +246,7 @@ function bindEvents() {
         });
         if (fb) {
           fb.className = 'status-banner ok';
-          fb.textContent = `Order Filled (${trade.id}): ${trade.action} ${trade.contracts} ${trade.side} on ${trade.ticker} @ $${trade.price.toFixed(2)} [${trade.category}].`;
+          fb.textContent = `Paper simulation recorded (not sent to Kalshi) (${trade.id}): ${trade.action} ${trade.contracts} ${trade.side} on ${trade.ticker} @ $${trade.price.toFixed(2)} [${trade.category}].`;
         }
       } catch (err) {
         if (fb) {

@@ -11,7 +11,8 @@
 import { VERIFIED_MARKETS, TOPICS, ALLOWED_TOPICS } from './data.js';
 import { KalshiDemoClient } from './kalshi-client.js';
 
-const STORAGE_KEY = 'tradebot3_demo_state_v1';
+// v2 intentionally discards the prior demo's pre-populated example trades so performance starts clean.
+const STORAGE_KEY = 'tradebot3_demo_state_v2';
 export const SWING_ALERT_THRESHOLD = 0.10; // >= $0.10 in either direction
 
 export const TRADE_CATEGORIES = [
@@ -213,45 +214,8 @@ function generateInitialSeries(market, nowMs) {
   const minutes = makePoints(45, 60 * 1000);
   const seconds = makePoints(50, 1000);
 
-  // Pin verified >= $0.10 catalyst jumps onto the series
+  // No historic jump markers are synthesized: the static reference sources do not prove a causal timestamped move.
   const jumpMarkers = [];
-  (market.catalysts || []).forEach((cat, idx) => {
-    if (Math.abs(cat.delta) >= SWING_ALERT_THRESHOLD) {
-      const tsMin = nowMs - Math.min(35, Math.max(5, Math.round(cat.timeOffsetMin / 6))) * 60 * 1000;
-      const tsHr = nowMs - Math.min(28, Math.max(3, Math.round(cat.timeOffsetMin / 15))) * 3600 * 1000;
-      const tsSec = nowMs - Math.min(40, 10 + idx * 12) * 1000;
-      // Reflect jump cleanly in minute & hour series near marker
-      const applyJump = (arr, targetTs) => {
-        let bestIdx = 0;
-        let bestDiff = Infinity;
-        arr.forEach((pt, i) => {
-          const d = Math.abs(pt.ts - targetTs);
-          if (d < bestDiff) {
-            bestDiff = d;
-            bestIdx = i;
-          }
-        });
-        if (bestIdx > 1) {
-          arr[bestIdx - 1].price = clampPrice(arr[bestIdx].price - cat.delta);
-        }
-        return arr[bestIdx];
-      };
-      const mPt = applyJump(minutes, tsMin);
-      const hPt = applyJump(hours, tsHr);
-      const sPt = applyJump(seconds, tsSec);
-      jumpMarkers.push({
-        id: `${market.ticker}-cat-${idx}`,
-        ticker: market.ticker,
-        label: cat.label,
-        delta: cat.delta,
-        url: cat.url,
-        sourceName: cat.sourceName,
-        timestamps: { seconds: sPt.ts, minutes: mPt.ts, hours: hPt.ts },
-        prices: { seconds: sPt.price, minutes: mPt.price, hours: hPt.price }
-      });
-    }
-  });
-
   return { seconds, minutes, hours, jumpMarkers };
 }
 
@@ -267,7 +231,6 @@ export class TradebotEngine {
     this.highRoiAlerts = [];
     this.portfolio = this.loadState();
     this.initMarkets();
-    this.seedInitialAlerts();
   }
 
   loadState() {
@@ -275,109 +238,10 @@ export class TradebotEngine {
       cashBalance: 10000.0,
       startingBalance: 10000.0,
       positions: {},
-      trades: [
-        {
-          id: 'TRD-1001',
-          ts: Date.now() - 1000 * 60 * 140,
-          ticker: 'KXAAAGASMIN-26DEC31',
-          topic: 'gas-prices',
-          action: 'BUY',
-          side: 'YES',
-          contracts: 40,
-          price: 0.45,
-          exitPrice: 0.55,
-          status: 'CLOSED',
-          pnl: 4.0,
-          roiPct: 22.2,
-          category: 'News Catalyst',
-          strategyId: 'strat-momentum',
-          mode: 'Paper Demo',
-          note: 'Entered on AAA national average dropping under $4/gal (+10¢ jump)'
-        },
-        {
-          id: 'TRD-1002',
-          ts: Date.now() - 1000 * 60 * 110,
-          ticker: 'KXETHMINY-27JAN01',
-          topic: 'crypto',
-          action: 'BUY',
-          side: 'YES',
-          contracts: 50,
-          price: 0.25,
-          exitPrice: 0.42,
-          status: 'CLOSED',
-          pnl: 8.5,
-          roiPct: 68.0,
-          category: 'High-ROI Model',
-          strategyId: 'strat-high-roi',
-          mode: 'Paper Demo',
-          note: 'Model flagged ETH downside mispricing after Waller 50bp hike remarks'
-        },
-        {
-          id: 'TRD-1003',
-          ts: Date.now() - 1000 * 60 * 80,
-          ticker: 'KXPGATOUR-THRC26-MTHO',
-          topic: 'golf',
-          action: 'BUY',
-          side: 'YES',
-          contracts: 60,
-          price: 0.13,
-          exitPrice: null,
-          status: 'OPEN',
-          pnl: 0,
-          roiPct: 0,
-          category: 'Momentum Breakout',
-          strategyId: 'strat-momentum',
-          mode: 'Paper Demo',
-          note: 'RSM Classic Round 1-2 surge to T1 (+10¢ breakout)'
-        },
-        {
-          id: 'TRD-1004',
-          ts: Date.now() - 1000 * 60 * 50,
-          ticker: 'KXPRESNOMD-28',
-          topic: 'elections',
-          action: 'BUY',
-          side: 'YES',
-          contracts: 50,
-          price: 0.26,
-          exitPrice: null,
-          status: 'OPEN',
-          pnl: 0,
-          roiPct: 0,
-          category: 'High-ROI Model',
-          strategyId: 'strat-high-roi',
-          mode: 'Paper Demo',
-          note: 'Emerson poll surge + Model Fair Value $0.34 vs $0.26'
-        }
-      ],
+      trades: [],
       strategies: JSON.parse(JSON.stringify(DEFAULT_STRATEGIES)),
-      equityCurve: [
-        { ts: Date.now() - 1000 * 60 * 180, equity: 10000.0 },
-        { ts: Date.now() - 1000 * 60 * 130, equity: 10004.0 },
-        { ts: Date.now() - 1000 * 60 * 95, equity: 10012.5 },
-        { ts: Date.now() - 1000 * 60 * 40, equity: 10014.1 },
-        { ts: Date.now(), equity: 10012.5 }
-      ]
-    };
-
-    // Build initial positions map from open seeded trades
-    fallback.cashBalance = 9991.7; // 10000 + 4.0 + 8.5 - (60*0.13) - (50*0.26)
-    fallback.positions = {
-      'KXPGATOUR-THRC26-MTHO:YES': {
-        ticker: 'KXPGATOUR-THRC26-MTHO',
-        topic: 'golf',
-        side: 'YES',
-        contracts: 60,
-        avgPrice: 0.13,
-        category: 'Momentum Breakout'
-      },
-      'KXPRESNOMD-28:YES': {
-        ticker: 'KXPRESNOMD-28',
-        topic: 'elections',
-        side: 'YES',
-        contracts: 50,
-        avgPrice: 0.26,
-        category: 'High-ROI Model'
-      }
+      // A single flat starting point is a baseline, not simulated performance history.
+      equityCurve: [{ ts: Date.now(), equity: 10000.0 }]
     };
 
     try {
@@ -391,7 +255,7 @@ export class TradebotEngine {
         return parsed;
       }
     } catch (_) {
-      // Ignore storage errors
+      // Ignore unavailable or malformed browser storage and start from the clean paper baseline.
     }
     return fallback;
   }
@@ -420,56 +284,17 @@ export class TradebotEngine {
       const series = generateInitialSeries(m, now);
       const orderbook = buildSimulatedOrderbook(m.observedPrice, m.volumeUsd, idx + 11);
       const currentPrice = m.observedPrice;
-      const roi = evaluateHighRoi(m, currentPrice, m.observedSwing || 0, orderbook);
+      const roi = evaluateHighRoi(m, currentPrice, 0, orderbook);
       return {
         ...m,
         currentPrice,
-        prevPrice: clampPrice(currentPrice - (m.observedSwing || 0)),
-        lastDelta: m.observedSwing || 0,
+        prevPrice: currentPrice,
+        lastDelta: 0,
         orderbook,
         series,
         roi,
         lastUpdated: now
       };
-    });
-  }
-
-  seedInitialAlerts() {
-    const now = Date.now();
-    const initialSwings = this.markets.filter(
-      (m) => m.status === 'Open' && (Math.abs(m.observedSwing || 0) >= SWING_ALERT_THRESHOLD || (m.catalysts && m.catalysts.some((c) => Math.abs(c.delta) >= SWING_ALERT_THRESHOLD)))
-    );
-
-    initialSwings.forEach((m, idx) => {
-      const primaryCat = (m.catalysts || []).find((c) => Math.abs(c.delta) >= SWING_ALERT_THRESHOLD);
-      const delta = Math.abs(m.observedSwing || 0) >= SWING_ALERT_THRESHOLD
-        ? m.observedSwing
-        : primaryCat
-        ? primaryCat.delta
-        : 0.10;
-      const fromPrice = clampPrice(m.currentPrice - delta);
-      const alert = {
-        id: `ALT-SEED-${idx + 1}`,
-        ts: now - (initialSwings.length - idx) * 1000 * 42,
-        ticker: m.ticker,
-        title: m.title,
-        topic: m.topic,
-        fromPrice,
-        toPrice: m.currentPrice,
-        delta: +delta.toFixed(2),
-        direction: delta >= 0 ? 'UP' : 'DOWN',
-        catalystLabel: primaryCat ? primaryCat.label : 'Catalog-listed >= $0.10 move (unverified tick; see Flagged for Review)',
-        catalystUrl: primaryCat ? primaryCat.url : m.sourceUrl,
-        catalystSource: primaryCat ? primaryCat.sourceName : m.sourceLabel,
-        verifiedSourceUrl: m.sourceUrl,
-        roi: evaluateHighRoi(m, m.currentPrice, delta, m.orderbook),
-        simulated: false,
-        verifiedSwing: false
-      };
-      this.allAlerts.unshift(alert);
-      if (alert.roi.qualified) {
-        this.highRoiAlerts.unshift(alert);
-      }
     });
   }
 
@@ -724,7 +549,7 @@ export class TradebotEngine {
         roiPct: 0,
         category,
         strategyId,
-        mode: this.client.lastStatus.connected ? 'Kalshi Demo REST' : 'Paper Demo',
+        mode: 'Paper Demo Simulation',
         note: note || `${action} ${qty} ${side} @ $${execPrice.toFixed(2)}`
       };
       this.portfolio.trades.unshift(trade);

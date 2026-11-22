@@ -2,9 +2,11 @@
 
 > **Repository:** `kanlerxz87-cyber/Tradebot3`
 > **Live Site (GitHub Pages):** https://kanlerxz87-cyber.github.io/Tradebot3/
-> **Active Session ID:** `arena-59730b38` (Session 2 refresh; priors: `arena-3716ae8d` merged via PR #1, `arena-a8cfdaeb` merged via PR #2/#3)
-> **Working Branch:** `arena/59730b38-tradebot3` (Arena fixed session branch; branched from `main` at `08ad596f66ebccb189754df5fa6dadac6365989c`, rebased onto `991a8eb`)
+> **Active Session ID:** `arena-1a3afb37` (integrating the broader simulator/runtime audit; prior sample and Session 2 refreshes are documented below)
+> **Working Branch:** `arena/1a3afb37-tradebot3` (Arena-fixed; branched from `main` at `08ad596f66ebccb189754df5fa6dadac6365989c`, rebased onto current main)
 > **Last Updated:** 2026-11-22 (UTC)
+>
+> This checkout contains prior T-01–T-06 sample-audit and Session 2 API/data refresh work on `main`. T-07 is a separate simulator/runtime-integrity follow-up on the current branch above.
 
 ---
 
@@ -22,10 +24,10 @@
 ---
 
 ## Coordination Protocol Notes
-- All tasks were claimed prior to editing and pushed immediately on `arena/3716ae8d-tradebot3`.
-- Because Arena binds this session to `arena/3716ae8d-tradebot3`, all commits, pushes, and the pull request to `main` are performed on `arena/3716ae8d-tradebot3` without creating or switching branches.
-- Items marked `needs review` are published transparently on [`flagged-for-review.html`](flagged-for-review.html) with official source links and do not block integration or deployment.
-- Every table row across the site links to an official verified source. Any value that could not be confirmed statically is left blank and flagged `Unverified`.
+- T-01–T-06 and PR #1–#3 are historical, completed work from the earlier sessions/branches described below.
+- Current work is on Arena-fixed branch `arena/1a3afb37-tradebot3`; this session is T-07, claimed and pushed before code changes.
+- Items marked `needs review` are published on [`flagged-for-review.html`](flagged-for-review.html) with source links and do not block the build.
+- Automated checks verify source-link presence and expected hostnames; they do not validate the numeric contents of every linked market page. See IRREG-14 and the subsequent Session 2 refresh record.
 
 ---
 
@@ -39,6 +41,7 @@
 | T-04 | GitHub Pages site: Landing Dashboard, 5 Separate Category Subpages, Portfolio/Strategy Lab, API Verification/Suggestions, and Flagged for Review page | `done` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `.nojekyll`, `index.html`, `portfolio.html`, `verification.html`, `flagged-for-review.html`, `categories/*.html`, `assets/css/styles.css`, `assets/js/dashboard.js`, `assets/js/category-page.js`, `assets/js/portfolio-page.js`, `assets/js/verification-page.js` |
 | T-05 | Automated verification script, link integrity check, live HTTP server testing, PR creation, merge to `main`, and GitHub Pages deploy confirmation | `done` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `scripts/verify_site.py`, `COORDINATION.md` |
 | T-06 | Re-verify stored Kalshi values against official kalshi.com pages (sample of 6 markets); relabel unverified swing alerts as Unverified; publish mismatches on Flagged for Review | `done` (sample only) | `arena-a8cfdaeb` | `arena/a8cfdaeb-tradebot3` | `assets/js/ui-common.js`, `assets/js/engine.js`, `flagged-for-review.html`, `COORDINATION.md` |
+| T-07 | Broader simulator/runtime integrity audit: remove fabricated alerts/trades and disclose static/synthetic data | `done` | `arena-1a3afb37` | `arena/1a3afb37-tradebot3` | `COORDINATION.md`, `README.md`, `EXECUTIVE_SUMMARY.md`, `index.html`, `portfolio.html`, `flagged-for-review.html`, `assets/js/data.js`, `assets/js/engine.js`, `assets/js/ui-common.js`, `assets/js/dashboard.js`, `assets/js/category-page.js`, `assets/js/portfolio-page.js`, `categories/*.html`, `scripts/verify_site.py` |
 | R-01 | Flagged Irregularities IRREG-01 through IRREG-08 & unverified static fields (published on `flagged-for-review.html`) | `needs review` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `flagged-for-review.html`, `assets/js/data.js` |
 
 ---
@@ -196,3 +199,21 @@
 - **PR URL:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/6
 - **Merge Method:** `gh pr merge 6 --merge` (merged into `main` on 2026-11-22T07:29:19Z as `24fe002` after passing `scripts/verify_site.py` with 0 broken links); flagged items (R-01 + static IRREG-09..13 + IRREG-14, `needs review`) do not block merge and remain published on `flagged-for-review.html`.
 - **GitHub Pages Live URL:** https://kanlerxz87-cyber.github.io/Tradebot3/ (deploy success confirmed via `pages/builds/latest` status `built`; record-keeping follow-up PR #7 merged after)
+
+
+---
+
+## Current Session Follow-up — T-07 (2026-11-22 UTC)
+
+- **Owner/branch:** `arena-1a3afb37` / `arena/1a3afb37-tradebot3`, rebased onto current main. Initial claim was pushed before implementation; T-06 is the prior session's 6-market sample audit.
+- **Coordination:** T-07 is a broader UI/runtime integrity follow-up; prior Sessions 1/2 data and deployment logs were preserved.
+- **Changes:** Removed seeded alerts, synthetic historical catalyst markers, sample trades, and sample equity history. New/cleared browser state starts at $10,000 with no positions/trades; storage key v2 avoids old sample data. Generated ticks/fills remain explicitly paper simulation even when REST connectivity succeeds. UI and docs disclose static catalog values, synthetic chart/depth/ticks, illustrative ROI, and no connected live WS/order execution. Added IRREG-16/17; prior IRREG-14 market refresh remains.
+- **Official sources checked:** https://docs.kalshi.com/getting_started/demo_env and https://docs.kalshi.com/getting_started/quick_start_websockets. Session 2's 8-page live re-check and API docs verification remain recorded above.
+- **Verification:** `python3 scripts/verify_site.py` passes (23 required files, 35 internal links/0 broken, DOM IDs, strict 5-topic isolation, source-host checks, orderbook math, no fabricated startup alerts/trades, clean $10,000 baseline, paper-only execution, resolution and strategy tests). JS syntax, Python compile, `git diff --check` pass; local HTTP smoke test returned 200 on 14 routes.
+- **PR/deploy:** PR #4 https://github.com/kanlerxz87-cyber/Tradebot3/pull/4, merge and final deploy confirmation pending.
+
+
+## Parallel Session Integration Note (2026-11-22 UTC)
+
+- At the time T-07 was rebased, PR #5 (`arena/dcead908-tradebot3`) and PR #7 (`arena/83838475-tradebot3`) were open and both edited `assets/js/data.js`; PR #7 also edited `index.html`, `assets/js/dashboard.js`, and `flagged-for-review.html`. T-07 overlaps those files because it corrects simulated/live labeling and appends IRREG-16/17.
+- Integration requirement: preserve the T-07 paper-simulation disclosures and clean portfolio baseline when resolving either open PR; PR #7's IRREG-14/15 are distinct, so T-07's flags use 16/17. This session has not edited or pushed to another session's branch.
