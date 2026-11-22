@@ -2,17 +2,19 @@
 
 > **Repository:** `kanlerxz87-cyber/Tradebot3`
 > **Live Site (GitHub Pages):** https://kanlerxz87-cyber.github.io/Tradebot3/
-> **Active Session ID:** `arena-a8cfdaeb` (prior session: `arena-3716ae8d`, merged via PR #1)
-> **Working Branch:** `arena/3716ae8d-tradebot3` (Arena fixed session branch; branched from `main` at `62713af9e466cd393c61be0df37e5de0872919cc`)
+> **Active Session ID:** `arena-9217e2cb` (re-audit session; inherited work includes PR #1 and PRs #2–#3 merged to `main`)
+> **Working Branch:** `arena/9217e2cb-tradebot3` (Arena-fixed session branch; branched from `main` at `08ad596f66ebccb189754df5fa6dadac6365989c`)
 > **Last Updated:** 2026-11-22 (UTC)
 
 ---
 
 ## Coordination Protocol Notes
-- All tasks were claimed prior to editing and pushed immediately on `arena/3716ae8d-tradebot3`.
-- Because Arena binds this session to `arena/3716ae8d-tradebot3`, all commits, pushes, and the pull request to `main` are performed on `arena/3716ae8d-tradebot3` without creating or switching branches.
+- T-01 through T-06 and R-01 below are inherited historical records from earlier sessions; T-06 was explicitly a six-market sample audit, not a full re-verification.
+- Arena binds this session to `arena/9217e2cb-tradebot3`; all new work stays on this branch. No other branch or worktree is created.
+- Current session claim: T-07 (in progress), independently audit inherited claims against current official Kalshi Demo API/docs, remove stale or unsupported market/trading claims, add honest live Demo REST monitoring where supported, and re-verify outputs. Scope: `COORDINATION.md`, `README.md`, `EXECUTIVE_SUMMARY.md`, `index.html`, `portfolio.html`, `verification.html`, `flagged-for-review.html`, `categories/*.html`, `assets/js/data.js`, `assets/js/kalshi-client.js`, `assets/js/engine.js`, `assets/js/dashboard.js`, `assets/js/category-page.js`, `assets/js/portfolio-page.js`, `assets/js/ui-common.js`, and `scripts/verify_site.py`.
 - Items marked `needs review` are published transparently on [`flagged-for-review.html`](flagged-for-review.html) with official source links and do not block integration or deployment.
-- Every table row across the site links to an official verified source. Any value that could not be confirmed statically is left blank and flagged `Unverified`.
+- A source URL on a row proves only that the linked primary source exists; it does not by itself verify a static value. Live market values must come from the linked API response or remain blank and flagged as `Unverified`.
+- Rebase note (2026-11-22): `origin/main` advanced from base `08ad596` to `991a8eb` while T-07 was being claimed. The initial COORDINATION.md conflict was resolved by preserving the merged PR #2/#3 records and adding this session as a separate T-07; no prior session work was discarded.
 
 ---
 
@@ -26,6 +28,7 @@
 | T-04 | GitHub Pages site: Landing Dashboard, 5 Separate Category Subpages, Portfolio/Strategy Lab, API Verification/Suggestions, and Flagged for Review page | `done` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `.nojekyll`, `index.html`, `portfolio.html`, `verification.html`, `flagged-for-review.html`, `categories/*.html`, `assets/css/styles.css`, `assets/js/dashboard.js`, `assets/js/category-page.js`, `assets/js/portfolio-page.js`, `assets/js/verification-page.js` |
 | T-05 | Automated verification script, link integrity check, live HTTP server testing, PR creation, merge to `main`, and GitHub Pages deploy confirmation | `done` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `scripts/verify_site.py`, `COORDINATION.md` |
 | T-06 | Re-verify stored Kalshi values against official kalshi.com pages (sample of 6 markets); relabel unverified swing alerts as Unverified; publish mismatches on Flagged for Review | `done` (sample only) | `arena-a8cfdaeb` | `arena/a8cfdaeb-tradebot3` | `assets/js/ui-common.js`, `assets/js/engine.js`, `flagged-for-review.html`, `COORDINATION.md` |
+| T-07 | Independent audit of inherited claims; replace static market assertions with live official Demo API data where possible; correct paper-trading labels, tests, sources, and documentation | `in progress` | `arena-9217e2cb` | `arena/9217e2cb-tradebot3` | `COORDINATION.md`, `README.md`, `EXECUTIVE_SUMMARY.md`, `index.html`, `portfolio.html`, `verification.html`, `flagged-for-review.html`, `categories/*.html`, `assets/js/data.js`, `assets/js/kalshi-client.js`, `assets/js/engine.js`, `assets/js/dashboard.js`, `assets/js/category-page.js`, `assets/js/portfolio-page.js`, `assets/js/ui-common.js`, `scripts/verify_site.py` |
 | R-01 | Flagged Irregularities IRREG-01 through IRREG-08 & unverified static fields (published on `flagged-for-review.html`) | `needs review` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `flagged-for-review.html`, `assets/js/data.js` |
 
 ---
