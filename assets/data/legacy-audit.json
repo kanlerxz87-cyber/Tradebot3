@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-22T07:36:59Z",
+  "generated_at": "2026-11-22T07:54:08Z",
   "api_base": "https://external-api.kalshi.com/trade-api/v2",
   "claims_checked": 29,
   "claims_found_in_api": 3,
@@ -14,14 +14,17 @@
       "claimed_price": 0.51,
       "claimed_url": "https://kalshi.com/markets/kxaaagasmax/us-highest-gas-price-yearly/kxaaagasmax-26dec31",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXAAAGASMAX-26DEC31: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXAAAGASMAX-26DEC31 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXAAAGASMAX-26DEC31: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXAAAGASMAX-26DEC31 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "How high will US gas prices get in 2026?"
     },
     {
       "ticker": "KXAAAGASMIN-26DEC31",
@@ -31,14 +34,17 @@
       "claimed_price": 0.55,
       "claimed_url": "https://kalshi.com/markets/kxaaagasmin/us-lowest-gas-price-yearly/kxaaagasmin-26dec31",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXAAAGASMIN-26DEC31: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXAAAGASMIN-26DEC31 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXAAAGASMIN-26DEC31: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXAAAGASMIN-26DEC31 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "How low will US gas prices get in 2026?"
     },
     {
       "ticker": "KXAAAGASMINCA-26DEC31-3.90",
@@ -48,6 +54,7 @@
       "claimed_price": 0.07,
       "claimed_url": "https://kalshi.com/markets/kxaaagasminca/california-lowest-gas-price-yearly",
       "api_found": true,
+      "api_event_found": false,
       "api_status": "active",
       "api_last_price": 0.02,
       "api_volume_contracts": 7646.53,
@@ -64,14 +71,17 @@
       "claimed_price": 0.34,
       "claimed_url": "https://kalshi.com/markets/kxaaagasmaxca/california-highest-gas-price-yearly/kxaaagasmaxca-26dec31",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXAAAGASMAXCA-26DEC31: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXAAAGASMAXCA-26DEC31 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXAAAGASMAXCA-26DEC31: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXAAAGASMAXCA-26DEC31 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "How high will gas prices in California get this year?"
     },
     {
       "ticker": "KXAAAGASCDNY-26NOV19",
@@ -81,14 +91,17 @@
       "claimed_price": 0.9,
       "claimed_url": "https://kalshi.com/markets/kxaaagascdny/new-york-gas-price/kxaaagascdny-26nov19",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXAAAGASCDNY-26NOV19: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXAAAGASCDNY-26NOV19 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXAAAGASCDNY-26NOV19: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXAAAGASCDNY-26NOV19 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "New York gas price today"
     },
     {
       "ticker": "KXPRESNOMD-28",
@@ -98,14 +111,17 @@
       "claimed_price": 0.26,
       "claimed_url": "https://kalshi.com/markets/kxpresnomd/democratic-primary-winner/kxpresnomd-28",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXPRESNOMD-28: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPRESNOMD-28 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXPRESNOMD-28: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPRESNOMD-28 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "2028 Democratic presidential nominee"
     },
     {
       "ticker": "CONTROLS-2026",
@@ -115,14 +131,17 @@
       "claimed_price": 0.97,
       "claimed_url": "https://kalshi.com/markets/controls/senate-winner/controls-2026",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/CONTROLS-2026: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/CONTROLS-2026 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/CONTROLS-2026: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/CONTROLS-2026 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "Who will control the Senate?"
     },
     {
       "ticker": "KXPRESPERSON-28",
@@ -132,14 +151,17 @@
       "claimed_price": 0.18,
       "claimed_url": "https://kalshi.com/markets/kxpresperson/pres-person/kxpresperson-28",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXPRESPERSON-28: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPRESPERSON-28 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXPRESPERSON-28: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPRESPERSON-28 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "2028 U.S. Presidential Election winner?"
     },
     {
       "ticker": "CONTROLS-2028",
@@ -149,14 +171,17 @@
       "claimed_price": 0.89,
       "claimed_url": "https://kalshi.com/markets/controls/senate-winner/controls-2028",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/CONTROLS-2028: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/CONTROLS-2028 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/CONTROLS-2028: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/CONTROLS-2028 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "2028 U.S. Senate winner?"
     },
     {
       "ticker": "KXPRESPARTY-2028",
@@ -166,14 +191,17 @@
       "claimed_price": 0.67,
       "claimed_url": "https://kalshi.com/markets/kxpresparty/party-winning-presidency/kxpresparty-2028",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXPRESPARTY-2028: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPRESPARTY-2028 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXPRESPARTY-2028: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPRESPARTY-2028 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "2028 Presidential Election winner? (Party)"
     },
     {
       "ticker": "POWER-28",
@@ -183,14 +211,17 @@
       "claimed_price": 0.63,
       "claimed_url": "https://kalshi.com/markets/power/party-power/power-28",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/POWER-28: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/POWER-28 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/POWER-28: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/POWER-28 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "2028: Who will win the Presidency, House, and Senate?"
     },
     {
       "ticker": "KXOSCARACTO-26",
@@ -200,14 +231,17 @@
       "claimed_price": 1,
       "claimed_url": "https://kalshi.com/markets/kxoscaracto/oscar-for-best-actor/kxoscaracto-26",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXOSCARACTO-26: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXOSCARACTO-26 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXOSCARACTO-26: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXOSCARACTO-26 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "Oscar for Best Actor?"
     },
     {
       "ticker": "KXRT-ODY",
@@ -217,14 +251,17 @@
       "claimed_price": 1,
       "claimed_url": "https://kalshi.com/markets/kxrt/rotten-tomatoes-scores/kxrt-ody",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXRT-ODY: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXRT-ODY {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXRT-ODY: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXRT-ODY {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "The Odyssey: Rotten Tomatoes score"
     },
     {
       "ticker": "KXOSCARACTR-26",
@@ -234,14 +271,17 @@
       "claimed_price": 1,
       "claimed_url": "https://kalshi.com/markets/kxoscaractr/oscar-for-best-actress/kxoscaractr-26",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXOSCARACTR-26: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXOSCARACTR-26 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXOSCARACTR-26: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXOSCARACTR-26 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "Oscar for Best Actress?"
     },
     {
       "ticker": "KXGAMEAWARDS-2026",
@@ -251,14 +291,17 @@
       "claimed_price": 0.91,
       "claimed_url": "https://kalshi.com/markets/kxgameawards/game-awards/kxgameawards-2026",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXGAMEAWARDS-2026: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXGAMEAWARDS-2026 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXGAMEAWARDS-2026: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXGAMEAWARDS-2026 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "The Game Awards: Game of the Year"
     },
     {
       "ticker": "KXOSCARDOCU-26",
@@ -268,14 +311,17 @@
       "claimed_price": 1,
       "claimed_url": "https://kalshi.com/markets/kxoscardocu/oscar-for-best-documentary-feature/kxoscardocu-26",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXOSCARDOCU-26: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXOSCARDOCU-26 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXOSCARDOCU-26: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXOSCARDOCU-26 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "2026 Oscar for Best Documentary Feature Film?"
     },
     {
       "ticker": "KXRT-BRI",
@@ -285,14 +331,17 @@
       "claimed_price": 1,
       "claimed_url": "https://kalshi.com/markets/kxrt/rotten-tomatoes-scores/kxrt-bri",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXRT-BRI: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXRT-BRI {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXRT-BRI: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXRT-BRI {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "\"The Bride!\" Rotten Tomatoes score?"
     },
     {
       "ticker": "KXETHMINY-27JAN01",
@@ -302,14 +351,17 @@
       "claimed_price": 0.42,
       "claimed_url": "https://kalshi.com/markets/kxethminy/how-low-will-ethereum-fall-this-year/kxethminy-27jan01",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXETHMINY-27JAN01: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXETHMINY-27JAN01 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXETHMINY-27JAN01: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXETHMINY-27JAN01 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "How low will Ethereum get in 2026?"
     },
     {
       "ticker": "KXSOLD26-27JAN0100",
@@ -319,14 +371,17 @@
       "claimed_price": 0.89,
       "claimed_url": "https://kalshi.com/markets/kxsold26/sol-price-end-of-2026/kxsold26-27jan0100",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXSOLD26-27JAN0100: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXSOLD26-27JAN0100 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXSOLD26-27JAN0100: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXSOLD26-27JAN0100 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "Price of Solana by end of 2026?"
     },
     {
       "ticker": "KXBTCY-27JAN0100",
@@ -336,14 +391,17 @@
       "claimed_price": 0.19,
       "claimed_url": "https://kalshi.com/markets/kxbtcy/btc-price-range-eoy/kxbtcy-27jan0100",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXBTCY-27JAN0100: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXBTCY-27JAN0100 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXBTCY-27JAN0100: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXBTCY-27JAN0100 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "Bitcoin price at the end of 2026"
     },
     {
       "ticker": "KXBTCMINY-27JAN01",
@@ -353,14 +411,17 @@
       "claimed_price": 0.58,
       "claimed_url": "https://kalshi.com/markets/kxbtcminy/how-low-will-bitcoin-fall-this-year/kxbtcminy-27jan01",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXBTCMINY-27JAN01: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXBTCMINY-27JAN01 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXBTCMINY-27JAN01: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXBTCMINY-27JAN01 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "How low will Bitcoin get in 2026?"
     },
     {
       "ticker": "KXBTC50VS100-BTC-26DEC31",
@@ -370,9 +431,10 @@
       "claimed_price": 0.18,
       "claimed_url": "https://kalshi.com/markets/kxbtc50vs100/will-btc-fall-below-50k-before-hitting-100k/kxbtc50vs100-btc-26dec31",
       "api_found": true,
+      "api_event_found": false,
       "api_status": "active",
       "api_last_price": 0.41,
-      "api_volume_contracts": 9285292.08,
+      "api_volume_contracts": 9286010.27,
       "api_result": null,
       "url_http_status": 429,
       "notes": [],
@@ -386,14 +448,17 @@
       "claimed_price": 0,
       "claimed_url": "https://kalshi.com/markets/kxbtcmaxmon/bitcoin-monthly-one-touch/kxbtcmaxmon-btc-26mar31",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXBTCMAXMON-BTC-26MAR31: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXBTCMAXMON-BTC-26MAR31 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXBTCMAXMON-BTC-26MAR31: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXBTCMAXMON-BTC-26MAR31 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "How high will Bitcoin get in March?"
     },
     {
       "ticker": "KXPGATOUR-MAST26",
@@ -403,14 +468,17 @@
       "claimed_price": 1,
       "claimed_url": "https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-mast26",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXPGATOUR-MAST26: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPGATOUR-MAST26 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXPGATOUR-MAST26: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPGATOUR-MAST26 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "The Masters Champion"
     },
     {
       "ticker": "KXPGATOUR-PGC26-ARAI",
@@ -420,6 +488,7 @@
       "claimed_price": 1,
       "claimed_url": "https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-pgc26",
       "api_found": false,
+      "api_event_found": false,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
@@ -437,9 +506,10 @@
       "claimed_price": 0.13,
       "claimed_url": "https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-thrc26",
       "api_found": true,
+      "api_event_found": false,
       "api_status": "active",
-      "api_last_price": 0.17,
-      "api_volume_contracts": 1211262.25,
+      "api_last_price": 0.16,
+      "api_volume_contracts": 1214623.76,
       "api_result": null,
       "url_http_status": 429,
       "notes": [],
@@ -453,14 +523,17 @@
       "claimed_price": 0.16,
       "claimed_url": "https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-mast27",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXPGATOUR-MAST27: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPGATOUR-MAST27 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXPGATOUR-MAST27: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPGATOUR-MAST27 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "2027 The Masters Champion"
     },
     {
       "ticker": "KXPGATOUR-USO26",
@@ -470,14 +543,17 @@
       "claimed_price": 1,
       "claimed_url": "https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-uso26",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXPGATOUR-USO26: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPGATOUR-USO26 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXPGATOUR-USO26: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPGATOUR-USO26 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "U.S. Open Winner"
     },
     {
       "ticker": "KXPGAMASTERS-26",
@@ -487,14 +563,17 @@
       "claimed_price": 0,
       "claimed_url": "https://kalshi.com/markets/kxpgamasters/golfers-to-participate-in-the-masters/kxpgamasters-26",
       "api_found": false,
+      "api_event_found": true,
       "api_status": null,
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXPGAMASTERS-26: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPGAMASTERS-26 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
-      ]
+        "GET /markets/KXPGAMASTERS-26: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPGAMASTERS-26 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+      ],
+      "api_event_title": "Golfers to compete in The Masters in 2026"
     }
   ]
 }
