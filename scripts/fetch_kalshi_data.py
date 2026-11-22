@@ -132,13 +132,16 @@ TOPIC_REFERENCE_LINKS = {
         ("U.S. EIA Weekly Petroleum Status Report", "https://www.eia.gov/petroleum/supply/weekly/"),
     ],
     "elections": [
-        ("The Associated Press — Elections hub", "https://apnews.com/hub/elections"),
-        ("Kalshi — Elections category", "https://kalshi.com/category/elections"),
+        ("Federal Election Commission", "https://www.fec.gov/"),
+        ("U.S. Senate — official site", "https://www.senate.gov/"),
+        ("U.S. House of Representatives — Clerk (election results)", "https://clerk.house.gov/"),
+        ("National Association of Secretaries of State — elections", "https://www.nass.org/"),
     ],
     "culture": [
         ("Academy of Motion Picture Arts and Sciences", "https://www.oscars.org/"),
         ("Rotten Tomatoes", "https://www.rottentomatoes.com/"),
-        ("The Game Awards", "https://thegameawards.com/"),
+        ("The Recording Academy (GRAMMYs)", "https://www.grammy.com/"),
+        ("Box Office Mojo", "https://www.boxofficemojo.com/"),
     ],
     "crypto": [
         ("Coinbase — Bitcoin price page", "https://www.coinbase.com/price/bitcoin"),
@@ -146,7 +149,8 @@ TOPIC_REFERENCE_LINKS = {
     ],
     "golf": [
         ("PGA TOUR — Leaderboard", "https://www.pgatour.com/leaderboard"),
-        ("Masters Tournament — Official site", "https://www.masters.com/"),
+        ("LPGA — official site", "https://www.lpga.com/"),
+        ("The R&A — official site", "https://www.randa.org/"),
     ],
 }
 
@@ -154,6 +158,8 @@ TOPIC_REFERENCE_LINKS = {
 MAX_MARKETS_PER_TOPIC = 40
 MAX_EVENTS_PER_TOPIC = 8
 CANDLE_MARKETS_PER_TOPIC = 4
+CANDLE_LOOKBACK_HOURS = 24      # detection window (1-minute candles)
+CANDLE_PUBLISH_HOURS = 6        # bars shipped to the browser
 MAX_ALERTS = 120
 SETTLED_LOOKBACK_DAYS = 21
 
@@ -570,7 +576,8 @@ def to_series(candles, field_side="yes_bid"):
 def fetch_candles(markets, warnings):
     now = int(time.time())
     by_topic_count = {t: 0 for t in TOPIC_ORDER}
-    for m in markets:
+    ranked = sorted(markets, key=lambda m: (m.get("volume_24h") or 0, m.get("volume") or 0), reverse=True)
+    for m in ranked:
         if m["status"] != "active":
             continue
         topic = m["topic"]
@@ -581,7 +588,7 @@ def fetch_candles(markets, warnings):
         try:
             m1 = http_json(
                 f"{PROD_BASE}/series/{urllib.parse.quote(series)}/markets/{urllib.parse.quote(ticker)}"
-                f"/candlesticks?start_ts={now - 2 * 3600}&end_ts={now}&period_interval=1"
+                f"/candlesticks?start_ts={now - CANDLE_LOOKBACK_HOURS * 3600}&end_ts={now}&period_interval=1"
             )
             h1 = http_json(
                 f"{PROD_BASE}/series/{urllib.parse.quote(series)}/markets/{urllib.parse.quote(ticker)}"
@@ -590,10 +597,12 @@ def fetch_candles(markets, warnings):
         except ApiError as exc:
             warnings.append(f"Candlesticks failed for {ticker}: {exc}")
             continue
+        publish_cutoff = now - CANDLE_PUBLISH_HOURS * 3600
         m["candles"] = {
-            "window_m1_start_ts": now - 2 * 3600,
+            "window_m1_start_ts": now - CANDLE_LOOKBACK_HOURS * 3600,
+            "publish_m1_start_ts": publish_cutoff,
             "window_h1_start_ts": now - 3 * 86400,
-            "m1": to_series(m1.get("candlesticks") or []),
+            "m1": [row for row in to_series(m1.get("candlesticks") or []) if (row[0] or 0) >= publish_cutoff],
             "h1": to_series(h1.get("candlesticks") or []),
             "periods": "period_interval=1 (1 minute) and period_interval=60 (1 hour)",
             "source_url": f"{PROD_BASE}/series/{series}/markets/{ticker}/candlesticks",
@@ -620,6 +629,7 @@ def detect_swings(markets, events_by_ticker):
                     continue
                 if prev is not None:
                     delta = round(mark - prev[1], 4)
+                    gap_min = max(0, round((ts - prev[0]) / 60)) if ts and prev[0] else 0
                     if abs(delta) + 1e-9 >= SWING_THRESHOLD:
                         ev = events_by_ticker.get(m["event_ticker"], {})
                         alerts.append({
@@ -635,7 +645,8 @@ def detect_swings(markets, events_by_ticker):
                             "to_price": mark,
                             "delta": delta,
                             "direction": "up" if delta > 0 else "down",
-                            "interval": label,
+                            "interval": f"{label} close-to-close" + (f" (gap {gap_min}m)" if gap_min > 2 * step // 60 else ""),
+                            "gap_minutes": gap_min,
                             "volume_contracts_in_bar": vol,
                             "kalshi_url": m["kalshi_url"],
                             "candles_url": candles["source_url"],
@@ -675,7 +686,7 @@ def check_reference_links(warnings):
     return out
 
 
-def build_resolutions(settled_by_topic, events_by_ticker, limit_per_topic=12):
+def build_resolutions(settled_by_topic, events_by_ticker, limit_per_topic=12, warnings=None):
     rows = []
     for topic in TOPIC_ORDER:
         bucket = settled_by_topic.get(topic, [])
@@ -685,6 +696,15 @@ def build_resolutions(settled_by_topic, events_by_ticker, limit_per_topic=12):
         items.sort(key=lambda m: m.get("close_time") or "", reverse=True)
         for m in items[:limit_per_topic]:
             ev = events_by_ticker.get(m["event_ticker"], {})
+            if not ev and warnings is not None:
+                try:
+                    data = http_json(f"{PROD_BASE}/events/{urllib.parse.quote(m['event_ticker'])}?with_nested_markets=false")
+                    event = data.get("event") or {}
+                    ev = {"title": event.get("title")}
+                    events_by_ticker[m["event_ticker"]] = ev
+                except ApiError as exc:
+                    warnings.append(f"Settled event metadata failed for {m['event_ticker']}: {exc}")
+                    ev = {}
             rows.append({
                 "ticker": m["ticker"],
                 "event_ticker": m["event_ticker"],
@@ -745,6 +765,7 @@ def audit_legacy(warnings):
             "claimed_price": claim.get("price"),
             "claimed_url": claim.get("url"),
             "api_found": False,
+            "api_event_found": False,
             "api_status": None,
             "api_last_price": None,
             "api_volume_contracts": None,
@@ -767,6 +788,19 @@ def audit_legacy(warnings):
             row["resolved_ticker"] = market.get("ticker")
         except ApiError as exc:
             row["notes"].append(f"GET /markets/{ticker}: {exc}")
+            # The claim may be an *event* ticker rather than a market ticker.
+            try:
+                ev = http_json(f"{PROD_BASE}/events/{urllib.parse.quote(ticker)}?with_nested_markets=false")
+                event = ev.get("event") or {}
+                if event:
+                    row["api_event_found"] = True
+                    row["api_event_title"] = event.get("title")
+                    row["notes"].append(
+                        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume "
+                        "therefore cannot be a market-level value."
+                    )
+            except ApiError:
+                row["api_event_found"] = False
         if claim.get("url"):
             status, note = http_status(claim["url"], timeout=15)
             row["url_http_status"] = status
@@ -856,7 +890,7 @@ def main():
     fetch_orderbooks(markets, warnings)
     fetch_candles(markets, warnings)
     alerts = detect_swings(markets, events_by_ticker)
-    resolutions = build_resolutions(by_topic, events_by_ticker)
+    resolutions = build_resolutions(by_topic, events_by_ticker, warnings=warnings)
     reference_links = check_reference_links(warnings)
 
     demo_rows = demo_spot_check(markets, warnings) if args.demo_check else []
@@ -946,6 +980,11 @@ def main():
     for topic in TOPIC_ORDER:
         print(f"  {topic:11s} markets={topics_meta[topic]['market_count']:3d} events={topics_meta[topic]['event_count']:3d}")
     if warnings:
+        seen_w = []
+        for w in warnings:
+            if w not in seen_w:
+                seen_w.append(w)
+        warnings[:] = seen_w
         print(f"Warnings ({len(warnings)}):")
         for w in warnings[:15]:
             print("  -", w)

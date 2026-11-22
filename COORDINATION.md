@@ -1,119 +1,99 @@
-# COORDINATION.md — Shared Task Board & Verification Log
+# COORDINATION.md — shared task board & verification log
 
 > **Repository:** `kanlerxz87-cyber/Tradebot3`
-> **Live Site (GitHub Pages):** https://kanlerxz87-cyber.github.io/Tradebot3/
-> **Active Session ID:** `arena-3716ae8d`
-> **Working Branch:** `arena/3716ae8d-tradebot3` (Arena fixed session branch; branched from `main` at `62713af9e466cd393c61be0df37e5de0872919cc`)
-> **Last Updated:** 2026-11-22 (UTC)
+> **Live site (GitHub Pages):** https://kanlerxz87-cyber.github.io/Tradebot3/
+> **Active session ID:** `arena-cd42444b`
+> **Working branch:** `arena/cd42444b-tradebot3` (Arena session branch, branched from `08ad596` on `main`)
+> **Last updated:** 2026-11-22 (UTC)
 
----
+## Protocol notes
 
-## Coordination Protocol Notes
-- All tasks were claimed prior to editing and pushed immediately on `arena/3716ae8d-tradebot3`.
-- Because Arena binds this session to `arena/3716ae8d-tradebot3`, all commits, pushes, and the pull request to `main` are performed on `arena/3716ae8d-tradebot3` without creating or switching branches.
-- Items marked `needs review` are published transparently on [`flagged-for-review.html`](flagged-for-review.html) with official source links and do not block integration or deployment.
-- Every table row across the site links to an official verified source. Any value that could not be confirmed statically is left blank and flagged `Unverified`.
+- Arena binds this session to `arena/cd42444b-tradebot3`, so every commit, push and the pull request are made on that
+  branch. No other branch is created or pushed.
+- Tasks were claimed here before files were edited, and the claim was pushed immediately.
+- This session found no other live claim in this file when it started (the board only described the previous session,
+  `arena-3716ae8d`, whose work was already merged into `main` as PR #1). All items below are therefore owned by
+  `arena-cd42444b` and their file scopes do not overlap that earlier work, which is preserved in `archive/`.
+- `needs review` items are published on [`flagged-for-review.html`](flagged-for-review.html) with source links and do
+  not block integration or deployment.
+- Every published market row carries an official Kalshi URL plus its raw API URL. Values that could not be confirmed
+  are blank and listed as unverified.
 
----
+## Task board
 
-## Task Board
-
-| Task ID | Task Description | Status | Owning Session | Branch | File Scope |
+| Task | Description | Status | Owner | Branch | File scope |
 | --- | --- | --- | --- | --- | --- |
-| T-01 | Repository audit & official Kalshi Demo API verification (REST, WebSocket, Auth, Orderbook, Candlesticks, Rate Limits) | `done` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `COORDINATION.md`, `EXECUTIVE_SUMMARY.md`, `README.md` |
-| T-02 | Verified 5-topic Kalshi market dataset (Gas Prices, Elections, Culture, Crypto, Golf ONLY) & flagged irregularities catalog | `done` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `assets/js/data.js` |
-| T-03 | Kalshi Demo API client (RSA-PSS signing + public REST + paper fallback), `>= $0.10` swing alert engine, dual chat feeds, lifecycle resolution tracker, automated strategy simulator & portfolio engine | `done` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `assets/js/kalshi-client.js`, `assets/js/engine.js`, `assets/js/charts.js`, `assets/js/ui-common.js` |
-| T-04 | GitHub Pages site: Landing Dashboard, 5 Separate Category Subpages, Portfolio/Strategy Lab, API Verification/Suggestions, and Flagged for Review page | `done` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `.nojekyll`, `index.html`, `portfolio.html`, `verification.html`, `flagged-for-review.html`, `categories/*.html`, `assets/css/styles.css`, `assets/js/dashboard.js`, `assets/js/category-page.js`, `assets/js/portfolio-page.js`, `assets/js/verification-page.js` |
-| T-05 | Automated verification script, link integrity check, live HTTP server testing, PR creation, merge to `main`, and GitHub Pages deploy confirmation | `done` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `scripts/verify_site.py`, `COORDINATION.md` |
-| R-01 | Flagged Irregularities IRREG-01 through IRREG-08 & unverified static fields (published on `flagged-for-review.html`) | `needs review` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `flagged-for-review.html`, `assets/js/data.js` |
+| T-01 | Repository audit of the previous build (29 claimed markets, model fields, news claims) | `done` | `arena-cd42444b` | `arena/cd42444b-tradebot3` | `scripts/legacy_claims.json`, `archive/legacy-dataset-2026-11-22.json`, `flagged-for-review.html` |
+| T-02 | Official Kalshi API verification (environments, auth, orderbook, candles, WebSockets, rate limits) | `done` | `arena-cd42444b` | `arena/cd42444b-tradebot3` | `verification.html`, `EXECUTIVE_SUMMARY.md`, `README.md` |
+| T-03 | Automated data pipeline: series discovery → markets → orderbooks → candles → alerts → settlements → legacy audit | `done` | `arena-cd42444b` | `arena/cd42444b-tradebot3` | `scripts/fetch_kalshi_data.py`, `.github/workflows/refresh-data.yml`, `assets/data/*` |
+| T-04 | Dashboard rebuild: five topic pages, dual ≥ $0.10 alert chats, chart with jump markers, liquidity ladder, resolution tracker | `done` | `arena-cd42444b` | `arena/cd42444b-tradebot3` | `index.html`, `categories/*.html`, `assets/js/{dashboard,category,market-data,chart,alerts,orderbook,core}.js`, `assets/css/styles.css` |
+| T-05 | Portfolio, trade categorisation, strategy lab, paper settlement, optional read-only demo connection | `done` | `arena-cd42444b` | `arena/cd42444b-tradebot3` | `portfolio.html`, `assets/js/{portfolio,paper,strategy}.js` |
+| T-06 | Verification: `scripts/verify_site.py` (links, imports, DOM ids, schema, source coverage, topic isolation) | `done` | `arena-cd42444b` | `arena/cd42444b-tradebot3` | `scripts/verify_site.py` |
+| R-01 | Flagged irregularities IRREG-01…12 and the 29-row legacy audit | `needs review` | `arena-cd42444b` | `arena/cd42444b-tradebot3` | `flagged-for-review.html`, `assets/data/legacy-audit.json` |
+| T-07 | PR to `main`, merge, confirm Pages deploy, record result | `in progress` | `arena-cd42444b` | `arena/cd42444b-tradebot3` | `COORDINATION.md` |
 
----
+## Official sources used
 
-## Verified Official Sources Log
+### Kalshi API documentation
+- API environments & endpoints: https://docs.kalshi.com/getting_started/api_environments
+- Demo environment: https://docs.kalshi.com/getting_started/demo_env
+- API keys / request signing: https://docs.kalshi.com/getting_started/api_keys
+- Orderbook responses: https://docs.kalshi.com/getting_started/orderbook_responses
+- WebSockets quick start: https://docs.kalshi.com/getting_started/quick_start_websockets
+- Rate limits: https://docs.kalshi.com/getting_started/rate_limits
+- Get market candlesticks: https://docs.kalshi.com/api-reference/market/get-market-candlesticks
+- Get markets: https://docs.kalshi.com/api-reference/market/get-markets
+- Create order V2 (not used, schema unverified here): https://docs.kalshi.com/api-reference/orders/create-order-v2
+- Historical data: https://docs.kalshi.com/getting_started/historical_data
 
-### Kalshi Official API Documentation
-- Demo Environment & Recommended vs. Also Supported URLs: https://docs.kalshi.com/getting_started/demo_env
-- API Environments & Endpoints (REST, WebSocket, User Fill WS): https://docs.kalshi.com/getting_started/api_environments
-- Orderbook Responses (`orderbook_fp`, reciprocal YES/NO bid pricing, empty/unknown HTTP 200 behavior): https://docs.kalshi.com/getting_started/orderbook_responses
-- Quick Start WebSockets (authenticated handshake headers & public/private channel list): https://docs.kalshi.com/getting_started/quick_start_websockets
-- WebSocket API Reference: https://docs.kalshi.com/websockets
-- Rate Limits & Tiers: https://docs.kalshi.com/getting_started/rate_limits
-- API Changelog (Demo Basic tier batch orders): https://docs.kalshi.com/changelog
-- OpenAPI Spec & Reference (Get Events, Get Markets, Get Balance, Create Order V2, Candlesticks): https://docs.kalshi.com/openapi.yaml
-- Create Order (V2): https://docs.kalshi.com/api-reference/orders/create-order-v2
-- Get Market Candlesticks (1m / 60m / 1440m valid intervals): https://docs.kalshi.com/api-reference/market/get-market-candlesticks
-- Get Historical Market: https://docs.kalshi.com/api-reference/historical/get-historical-market
+### Kalshi public API endpoints exercised (no credentials)
+- `GET https://external-api.kalshi.com/trade-api/v2/series?category=…`
+- `GET …/markets?series_ticker=…&status=open|settled`
+- `GET …/markets/{ticker}` and `…/markets?tickers=…`
+- `GET …/markets/{ticker}/orderbook?depth=10`
+- `GET …/series/{series}/markets/{ticker}/candlesticks?period_interval=1|60`
+- `GET …/events/{event_ticker}`
+- `GET https://external-api.demo.kalshi.co/trade-api/v2/markets/{ticker}` (demo spot check)
+- `GET https://external-api.demo.kalshi.co/trade-api/v2/exchange/status`
 
-### Kalshi Official Markets (Strict 5-Topic Scope) & Catalyst Sources
-- **Gas Prices:**
-  - https://kalshi.com/markets/kxaaagasmax/us-highest-gas-price-yearly/kxaaagasmax-26dec31
-  - https://kalshi.com/markets/kxaaagasmin/us-lowest-gas-price-yearly/kxaaagasmin-26dec31
-  - https://kalshi.com/markets/kxaaagasminca/california-lowest-gas-price-yearly
-  - https://kalshi.com/markets/kxaaagasmaxca/california-highest-gas-price-yearly/kxaaagasmaxca-26dec31
-  - https://kalshi.com/markets/kxaaagascdny/new-york-gas-price/kxaaagascdny-26nov19
-  - Catalysts: https://www.cnbc.com/2026/11/09/stock-market-today-live-updates.html · https://www.eia.gov/todayinenergy/detail.php?id=66964 · https://www.eia.gov/todayinenergy/detail.php?id=66784
-- **Elections:**
-  - https://kalshi.com/markets/kxpresnomd/democratic-primary-winner/kxpresnomd-28
-  - https://kalshi.com/markets/controls/senate-winner/controls-2026
-  - https://kalshi.com/markets/kxpresperson/pres-person/kxpresperson-28
-  - https://kalshi.com/markets/controls/senate-winner/controls-2028
-  - https://kalshi.com/markets/kxpresparty/party-winning-presidency/kxpresparty-2028
-  - https://kalshi.com/markets/power/party-power/power-28
-  - Catalyst: https://emersoncollegepolling.com/national-poll-rubio-leads-2028-gop-nomination-contest-ossoff-rises-among-democrats/
-- **Culture:**
-  - https://kalshi.com/markets/kxoscaracto/oscar-for-best-actor/kxoscaracto-26
-  - https://kalshi.com/markets/kxrt/rotten-tomatoes-scores/kxrt-ody
-  - https://kalshi.com/markets/kxoscaractr/oscar-for-best-actress/kxoscaractr-26
-  - https://kalshi.com/markets/kxgameawards/game-awards/kxgameawards-2026
-  - https://kalshi.com/markets/kxoscardocu/oscar-for-best-documentary-feature/kxoscardocu-26
-  - https://kalshi.com/markets/kxrt/rotten-tomatoes-scores/kxrt-bri
-  - Catalyst: https://wccftech.com/grand-theft-auto-vi-the-game-awards-2026-nominations-clair-obscur-record/
-- **Crypto:**
-  - https://kalshi.com/markets/kxethminy/how-low-will-ethereum-fall-this-year/kxethminy-27jan01
-  - https://kalshi.com/markets/kxsold26/sol-price-end-of-2026/kxsold26-27jan0100
-  - https://kalshi.com/markets/kxbtcy/btc-price-range-eoy/kxbtcy-27jan0100
-  - https://kalshi.com/markets/kxbtcminy/how-low-will-bitcoin-fall-this-year/kxbtcminy-27jan01
-  - https://kalshi.com/markets/kxbtc50vs100/will-btc-fall-below-50k-before-hitting-100k/kxbtc50vs100-btc-26dec31
-  - https://kalshi.com/markets/kxbtcmaxmon/bitcoin-monthly-one-touch/kxbtcmaxmon-btc-26mar31
-  - Catalysts: https://www.cnbc.com/2026/11/19/stock-market-today-live-updates.html · https://www.cnbc.com/amp/2026/11/20/bitcoin-price-gold-market-hedge.html
-- **Golf:**
-  - https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-mast26
-  - https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-pgc26
-  - https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-thrc26
-  - https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-mast27
-  - https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-uso26
-  - https://kalshi.com/markets/kxpgamasters/golfers-to-participate-in-the-masters/kxpgamasters-26
-  - Catalyst: https://www.pgatour.com/tournaments/2026/the-rsm-classic/R2026493/past-results
+## Verification performed
 
----
+- `python3 scripts/verify_site.py` (run before the pull request) checks: required files; internal links; ES-module
+  imports; DOM ids used by each page script; snapshot schema; five-topic isolation; official `https://*.kalshi.com|co`
+  source URLs on every market, event, alert and resolution; `|Δ| ≥ $0.10` on every alert; 29-row legacy audit; and that
+  no removed legacy module is referenced.
+- Node sanity harness executed the scoring, paper-account (buy → mark → close → settle) and backtest paths against
+  fixtures; spread is charged on exit (`buy` lifts the ask, `sell` hits the bid).
+- Data provenance: every market row records `api_url` and `field_source`; the snapshot records `generated_at`,
+  `api_base` and the metric definitions.
 
-## Verification Performed
-- `python3 scripts/verify_site.py`:
-  - Confirmed all 23 required repository and site files exist.
-  - Checked 35 internal HTML links across all 9 pages (`index.html`, `portfolio.html`, `verification.html`, `flagged-for-review.html`, and 5 `categories/*.html`) — **0 broken links**.
-  - Verified all JS `getElementById()` references match DOM IDs across all 9 HTML pages.
-  - Verified strict 5-topic isolation across all 29 Kalshi markets (`gas-prices`, `elections`, `culture`, `crypto`, `golf` ONLY).
-  - Verified 100% of table rows across `DEMO_API_ENDPOINTS` (15), `VERIFIED_MARKETS` (29), `FLAGGED_IRREGULARITIES` (8), `REPO_AUDIT_ITEMS` (6), and `INTERACTIVE_SUGGESTIONS` (6) carry valid `https://` official source URLs.
-  - Verified official Kalshi `orderbook_fp` reciprocal bid/ask math (`yes_dollars` best bid `$0.42` + `no_dollars` best bid `$0.56` => implied YES ask `$0.44`, spread `$0.02`).
-  - Verified live tick engine, `>= $0.10` dual-chat swing alerts, paper trade execution, YES/NO settlement payouts, trade category analytics, and custom strategy creation.
-- Live HTTP server verification (`python3 -m http.server 8080 --bind 0.0.0.0`): confirmed HTTP `200` on all 21 served routes (HTML, CSS, JS modules, Markdown docs) and `node --check assets/js/*.js` clean syntax check.
+## Flagged irregularities (full detail on `flagged-for-review.html`)
 
----
+- **IRREG-01 (High):** a browser cannot open an authenticated Kalshi WebSocket — the handshake needs
+  `KALSHI-ACCESS-*` headers a page cannot set. Streaming is 20-second REST polling and is labelled as such.
+- **IRREG-02 (Medium):** CORS for browser calls to Kalshi is undocumented and untestable from this environment; the
+  live badge reports the real browser state and the snapshot is the fallback.
+- **IRREG-03 (Medium):** demo and production are separate books; measured divergence is published in `demo_spot_check`.
+- **IRREG-04 (Medium):** the public API has contract volume, not dollar volume; the dollar column is an estimate.
+- **IRREG-05 (Medium):** candlesticks exist only at 1/60/1440-minute periods (5,000 periods per request); seconds
+  charts are browser ticks.
+- **IRREG-06 (Low):** unknown tickers return HTTP 200 with an empty orderbook, not 404.
+- **IRREG-07 (Low):** several demo hosts were named in the request; the `external-api` hosts are recommended and the
+  shared hosts remain supported.
+- **IRREG-08 (Medium):** topic membership requires judgement because Kalshi's own categories are broad; the exact
+  prefix/keyword rules are published in `snapshot.json`.
+- **IRREG-09 (High):** the previous build's `modelFairValue`, `observedSwing` and “verified resting liquidity” had no
+  official source. Removed.
+- **IRREG-10 (High):** most tickers in the previous 29-row catalogue do not resolve in the live API. The catalogue was
+  replaced with API-sourced markets; the old rows are published for review only.
+- **IRREG-11 (Medium):** previously, news links were asserted as the causes of specific moves. Removed; charts list
+  official topic sources as candidates without causal claims.
+- **IRREG-12 (Low):** fees are excluded from paper P&L, and demo order placement is not shipped because its request
+  schema could not be verified here.
 
-## Flagged Irregularities Log (Published on `flagged-for-review.html`, Status: `needs review`)
-- **IRREG-01 (High):** Browser `WebSocket` API cannot attach Kalshi's required handshake headers (`KALSHI-ACCESS-KEY`, `KALSHI-ACCESS-TIMESTAMP`, `KALSHI-ACCESS-SIGNATURE`); direct authenticated WS streaming requires a server/edge relay proxy.
-- **IRREG-02 (High):** Static GitHub Pages browser `fetch()` requests to Kalshi Demo API may encounter CORS blocks or require user-owned demo credentials; no keys are stored in git, and paper simulation mode is explicitly labeled.
-- **IRREG-03 (Medium):** Kalshi officially warns Demo environment prices and market behavior do not reflect production markets.
-- **IRREG-04 (Medium):** Kalshi REST candlestick API supports `1` (1m), `60` (1h), and `1440` (1d) intervals only; Seconds-level charting aggregates live stream/tick data client-side.
-- **IRREG-05 (Medium):** `GET /markets/{ticker}/orderbook` returns HTTP `200` with empty arrays even for unknown/invalid tickers (not `404`).
-- **IRREG-06 (Low):** Prompt listed both `external-api.demo.kalshi.co` (recommended dedicated host) and `demo-api.kalshi.co` (also supported legacy shared host); both verified and supported.
-- **IRREG-07 (Medium):** 8 markets with unexposed static dollar volumes, 1 post-Nov-19 NY gas settlement without confirmed official close banner, and dynamic live resting orderbook contract counts are left **blank** and tagged `Unverified` in verified catalog tables.
-- **IRREG-08 (Low):** Initial repo commit `62713af` contained only an 11-byte `README.md`.
+## Pull request & deployment record
 
----
-
-## Pull Request & Deployment Record
-- **Source Branch:** `arena/3716ae8d-tradebot3` -> `main`
-- **PR URL:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/1
-- **Merge Method:** `gh pr merge 1 --merge` (merged into `main` on 2026-11-22 UTC after passing `scripts/verify_site.py` with 0 broken links)
-- **GitHub Pages Live URL:** https://kanlerxz87-cyber.github.io/Tradebot3/
+- **Source branch:** `arena/cd42444b-tradebot3` → `main`
+- **PR:** _to be recorded after creation_
+- **Merge:** _to be recorded_
+- **Pages deploy:** _to be confirmed against https://kanlerxz87-cyber.github.io/Tradebot3/_

@@ -6,7 +6,7 @@ name: Kalshi data refresh
 
 on:
   schedule:
-    - cron: "*/20 * * * *"      # every 20 minutes (UTC)
+    - cron: "*/30 * * * *"      # every 30 minutes (UTC)
   workflow_dispatch:
   push:
     # Any branch, so the pipeline can be exercised before it is merged.
