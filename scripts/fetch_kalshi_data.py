@@ -27,6 +27,7 @@ Only the standard library is required (works on GitHub Actions ubuntu-latest).
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import json
 import os
 import re
@@ -377,6 +378,7 @@ def discover_series(warnings):
                 found[ticker] = {
                     "topic": topic,
                     "title": item.get("title"),
+                    "last_updated_ts": item.get("last_updated_ts"),
                     "rule": rule,
                     "category": item.get("category") or category,
                     "settlement_sources": [
@@ -390,29 +392,43 @@ def discover_series(warnings):
     return found
 
 
-def markets_for_series(series_map, status, warnings, max_series_per_topic=70):
-    """Fetch markets for the discovered series of each topic."""
-    per_topic = {t: 0 for t in TOPIC_ORDER}
-    out = []
-    for ticker in sorted(series_map):
-        meta = series_map[ticker]
-        topic = meta["topic"]
-        if per_topic[topic] >= max_series_per_topic:
-            continue
+def markets_for_series(series_map, status, warnings, max_series_per_topic=250):
+    """Fetch markets for the discovered series of each topic, concurrently.
+
+    Series are prioritised by Kalshi's own `last_updated_ts` so the most active
+    series are always covered when a topic has more series than the cap.
+    """
+    by_topic = {t: [] for t in TOPIC_ORDER}
+    for ticker, meta in series_map.items():
+        by_topic[meta["topic"]].append((ticker, meta))
+
+    jobs = []
+    for topic, items in by_topic.items():
+        items.sort(key=lambda kv: kv[1].get("last_updated_ts") or "", reverse=True)
+        for ticker, meta in items[:max_series_per_topic]:
+            jobs.append((ticker, meta))
+
+    def fetch_one(job):
+        ticker, meta = job
         url = f"{PROD_BASE}/markets?series_ticker={urllib.parse.quote(ticker)}&status={status}&limit=1000"
         try:
-            data = http_json(url)
+            data = http_json(url, retries=3)
         except ApiError as exc:
-            warnings.append(f"Markets failed for series {ticker} ({status}): {exc}")
-            continue
-        rows = data.get("markets") or []
-        if rows:
-            per_topic[topic] += 1
-        for row in rows:
-            row["series_ticker"] = ticker
-            row["_series_meta"] = meta
-            out.append(row)
-        time.sleep(0.08)
+            return ticker, meta, [], str(exc)
+        return ticker, meta, data.get("markets") or [], None
+
+    out = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as pool:
+        futures = [pool.submit(fetch_one, job) for job in jobs]
+        for fut in concurrent.futures.as_completed(futures):
+            ticker, meta, rows, error = fut.result()
+            if error:
+                warnings.append(f"Markets failed for series {ticker} ({status}): {error}")
+                continue
+            for row in rows:
+                row["series_ticker"] = ticker
+                row["_series_meta"] = meta
+                out.append(row)
     return out
 
 
@@ -714,6 +730,7 @@ def check_reference_links(warnings):
 
 def build_resolutions(settled_by_topic, events_by_ticker, limit_per_topic=12, warnings=None):
     rows = []
+    settled_event_titles = {}
     for topic in TOPIC_ORDER:
         bucket = settled_by_topic.get(topic, [])
         if isinstance(bucket, dict):
@@ -722,15 +739,18 @@ def build_resolutions(settled_by_topic, events_by_ticker, limit_per_topic=12, wa
         items.sort(key=lambda m: m.get("close_time") or "", reverse=True)
         for m in items[:limit_per_topic]:
             ev = events_by_ticker.get(m["event_ticker"], {})
-            if not ev and warnings is not None:
-                try:
-                    data = http_json(f"{PROD_BASE}/events/{urllib.parse.quote(m['event_ticker'])}?with_nested_markets=false")
-                    event = data.get("event") or {}
-                    ev = {"title": event.get("title")}
-                    events_by_ticker[m["event_ticker"]] = ev
-                except ApiError as exc:
-                    warnings.append(f"Settled event metadata failed for {m['event_ticker']}: {exc}")
-                    ev = {}
+            if not ev:
+                if m["event_ticker"] not in settled_event_titles and warnings is not None:
+                    try:
+                        data = http_json(
+                            f"{PROD_BASE}/events/{urllib.parse.quote(m['event_ticker'])}?with_nested_markets=false"
+                        )
+                        event = data.get("event") or {}
+                        settled_event_titles[m["event_ticker"]] = event.get("title")
+                    except ApiError as exc:
+                        warnings.append(f"Settled event metadata failed for {m['event_ticker']}: {exc}")
+                        settled_event_titles[m["event_ticker"]] = None
+                ev = {"title": settled_event_titles.get(m["event_ticker"])}
             rows.append({
                 "ticker": m["ticker"],
                 "event_ticker": m["event_ticker"],
@@ -927,6 +947,8 @@ def main():
     # Attach orderbook-derived liquidity to the flat market list by reference;
     # keep events with their market tickers so the UI can group them.
     for ev in events_by_ticker.values():
+        if not ev.get("event_ticker"):
+            continue
         ev["market_tickers"] = [
             m["ticker"] for m in sorted(
                 (x for x in markets if x["event_ticker"] == ev["event_ticker"]),
@@ -964,6 +986,12 @@ def main():
             "market_count": sum(1 for m in markets if m["topic"] == topic),
             "event_count": sum(1 for e in events if e["topic"] == topic),
         }
+
+    deduped_warnings = []
+    for w in warnings:
+        if w not in deduped_warnings:
+            deduped_warnings.append(w)
+    warnings = deduped_warnings
 
     snapshot = {
         "schema_version": 2,
