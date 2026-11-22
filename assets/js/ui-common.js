@@ -144,6 +144,8 @@ export function renderOrderbookHtml(orderbook, ticker) {
   const prefix = getRootPrefix();
   const simBadge = orderbook.simulated
     ? `<span class="badge badge-sim" title="Synthetic local orderbook depth; not exchange liquidity">Demo Simulated Depth · <a href="${prefix}flagged-for-review.html">IRREG-07</a></span>`
+    : orderbook.liveSource
+    ? `<span class="badge badge-yes" title="Public snapshot fetched from Kalshi Demo REST API">${escapeHtml(orderbook.liveSource)}</span>`
     : `<span class="badge badge-unverified">Orderbook source not identified</span>`;
 
   const maxCount = Math.max(

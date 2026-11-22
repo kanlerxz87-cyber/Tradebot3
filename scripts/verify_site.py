@@ -133,8 +133,25 @@ checkSources('FLAGGED_IRREGULARITIES', FLAGGED_IRREGULARITIES);
 checkSources('REPO_AUDIT_ITEMS', REPO_AUDIT_ITEMS);
 checkSources('INTERACTIVE_SUGGESTIONS', INTERACTIVE_SUGGESTIONS);
 
-const catalystHosts = new Set(['emersoncollegepolling.com', 'kalshi.com', 'wccftech.com', 'www.cnbc.com', 'www.eia.gov', 'www.pgatour.com']);
+const catalystHosts = new Set([
+  'emersoncollegepolling.com',
+  'gasprices.aaa.com',
+  'kalshi.com',
+  'wccftech.com',
+  'www.cfbenchmarks.com',
+  'www.cnbc.com',
+  'www.eia.gov',
+  'www.masters.com',
+  'www.pgatour.com',
+  'www.rottentomatoes.com'
+]);
 for (const m of VERIFIED_MARKETS) {
+  if (!m.marketTicker || !m.eventTicker || !['live', 'historical'].includes(m.apiEndpointType)) {
+    throw new Error(`Missing exact contract metadata on ${m.ticker}: ${JSON.stringify(m)}`);
+  }
+  if (typeof m.strikeVolumeFp !== 'number' || !m.apiMarketUrl || !m.apiMarketUrl.startsWith('https://external-api.kalshi.com/trade-api/v2/')) {
+    throw new Error(`Missing strikeVolumeFp or apiMarketUrl on ${m.ticker}: ${JSON.stringify(m)}`);
+  }
   for (const c of m.catalysts || []) {
     let host = '';
     try { host = new URL(c.url).hostname; } catch (_) { /* reported below */ }
@@ -174,8 +191,14 @@ const nyGas = VERIFIED_MARKETS.find((m) => m.ticker === 'KXAAAGASCDNY-26NOV19');
 if (!nyGas || nyGas.status !== 'Resolved' || nyGas.resolution !== 'YES' || nyGas.volumeUsd !== null) {
   throw new Error('KXAAAGASCDNY-26NOV19 settlement / unverified-volume check failed');
 }
-if (!FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-14') || !FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-20')) {
-  throw new Error('Missing IRREG-14 / IRREG-20 audit records');
+if (
+  !FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-14') ||
+  !FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-20') ||
+  !FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-22') ||
+  !FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-23') ||
+  !FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-24')
+) {
+  throw new Error('Missing IRREG-14 / IRREG-20 / IRREG-22..24 audit records');
 }
 
 // 4. Engine live tick, >= $0.10 swing alert, trade execution, resolution & custom strategy test
@@ -198,6 +221,28 @@ const beforeAlerts = eng.allAlerts.length;
 eng.runTick('KXPRESNOMD-28');
 if (eng.allAlerts.length <= beforeAlerts) {
   throw new Error('Expected >= $0.10 forced swing alert to fire');
+}
+
+// 4b. Verify multi-strike event ticker routes Pull Live Book to exact binary contract marketTicker & retains for 30s
+let requestedBookTicker = null;
+const origGetBook = eng.client.getMarketOrderbook.bind(eng.client);
+eng.client.getMarketOrderbook = async (t) => {
+  requestedBookTicker = t;
+  return {
+    ...parseOrderbookFp({ orderbook_fp: { yes_dollars: [['0.2000', '980.00']], no_dollars: [['0.7600', '9899.00']] } }),
+    simulated: false,
+    liveSource: `Live Demo REST Book (${t})`,
+    fetchedAtMs: Date.now()
+  };
+};
+const liveBookRes = await eng.fetchLiveOrderbook('KXPRESNOMD-28');
+eng.client.getMarketOrderbook = origGetBook;
+if (!liveBookRes.ok || requestedBookTicker !== 'KXPRESNOMD-28-JOSS') {
+  throw new Error(`Expected fetchLiveOrderbook('KXPRESNOMD-28') to request KXPRESNOMD-28-JOSS, got ${requestedBookTicker}`);
+}
+eng.runTick();
+if (eng.getMarket('KXPRESNOMD-28').orderbook.simulated !== false) {
+  throw new Error('Expected live Demo REST orderbook to remain retained across simulated ticks within 30s');
 }
 eng.client.lastStatus.connected = true; // Public REST success must not relabel local paper fills as exchange orders.
 const trade = eng.executePaperTrade({

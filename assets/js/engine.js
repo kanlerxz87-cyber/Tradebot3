@@ -336,7 +336,11 @@ export class TradebotEngine {
   }
 
   getMarket(ticker) {
-    return this.markets.find((m) => m.ticker === ticker) || this.markets[0];
+    return (
+      this.markets.find(
+        (m) => m.ticker === ticker || m.marketTicker === ticker || m.eventTicker === ticker
+      ) || this.markets[0]
+    );
   }
 
   getMarketsByTopic(topic) {
@@ -403,7 +407,14 @@ export class TradebotEngine {
       m.currentPrice = next;
       m.lastDelta = actualDelta;
       m.lastUpdated = now;
-      m.orderbook = buildSimulatedOrderbook(next, m.volumeUsd, idx + this.tickCount);
+      const keepLiveBook =
+        m.orderbook &&
+        m.orderbook.simulated === false &&
+        m.orderbook.fetchedAtMs &&
+        now - m.orderbook.fetchedAtMs < 30000;
+      if (!keepLiveBook) {
+        m.orderbook = buildSimulatedOrderbook(next, m.volumeUsd, idx + this.tickCount);
+      }
       m.roi = evaluateHighRoi(m, next, actualDelta, m.orderbook);
 
       // Append to seconds series
@@ -782,33 +793,36 @@ export class TradebotEngine {
   async fetchLiveOrderbook(ticker) {
     const market = this.getMarket(ticker);
     if (!market) return { ok: false, message: 'Market not found in catalog.' };
+    const exactTicker = market.marketTicker || market.ticker;
     try {
-      const ob = await this.client.getMarketOrderbook(ticker, 10);
+      const ob = await this.client.getMarketOrderbook(exactTicker, 10);
       if (ob.totalYesContracts === 0 && ob.totalNoContracts === 0) {
         return {
           ok: false,
           emptyBook: true,
-          message: `Kalshi Demo REST returned HTTP 200 with empty resting book for ${ticker} (see IRREG-05). Keeping Demo Simulated Depth.`
+          message: `Kalshi Demo REST returned HTTP 200 with empty resting book for ${exactTicker} (see IRREG-05 / IRREG-22). Keeping Demo Simulated Depth.`
         };
       }
       market.orderbook = ob;
-      this.notify('orderbook', { ticker, live: true });
+      this.notify('orderbook', { ticker: market.ticker, exactTicker, live: true });
       return {
         ok: true,
-        message: `Loaded live Kalshi Demo REST orderbook for ${ticker} (${ob.totalYesContracts + ob.totalNoContracts} resting contracts).`
+        message: `Loaded live Kalshi Demo REST orderbook for ${exactTicker} (${ob.totalYesContracts + ob.totalNoContracts} resting contracts; retained for 30s).`
       };
     } catch (err) {
       return {
         ok: false,
-        message: `Live orderbook REST fetch blocked or unavailable (${err.message}). Displaying Demo Simulated Depth (see IRREG-02 / IRREG-07).`
+        message: `Live orderbook REST fetch blocked or unavailable for ${exactTicker} (${err.message}). Displaying Demo Simulated Depth (see IRREG-02 / IRREG-07).`
       };
     }
   }
 
   async executeLiveOrPaperTrade(orderParams, { useLiveDemoApi = false } = {}) {
     if (useLiveDemoApi && this.client.authenticated) {
+      const targetMarket = this.getMarket(orderParams.ticker);
+      const exactTicker = (targetMarket && targetMarket.marketTicker) || orderParams.ticker;
       const apiRes = await this.client.createOrderFromYesNo({
-        ticker: orderParams.ticker,
+        ticker: exactTicker,
         action: orderParams.action,
         side: orderParams.side,
         contracts: orderParams.contracts,
@@ -817,7 +831,7 @@ export class TradebotEngine {
       });
       const mirrored = this.executePaperTrade({
         ...orderParams,
-        note: `${orderParams.note || 'Live Demo Order'} [Kalshi Demo order_id: ${apiRes.order_id || 'submitted'}]`
+        note: `${orderParams.note || 'Live Demo Order'} [Kalshi Demo ${exactTicker} order_id: ${apiRes.order_id || 'submitted'}]`
       });
       mirrored.mode = 'Kalshi Demo REST (Live)';
       this.saveState();

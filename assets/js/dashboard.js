@@ -214,15 +214,25 @@ function renderChartAndOrderbook() {
 
   const metaEl = document.getElementById('chart-market-meta');
   if (metaEl) {
+    const exactTicker = market.marketTicker || market.ticker;
+    const strikeNote =
+      typeof market.strikeVolumeFp === 'number'
+        ? ` (${Math.round(market.strikeVolumeFp).toLocaleString()} strike contracts)`
+        : '';
+    const demoNote =
+      typeof market.demoObservedPrice === 'number'
+        ? ` · Demo ref: $${market.demoObservedPrice.toFixed(2)}`
+        : '';
     metaEl.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         ${formatTopicBadge(market.topic)}
-        <strong class="mono">${escapeHtml(market.ticker)}</strong>
+        <strong class="mono">${escapeHtml(exactTicker)}</strong>
         ${formatResolutionBadge(market)}
         <span class="mono" style="font-size:15px;font-weight:700;">Current: $${market.currentPrice.toFixed(2)}</span>
         ${formatDeltaBadge(market.lastDelta)}
-        <span class="tiny muted">Static catalog volume: ${market.volumeUsd ? '$' + market.volumeUsd.toLocaleString() : 'Unverified'}</span>
+        <span class="tiny muted">Catalog vol: ${market.volumeUsd ? '$' + market.volumeUsd.toLocaleString() : 'Unverified'}${escapeHtml(strikeNote)}${escapeHtml(demoNote)}</span>
         ${formatSourceLink(market.sourceUrl, 'Official Kalshi Market')}
+        ${market.apiMarketUrl ? formatSourceLink(market.apiMarketUrl, 'REST v2 JSON') : ''}
       </div>
       <div class="tiny muted" style="margin-top:4px;">Illustrative model only (not a forecast): ${escapeHtml(market.roi.reason)}</div>
     `;
@@ -314,10 +324,15 @@ function renderMarketsTable() {
 
     items.forEach((m) => {
       const isSelected = m.ticker === selectedTicker;
+      const exactSub =
+        m.marketTicker && m.marketTicker !== m.ticker
+          ? `<div class="tiny mono muted">${escapeHtml(m.marketTicker)}</div>`
+          : '';
       rows.push(`
         <tr class="${isSelected ? 'selected-row' : ''}">
           <td>
             <button class="link-btn ticker-jump-btn" data-ticker="${escapeHtml(m.ticker)}">${escapeHtml(m.ticker)}</button>
+            ${exactSub}
             <div class="tiny muted">${escapeHtml(m.closeWindow)}</div>
           </td>
           <td>

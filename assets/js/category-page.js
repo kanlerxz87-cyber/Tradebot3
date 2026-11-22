@@ -94,13 +94,20 @@ function renderTopicChartAndOrderbook() {
 
   const metaEl = document.getElementById('cat-chart-meta');
   if (metaEl) {
+    const exactTicker = market.marketTicker || market.ticker;
+    const demoNote =
+      typeof market.demoObservedPrice === 'number'
+        ? ` · Demo ref: $${market.demoObservedPrice.toFixed(2)}`
+        : '';
     metaEl.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <strong class="mono">${escapeHtml(market.ticker)}</strong>
+        <strong class="mono">${escapeHtml(exactTicker)}</strong>
         ${formatResolutionBadge(market)}
         <span class="mono"><strong>$${market.currentPrice.toFixed(2)}</strong></span>
         ${formatDeltaBadge(market.lastDelta)}
+        <span class="tiny muted">${escapeHtml(demoNote)}</span>
         ${formatSourceLink(market.sourceUrl, 'Kalshi Official')}
+        ${market.apiMarketUrl ? formatSourceLink(market.apiMarketUrl, 'REST v2 JSON') : ''}
       </div>
       <div class="tiny muted" style="margin-top:4px;">Illustrative paper-model output (not a validated ROI forecast): ${escapeHtml(market.roi.reason)}</div>
     `;
@@ -175,7 +182,10 @@ function renderTopicTable() {
     .map(
       (m) => `
     <tr>
-      <td class="mono"><button class="link-btn btn-inspect" data-ticker="${escapeHtml(m.ticker)}">${escapeHtml(m.ticker)}</button></td>
+      <td class="mono">
+        <button class="link-btn btn-inspect" data-ticker="${escapeHtml(m.ticker)}">${escapeHtml(m.ticker)}</button>
+        ${m.marketTicker && m.marketTicker !== m.ticker ? `<div class="tiny muted">${escapeHtml(m.marketTicker)}</div>` : ''}
+      </td>
       <td><strong>${escapeHtml(m.title)}</strong><div class="tiny muted">${escapeHtml(m.contractLabel)}</div></td>
       <td class="mono">${formatDollarVolume(m.volumeUsd)}</td>
       <td class="mono"><strong>${formatPrice(m.currentPrice)}</strong> ${formatDeltaBadge(m.lastDelta)}</td>
