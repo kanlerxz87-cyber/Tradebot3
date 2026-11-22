@@ -2,9 +2,11 @@
 
 > **Repository:** `kanlerxz87-cyber/Tradebot3`
 > **Live Site (GitHub Pages):** https://kanlerxz87-cyber.github.io/Tradebot3/
-> **Active Session ID:** `arena-59730b38` (Session 2 refresh; priors: `arena-3716ae8d` merged via PR #1, `arena-a8cfdaeb` merged via PR #2/#3)
-> **Working Branch:** `arena/59730b38-tradebot3` (Arena fixed session branch; branched from `main` at `08ad596f66ebccb189754df5fa6dadac6365989c`, rebased onto `991a8eb`)
+> **Active Session ID:** `arena-1a3afb37` (integrating the broader simulator/runtime audit; prior sample and Session 2 refreshes are documented below)
+> **Working Branch:** `arena/1a3afb37-tradebot3` (Arena-fixed; branched from `main` at `08ad596f66ebccb189754df5fa6dadac6365989c`, rebased onto current main)
 > **Last Updated:** 2026-11-22 (UTC)
+>
+> This checkout contains the previously integrated T-01–T-06 sample-audit work on `main`. This session addresses a distinct broader UI/runtime-integrity gap (T-07) and works only on the current branch above.
 
 ---
 
@@ -22,10 +24,10 @@
 ---
 
 ## Coordination Protocol Notes
-- All tasks were claimed prior to editing and pushed immediately on `arena/3716ae8d-tradebot3`.
-- Because Arena binds this session to `arena/3716ae8d-tradebot3`, all commits, pushes, and the pull request to `main` are performed on `arena/3716ae8d-tradebot3` without creating or switching branches.
-- Items marked `needs review` are published transparently on [`flagged-for-review.html`](flagged-for-review.html) with official source links and do not block integration or deployment.
-- Every table row across the site links to an official verified source. Any value that could not be confirmed statically is left blank and flagged `Unverified`.
+- T-01–T-06 and PR #1–#3 are historical, completed work from the earlier sessions/branches described below.
+- Current work is on Arena-fixed branch `arena/1a3afb37-tradebot3`; this session is T-07, claimed and pushed before code changes.
+- Items marked `needs review` are published on [`flagged-for-review.html`](flagged-for-review.html) with source links and do not block the build.
+- Automated checks verify source-link presence and expected hostnames; they do not validate the numeric contents of every linked market page. See IRREG-14.
 
 ---
 
@@ -40,6 +42,7 @@
 | T-05 | Automated verification script, link integrity check, live HTTP server testing, PR creation, merge to `main`, and GitHub Pages deploy confirmation | `done` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `scripts/verify_site.py`, `COORDINATION.md` |
 | T-06 | Re-verify stored Kalshi values against official kalshi.com pages (sample of 6 markets); relabel unverified swing alerts as Unverified; publish mismatches on Flagged for Review | `done` (sample only) | `arena-a8cfdaeb` | `arena/a8cfdaeb-tradebot3` | `assets/js/ui-common.js`, `assets/js/engine.js`, `flagged-for-review.html`, `COORDINATION.md` |
 | R-01 | Flagged Irregularities IRREG-01 through IRREG-08 & unverified static fields (published on `flagged-for-review.html`) | `needs review` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `flagged-for-review.html`, `assets/js/data.js` |
+| T-06 | Independent audit: correct misleading live/verified labels on synthetic ticks, seed alerts, sample portfolio trades, and historical chart series | `in progress` | `arena-1a3afb37` | `arena/1a3afb37-tradebot3` | `COORDINATION.md`, `README.md`, `EXECUTIVE_SUMMARY.md`, `index.html`, `portfolio.html`, `assets/js/engine.js`, `assets/js/ui-common.js`, `assets/js/dashboard.js`, `scripts/verify_site.py` |
 
 ---
 
