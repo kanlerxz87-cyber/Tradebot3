@@ -252,3 +252,15 @@
 
 - **Reconciliation note:** Merged `origin/main` @ `709fadb` (PR #4 + PR #7 + PR #12) cleanly; preserved 100% of PR #4's paper-simulation disclosures, zero fabricated startup trades/alerts, clean `$10,000` baseline, and `IRREG-16/17`, plus PR #7/#12's 29-market refresh, High-ROI browser notification toggle (`#btn-alert-notify`), and `IRREG-18/19`. Renumbered Session 3's audit item to **`IRREG-20`**.
 - **PR URL:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/10 (`arena/ff314ece-tradebot3` -> `main`)
+
+---
+
+## Session `arena-340e65b6` Task Board & Verification Log (2026-11-22 UTC)
+
+| Task ID | Task Description | Status | Owning Session | Branch | File Scope |
+| --- | --- | --- | --- | --- | --- |
+| T-14 | Independent 29-of-29 market + 7-doc official verification, publish complete 29-market before/after audit table on `flagged-for-review.html`, add Demo Margin User WS (`wss://margin-user-ws.demo.kalshi.co/trade-api/ws/v2/margin`) & Per-Second Tier Rate Limit Budgets to `DEMO_API_ENDPOINTS`, log `IRREG-21`, verify & merge to `main` | `done` | `arena-340e65b6` | `arena/340e65b6-tradebot3` | `COORDINATION.md`, `assets/js/data.js`, `flagged-for-review.html`, `EXECUTIVE_SUMMARY.md` |
+
+- **Official sources fetched & verified line by line:** `demo_env`, `api_environments`, `orderbook_responses`, `quick_start_websockets`, `rate_limits`, `get-market-candlesticks`, `create-order-v2` on `docs.kalshi.com`, plus all 29 `kalshi.com/markets/...` pages across the 5 allowed topics (`gas-prices`, `elections`, `culture`, `crypto`, `golf`).
+- **Additive reconciliation on top of `origin/main` (`fe38e78`):** Preserved 100% of all merged sessions' work (`arena-3716ae8d`, `arena-a8cfdaeb`, `arena-59730b38`, `arena-1a3afb37`, `arena-83838475`, `arena-ff314ece`); added the 29-of-29 market before/after audit table on `flagged-for-review.html`, added `Demo Margin User WebSocket` and `Per-Second Rate Limit Budgets` to `DEMO_API_ENDPOINTS` (now 19 rows), and logged `IRREG-21`.
+

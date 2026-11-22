@@ -224,6 +224,24 @@ export const DEMO_API_ENDPOINTS = [
     notes: 'Maximum concurrent WebSocket connections per API tier (Predictions + Perps share the per-user limit).',
     sourceUrl: 'https://docs.kalshi.com/getting_started/rate_limits',
     sourceLabel: 'Kalshi Docs — Rate Limits and Tiers'
+  },
+  {
+    surface: 'Demo Margin User WebSocket',
+    status: 'Dedicated Margin Host',
+    url: 'wss://margin-user-ws.demo.kalshi.co/trade-api/ws/v2/margin',
+    authRequired: 'Authenticated Handshake (KALSHI-ACCESS-* headers)',
+    notes: 'Dedicated demo margin user WebSocket host documented in Kalshi API Environments.',
+    sourceUrl: 'https://docs.kalshi.com/getting_started/api_environments',
+    sourceLabel: 'Kalshi Docs — API Environments'
+  },
+  {
+    surface: 'Per-Second Rate Limit Budgets',
+    status: 'Rate Limit Spec',
+    url: 'Basic: 200R/100W | Adv: 300/300 | Expert: 600/600 | Premier: 1,200 | Paragon: 2,400 | Prime: 4,800 | Prestige: 12,000R/9,600W tokens/s',
+    authRequired: 'Tier-based',
+    notes: 'Predictions token bucket replenishment rates (default cost 10 tokens/req; GET /portfolio/balance has its own 1 req/s bucket on Basic/Advanced).',
+    sourceUrl: 'https://docs.kalshi.com/getting_started/rate_limits',
+    sourceLabel: 'Kalshi Docs — Rate Limits and Tiers'
   }
 ];
 
@@ -1064,6 +1082,16 @@ export const FLAGGED_IRREGULARITIES = [
     status: 'Remediated in PR #10 — Published for Transparency',
     sourceUrl: 'https://docs.kalshi.com/getting_started/api_keys',
     sourceLabel: 'Kalshi Docs — API Keys & Official Pages'
+  },
+  {
+    id: 'IRREG-21',
+    severity: 'Low',
+    category: 'Full 29-Market Review Table & API Spec Completeness (Session arena-340e65b6)',
+    item: 'Published complete 29-of-29 market before/after audit table on Flagged for Review and added Demo Margin User WS & Per-Second Tier Rate Limits',
+    detail: 'Session arena-340e65b6 independently fetched all 29 kalshi.com market pages and 7 docs.kalshi.com pages on 2026-11-22 UTC, publishing the full 29-row before/after audit table on flagged-for-review.html (with official source links on every row) and adding wss://margin-user-ws.demo.kalshi.co/trade-api/ws/v2/margin and per-second token rate limit budgets across all 7 tiers to DEMO_API_ENDPOINTS.',
+    status: 'Needs Review',
+    sourceUrl: 'https://docs.kalshi.com/getting_started/api_environments',
+    sourceLabel: 'Kalshi Docs — API Environments'
   }
 ];
 
@@ -1139,6 +1167,14 @@ export const REPO_AUDIT_ITEMS = [
     verified: true,
     sourceUrl: 'https://docs.kalshi.com/getting_started/api_keys',
     sourceLabel: 'Kalshi Docs — API Keys & Create Order V2'
+  },
+  {
+    path: 'flagged-for-review.html & assets/js/data.js (session arena-340e65b6)',
+    checkType: 'Complete 29-Market Review Table & API Completeness',
+    finding: 'Independently fetched all 29 kalshi.com market pages and 7 Kalshi docs pages; published the complete 29-of-29 market before/after verification table with official links on flagged-for-review.html, added Demo Margin User WS (wss://margin-user-ws.demo.kalshi.co/trade-api/ws/v2/margin) and Per-Second Tier Rate Limit Budgets to DEMO_API_ENDPOINTS, and logged IRREG-21.',
+    verified: true,
+    sourceUrl: 'https://docs.kalshi.com/getting_started/api_environments',
+    sourceLabel: 'Kalshi Docs — API Environments'
   }
 ];
 
