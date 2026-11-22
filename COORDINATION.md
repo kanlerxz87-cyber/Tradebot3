@@ -269,4 +269,15 @@
   - **Merge Method & Result:** `gh pr merge 13 --merge` — MERGED on 2026-11-22T07:46:32Z as commit `50ae0ebbf08c22fd9e86216f6bdd4b478989a2a4` after passing `python3 scripts/verify_site.py` with 0 broken links.
   - **GitHub Pages Live URL:** https://kanlerxz87-cyber.github.io/Tradebot3/ (build `1392081606` for `50ae0eb` completed with status `built` at `2026-11-22T07:46:58Z`, no errors).
 
+---
+
+## Session `arena-ca98b078` Task Board & Verification Log (2026-11-22 UTC)
+
+| Task ID | Task Description | Status | Owning Session | Branch | File Scope |
+| --- | --- | --- | --- | --- | --- |
+| T-15 | Enrich all 29/29 `VERIFIED_MARKETS` with exact Kalshi REST API v2 `marketTicker`, `eventTicker`, `strikeVolumeFp`, `demoObservedPrice`, `apiMarketUrl` (`/markets` vs `/historical/markets`), official settlement-source catalysts (`gasprices.aaa.com`, `cfbenchmarks.com`, `masters.com`, `pgatour.com`, `rottentomatoes.com`), `REST Get Historical Markets` endpoint, and `IRREG-22..24` | `in_progress` | `arena-ca98b078` | `arena/ca98b078-tradebot3` | `assets/js/data.js`, `flagged-for-review.html`, `EXECUTIVE_SUMMARY.md` |
+| T-16 | Fix event-ticker vs contract-`marketTicker` bug in `fetchLiveOrderbook` & `executeLiveOrPaperTrade` (25/29 multi-strike markets previously queried parent event tickers and hit `IRREG-05` empty books), label live Demo REST orderbook badge & 30s snapshot retention, and surface `marketTicker` + `REST v2 JSON` links in UI | `in_progress` | `arena-ca98b078` | `arena/ca98b078-tradebot3` | `assets/js/kalshi-client.js`, `assets/js/engine.js`, `assets/js/ui-common.js`, `assets/js/dashboard.js`, `assets/js/category-page.js` |
+| T-17 | Expand `scripts/verify_site.py` for 29/29 `marketTicker` & official settlement-host checks, run verification & HTTP smoke checks, open/merge PR to `main`, and verify GitHub Pages deploy | `in_progress` | `arena-ca98b078` | `arena/ca98b078-tradebot3` | `scripts/verify_site.py`, `COORDINATION.md` |
+
+
 
