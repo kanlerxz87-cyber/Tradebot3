@@ -114,7 +114,7 @@ TOPIC_RULES = {
         "name": "Golf",
         "prefixes": [
             "KXPGATOUR", "KXGOLF", "KXLPGA", "KXRYDER", "KXPGA", "KXMASTERS",
-            "KXPGAMASTERS", "KXUSOPEN",
+            "KXPGAMASTERS",
         ],
         "keywords": ["golf", "pga tour", "ryder cup", "the masters"],
         "why": "Series ticker prefix KXPGATOUR*/KXGOLF*/KXLPGA*/KXRYDER* or title keyword 'golf'/'PGA Tour'.",
@@ -326,64 +326,126 @@ def paginate(path: str, params: dict, max_pages: int, base: str = PROD_BASE, pag
         print(f"  [warn] pagination cap reached for {path} ({seen} items)", file=sys.stderr)
 
 
-def collect_markets(warnings: list) -> tuple[list, dict]:
-    stats = {}
-    open_markets = []
-    try:
-        for m in paginate("/markets", {"status": "open", "limit": 1000}, max_pages=25):
-            open_markets.append(m)
-    except ApiError as exc:
-        warnings.append(f"Open-market scan failed: {exc}")
-    stats["open_markets_scanned"] = len(open_markets)
+SERIES_CATEGORIES = [
+    "Economics", "Elections", "Culture", "Crypto", "Financials",
+    "Sports", "Entertainment", "Politics", "Companies",
+]
 
-    since = int((datetime.now(timezone.utc) - timedelta(days=SETTLED_LOOKBACK_DAYS)).timestamp())
-    settled_markets = []
-    try:
-        for m in paginate(
-            "/markets",
-            {"status": "settled", "min_close_ts": since, "limit": 1000},
-            max_pages=10,
-        ):
-            settled_markets.append(m)
-    except ApiError as exc:
-        warnings.append(f"Settled-market scan failed: {exc}")
-    stats["settled_markets_scanned"] = len(settled_markets)
 
-    # If min_close_ts were ignored we would receive very old settlements; trim
-    # locally so the published "recent resolutions" list stays truthful.
-    recent = []
-    for m in settled_markets:
-        close = m.get("close_time")
-        if close:
-            try:
-                ts = datetime.fromisoformat(close.replace("Z", "+00:00")).timestamp()
-                if ts < since:
-                    continue
-            except ValueError:
-                pass
-        recent.append(m)
-    stats["settled_markets_recent"] = len(recent)
-    stats["settled_lookback_days"] = SETTLED_LOOKBACK_DAYS
-    return open_markets, {"settled": recent, "stats": stats}
+def classify_series(ticker: str, title: str = "", tags=None):
+    """Classify a Kalshi *series* into one of the five topics."""
+    up = str(ticker or "").upper()
+    hay = f"{title or ''} {' '.join(tags or [])}".lower()
+    for topic in TOPIC_ORDER:
+        rule = TOPIC_RULES[topic]
+        for prefix in rule["prefixes"]:
+            if up.startswith(prefix):
+                return topic, f"series ticker {up} starts with {prefix}"
+        for kw in rule["keywords"]:
+            if kw in hay:
+                return topic, f"series title/tags keyword '{kw}'"
+    return None, None
+
+
+def discover_series(warnings):
+    """Enumerate Kalshi series per category and keep only the five topics.
+
+    /series?category=... is an official public endpoint and returns every series
+    in the category (the `limit` parameter is ignored by the API), so the
+    response can be large. It is parsed on the runner, never shipped to the site.
+    """
+    found = {}
+    for category in SERIES_CATEGORIES:
+        url = f"{PROD_BASE}/series?category={urllib.parse.quote(category)}"
+        try:
+            data = http_json(url, timeout=120)
+        except ApiError as exc:
+            warnings.append(f"Series discovery failed for category {category}: {exc}")
+            continue
+        series = data.get("series") or []
+        kept = 0
+        for item in series:
+            ticker = item.get("ticker")
+            topic, rule = classify_series(ticker, item.get("title"), item.get("tags"))
+            if topic and ticker:
+                found[ticker] = {
+                    "topic": topic,
+                    "title": item.get("title"),
+                    "rule": rule,
+                    "category": item.get("category") or category,
+                    "settlement_sources": [
+                        {"name": s.get("name"), "url": s.get("url")}
+                        for s in (item.get("settlement_sources") or [])
+                    ][:6],
+                }
+                kept += 1
+        print(f"  series[{category}]: {len(series)} listed, {kept} match a topic")
+        time.sleep(0.2)
+    return found
+
+
+def markets_for_series(series_map, status, warnings, max_series_per_topic=70):
+    """Fetch markets for the discovered series of each topic."""
+    per_topic = {t: 0 for t in TOPIC_ORDER}
+    out = []
+    for ticker in sorted(series_map):
+        meta = series_map[ticker]
+        topic = meta["topic"]
+        if per_topic[topic] >= max_series_per_topic:
+            continue
+        url = f"{PROD_BASE}/markets?series_ticker={urllib.parse.quote(ticker)}&status={status}&limit=1000"
+        try:
+            data = http_json(url)
+        except ApiError as exc:
+            warnings.append(f"Markets failed for series {ticker} ({status}): {exc}")
+            continue
+        rows = data.get("markets") or []
+        if rows:
+            per_topic[topic] += 1
+        for row in rows:
+            row["series_ticker"] = ticker
+            row["_series_meta"] = meta
+            out.append(row)
+        time.sleep(0.08)
+    return out
+
+
+def normalize_all(raw_markets, warnings):
+    out = []
+    unclassified = 0
+    combos = 0
+    for m in raw_markets:
+        if m.get("mve_collection_ticker"):
+            combos += 1
+            continue
+        meta = m.get("_series_meta") or {}
+        topic = meta.get("topic")
+        rule = meta.get("rule")
+        if not topic:
+            topic, rule = classify(m)
+        if not topic:
+            unclassified += 1
+            continue
+        norm = normalize_market(m, topic, rule or "series match")
+        if not norm["ticker"]:
+            continue
+        if meta.get("settlement_sources"):
+            norm["settlement_sources"] = meta["settlement_sources"]
+        out.append(norm)
+    warnings.append(
+        f"Classifier: {combos} multivariate combo markets skipped, {unclassified} non-topic markets ignored."
+    )
+    return out
 
 
 def select_topics(open_markets, settled_markets, warnings):
-    """Group classified markets by topic and event, apply per-topic caps."""
+    """Group classified markets by topic and event, then apply per-topic caps."""
     by_topic = {t: {"open": [], "settled": []} for t in TOPIC_ORDER}
-    unclassified = 0
-    for bucket, markets in (("open", open_markets), ("settled", settled_markets)):
-        for m in markets:
-            topic, rule = classify(m)
-            if not topic:
-                unclassified += 1
-                continue
-            norm = normalize_market(m, topic, rule)
-            if not norm["ticker"]:
-                continue
-            by_topic[topic][bucket].append(norm)
-    warnings.append(
-        f"Topic classifier: {unclassified} markets outside the five topics were ignored by design."
-    )
+    for m in open_markets:
+        by_topic[m["topic"]]["open"].append(m)
+    for m in settled_markets:
+        if m.get("result") in ("yes", "no"):
+            by_topic[m["topic"]]["settled"].append(m)
 
     selected_events = []
     markets_out = []
@@ -741,13 +803,50 @@ def main():
 
     warnings: list[str] = []
     started = time.time()
-    print("Scanning Kalshi public market data ...")
-    open_markets, settled_pack = collect_markets(warnings)
-    settled_markets = settled_pack["settled"]
-    stats = settled_pack["stats"]
 
-    markets, events, by_topic = select_topics(open_markets, settled_markets, warnings)
+    print("Discovering Kalshi series in the five topics ...")
+    series_map = discover_series(warnings)
+    for topic in TOPIC_ORDER:
+        n = sum(1 for v in series_map.values() if v["topic"] == topic)
+        print(f"  {topic}: {n} matching series")
+
+    print("Fetching open markets for those series ...")
+    raw_open = markets_for_series(series_map, "open", warnings)
+    open_markets = normalize_all(raw_open, warnings)
+    print(f"  {len(open_markets)} open topic markets after filtering")
+
+    stats = {
+        "series_discovered": len(series_map),
+        "open_markets_scanned": len(raw_open),
+        "open_topic_markets": len(open_markets),
+    }
+
+    markets, events, _by_topic_open = select_topics(open_markets, [], warnings)
     print(f"Selected {len(markets)} markets across {len(events)} events")
+
+    # Resolutions: pull settled markets only for the series we actually track.
+    tracked_series = sorted({m["series_ticker"] for m in markets})
+    resolved_series_map = {t: series_map[t] for t in tracked_series if t in series_map}
+    print(f"Fetching recent settlements for {len(resolved_series_map)} tracked series ...")
+    raw_settled = markets_for_series(resolved_series_map, "settled", warnings)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=SETTLED_LOOKBACK_DAYS)
+    recent_raw = []
+    for m in raw_settled:
+        close = m.get("close_time")
+        if close:
+            try:
+                ts = datetime.fromisoformat(close.replace("Z", "+00:00"))
+                if ts < cutoff:
+                    continue
+            except ValueError:
+                pass
+        recent_raw.append(m)
+    settled_markets = normalize_all(recent_raw, warnings)
+    stats["settled_markets_scanned"] = len(raw_settled)
+    stats["settled_markets_recent"] = len(settled_markets)
+    stats["settled_lookback_days"] = SETTLED_LOOKBACK_DAYS
+
+    _markets2, _events2, by_topic = select_topics(markets, settled_markets, warnings)
 
     events_by_ticker = {}
     for ev in events:

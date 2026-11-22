@@ -1,391 +1,462 @@
 /**
- * Landing Page & Live Dashboard Controller (index.html)
+ * Tradebot3 — dashboard page controller.
  */
 
-import { TOPICS, ALLOWED_TOPICS } from './data.js';
-import { engine, TRADE_CATEGORIES } from './engine.js';
-import { renderPriceChart } from './charts.js';
 import {
-  renderHeader,
-  renderFooter,
-  escapeHtml,
-  formatDollarVolume,
-  formatPrice,
-  formatDeltaBadge,
-  formatTopicBadge,
-  formatResolutionBadge,
-  formatSourceLink,
-  renderOrderbookHtml,
-  renderAlertItemHtml
-} from './ui-common.js';
+  SITE, TOPICS, TOPIC_ORDER, initChrome, el, qs, qsa, toast,
+  fmtUsd, fmtContracts, fmtPrice, fmtDelta, fmtNum, fmtDateTime, fmtClock, timeAgo,
+  esc, isNum, scoreMarket,
+} from './core.js';
+import { MarketData, TIMEFRAMES } from './market-data.js';
+import { PriceChart } from './chart.js';
+import { AlertFeed } from './alerts.js';
+import { renderOrderbook } from './orderbook.js';
+import { PaperAccount } from './paper.js';
 
-let selectedTicker = 'KXPRESNOMD-28';
-let selectedTimeframe = 'minutes';
-let selectedTableTopic = 'all';
-let selectedMarker = null;
+const data = new MarketData();
+const state = {
+  timeframe: '5m',
+  selectedTicker: null,
+  eventTopic: 'all',
+  feedsPaused: false,
+  autoRefresh: true,
+};
+
+let account;
+let chart;
+let feedAll;
+let feedModel;
+
+async function boot() {
+  initChrome({ active: 'index.html' });
+  try {
+    await data.load();
+  } catch (err) {
+    qs('#data-status').innerHTML = `<span class="status-err">Could not load assets/data/snapshot.json</span> — ${esc(err.message)}`;
+    return;
+  }
+  account = new PaperAccount(data);
+  account.settleResolved();
+
+  buildChrome();
+  renderStatus();
+  renderKpis();
+  renderTopicCards();
+  renderEventsTable();
+  renderResolutions();
+  initChart();
+  renderQuickTradeDefaults();
+  bindControls();
+
+  feedAll = new AlertFeed({ container: qs('#chat-all'), counter: qs('#count-all'), mode: 'all', data, onSelect: selectMarket });
+  feedModel = new AlertFeed({ container: qs('#chat-model'), counter: qs('#count-model'), mode: 'model', data, onSelect: selectMarket });
+  feedAll.addMany(snapshotAlerts());
+  feedModel.addMany(snapshotAlerts());
+  refreshTradeKpis();
+
+  data.on('alert', (alert) => {
+    feedAll.add(alert);
+    feedModel.add(alert);
+  });
+  data.on('status', renderStatus);
+  data.on('update', () => {
+    renderStatus();
+    refreshTradeKpis();
+    if (state.selectedTicker) drawChart();
+  });
+  data.startLive();
+
+  if (state.autoRefresh) {
+    setInterval(async () => {
+      if (document.hidden) return;
+      try {
+        await data.load();
+        renderStatus();
+        renderKpis();
+        renderEventsTable();
+      } catch { /* keep the current snapshot */ }
+    }, 300000);
+  }
+}
+
+function snapshotAlerts() {
+  const refsByTopic = data.snapshot?.topics || {};
+  return data.alerts().map((a) => ({
+    ...a,
+    ts: typeof a.ts === 'number' ? a.ts * 1000 : Date.parse(a.iso_time),
+    source_note: 'from official 1m candles',
+    catalyst_links: (refsByTopic[a.topic]?.reference_links || []).filter((r) => r.reachable),
+  }));
+}
+
+function buildChrome() {
+  const select = qs('#chart-market-select');
+  select.innerHTML = '';
+  for (const topic of TOPIC_ORDER) {
+    const group = el('optgroup', { label: TOPICS[topic].name });
+    const markets = data.marketsFor(topic).slice().sort((a, b) => (b.volume || 0) - (a.volume || 0));
+    for (const m of markets) {
+      const label = `${(m.event_title || m.title || m.ticker).slice(0, 70)} · ${m.subtitle || ''} (${m.ticker})`;
+      group.append(el('option', { value: m.ticker, text: label }));
+    }
+    if (markets.length) select.append(group);
+  }
+
+  const tf = qs('#chart-tf');
+  tf.innerHTML = '';
+  const frames = [{ id: 'live', label: 'Live · sec' }, ...TIMEFRAMES.map((t) => ({ id: t.id, label: t.label }))];
+  for (const frame of frames) {
+    const btn = el('button', { type: 'button', text: frame.label, 'aria-pressed': String(frame.id === state.timeframe) });
+    btn.addEventListener('click', () => {
+      state.timeframe = frame.id;
+      qsa('#chart-tf button').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      drawChart();
+    });
+    tf.append(btn);
+  }
+
+  const filter = qs('#events-filter');
+  filter.innerHTML = '';
+  for (const topic of ['all', ...TOPIC_ORDER]) {
+    const chip = el('button', { type: 'button', class: 'topic-chip', 'aria-pressed': String(topic === state.eventTopic) });
+    if (topic === 'all') chip.append(document.createTextNode('All topics'));
+    else {
+      const swatch = el('span', { class: 'swatch' });
+      swatch.style.background = TOPICS[topic].color;
+      chip.append(swatch, document.createTextNode(TOPICS[topic].name));
+    }
+    chip.addEventListener('click', () => {
+      state.eventTopic = topic;
+      qsa('#events-filter .topic-chip').forEach((c) => c.setAttribute('aria-pressed', String(c === chip)));
+      renderEventsTable();
+    });
+    filter.append(chip);
+  }
+
+  const first = pickDefaultMarket();
+  if (first) select.value = first;
+}
+
+function pickDefaultMarket() {
+  const withCandles = data.markets.filter((m) => m.candles?.m1?.length);
+  const pool = withCandles.length ? withCandles : data.markets;
+  const best = pool.slice().sort((a, b) => (b.volume || 0) - (a.volume || 0))[0];
+  if (best) state.selectedTicker = best.ticker;
+  return state.selectedTicker;
+}
+
+function renderStatus() {
+  const box = qs('#data-status');
+  if (!box) return;
+  const live = data.live;
+  const liveLabel = {
+    idle: '<span class="status-warn">not started</span>',
+    connecting: '<span class="status-warn">connecting…</span>',
+    live: '<span class="status-ok">connected</span>',
+    blocked: '<span class="status-warn">blocked by browser (CORS/offline)</span>',
+    error: '<span class="status-err">poll error</span>',
+    paused: '<span class="status-warn">paused</span>',
+  }[live.state] || live.state;
+
+  const stats = data.snapshot?.stats || {};
+  const parts = [
+    `<span><strong>Snapshot</strong> ${esc(fmtDateTime(data.generatedAt))} UTC (${esc(timeAgo(data.generatedAt))})</span>`,
+    '<span class="sep">|</span>',
+    `<span><strong>Source</strong> <a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener noreferrer">Kalshi public Trade API</a> (unauthenticated)</span>`,
+    '<span class="sep">|</span>',
+    `<span><strong>Live API</strong> ${liveLabel}${live.lastError ? ` <span class="tiny">(${esc(live.lastError)})</span>` : ''}</span>`,
+    '<span class="sep">|</span>',
+    `<span class="tiny">${fmtNum(stats.open_markets_scanned || 0)} open markets scanned · ${fmtNum(stats.settled_markets_recent || 0)} recent settlements · ${stats.candle_series_fetched || 0} candle series</span>`,
+  ];
+  box.innerHTML = parts.join(' ');
+}
 
 function renderKpis() {
-  const openCount = engine.markets.filter((m) => m.status === 'Open').length;
-  const resolvedCount = engine.markets.filter((m) => m.status === 'Resolved').length;
-  const totalVol = engine.markets.reduce((sum, m) => sum + (m.volumeUsd || 0), 0);
-  const summary = engine.getPortfolioSummary();
+  const host = qs('#kpi-strip');
+  const markets = data.markets;
+  const events = data.allEvents();
+  const volume = markets.reduce((s, m) => s + (m.volume || 0), 0);
+  const alerts = data.alerts();
+  const recentAlerts = alerts.filter((a) => a.ts * 1000 > Date.now() - 86400000);
+  const equity = account ? account.equity() : null;
+  const pnl = account ? account.analytics().totalPnl + account.marked().reduce((s, p) => s + p.pnl, 0) : null;
 
-  const el = document.getElementById('kpi-strip');
-  if (!el) return;
-  el.innerHTML = `
-    <div class="kpi-card">
-      <div class="kpi-label">Tracked Kalshi Events</div>
-      <div class="kpi-value">${engine.markets.length}</div>
-      <div class="kpi-sub">${openCount} Live/Open · ${resolvedCount} Resolved (5 topics only)</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Verified Dollar Volume</div>
-      <div class="kpi-value">$${(totalVol / 1e9).toFixed(2)}B</div>
-      <div class="kpi-sub">Sum of verified official Kalshi volumes</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">&gt;= $0.10 Swing Alerts</div>
-      <div class="kpi-value">${engine.allAlerts.length} / ${engine.highRoiAlerts.length}</div>
-      <div class="kpi-sub">All Events / High-ROI Selective</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Demo Portfolio Equity</div>
-      <div class="kpi-value">$${summary.totalEquity.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-      <div class="kpi-sub ${summary.totalPnl >= 0 ? 'delta-up' : 'delta-down'}">P&amp;L: ${summary.totalPnl >= 0 ? '+' : ''}$${summary.totalPnl.toFixed(2)} (${summary.totalRoiPct >= 0 ? '+' : ''}${summary.totalRoiPct}%)</div>
-    </div>
-  `;
+  const cards = [
+    { label: 'Live events tracked', value: fmtNum(events.length), foot: `${markets.length} markets across 5 topics` },
+    { label: 'Official contract volume', value: fmtContracts(volume), foot: 'sum of volume_fp (contracts)' },
+    { label: '≥ $0.10 moves detected', value: fmtNum(alerts.length), foot: `${recentAlerts.length} in the last 24h` },
+    { label: 'Recently resolved', value: fmtNum(data.resolutions().length), foot: 'official YES / NO results' },
+    {
+      label: 'Paper equity',
+      value: `$${equity !== null ? equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}`,
+      foot: `P&L ${pnl !== null ? `${pnl >= 0 ? '+' : '−'}$${Math.abs(pnl).toFixed(2)}` : '—'} · ${account?.openPositions.length || 0} open`,
+    },
+  ];
+  host.innerHTML = '';
+  for (const card of cards) {
+    host.append(el('div', { class: 'kpi' },
+      el('div', { class: 'label', text: card.label }),
+      el('div', { class: 'value', text: card.value }),
+      el('div', { class: 'foot', text: card.foot }),
+    ));
+  }
 }
 
 function renderTopicCards() {
-  const el = document.getElementById('topic-cards');
-  if (!el) return;
-  el.innerHTML = ALLOWED_TOPICS.map((topicId) => {
-    const t = TOPICS[topicId];
-    const items = engine.getMarketsByTopic(topicId);
-    const open = items.filter((m) => m.status === 'Open').length;
-    const resolved = items.filter((m) => m.status === 'Resolved').length;
-    const top = items[0];
-    return `
-      <a class="topic-card" href="${t.pagePath}">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          ${formatTopicBadge(topicId)}
-          <span class="tiny muted">${open} Live · ${resolved} Resolved</span>
-        </div>
-        <strong style="font-size:15px;">${escapeHtml(t.name)}</strong>
-        <div class="tiny muted">${escapeHtml(t.description)}</div>
-        <div class="tiny mono" style="margin-top:auto;padding-top:6px;border-top:1px solid #e2e8f0;">
-          Top: ${escapeHtml(top.ticker)} · ${top.volumeUsd ? '$' + top.volumeUsd.toLocaleString() : 'Unverified Vol'}
-        </div>
-      </a>
-    `;
-  }).join('');
-}
-
-function renderDualChats() {
-  const allEl = document.getElementById('chat-all-events');
-  const roiEl = document.getElementById('chat-high-roi');
-  const allCountEl = document.getElementById('count-all-alerts');
-  const roiCountEl = document.getElementById('count-roi-alerts');
-
-  if (allCountEl) allCountEl.textContent = String(engine.allAlerts.length);
-  if (roiCountEl) roiCountEl.textContent = String(engine.highRoiAlerts.length);
-
-  if (allEl) {
-    allEl.innerHTML = engine.allAlerts.length
-      ? engine.allAlerts.map((a) => renderAlertItemHtml(a, false)).join('')
-      : '<p class="muted small">Listening for >= $0.10 price swings across the 5 topics...</p>';
-  }
-
-  if (roiEl) {
-    roiEl.innerHTML = engine.highRoiAlerts.length
-      ? engine.highRoiAlerts.map((a) => renderAlertItemHtml(a, true)).join('')
-      : '<p class="muted small">No swings currently meet High-ROI Model thresholds (Net Edge >= $0.05 &amp; Exp ROI >= 15%).</p>';
+  const host = qs('#topic-cards');
+  host.innerHTML = '';
+  for (const topic of TOPIC_ORDER) {
+    const stats = data.topicStats(topic);
+    const alerts = data.alerts().filter((a) => a.topic === topic).length;
+    const card = el('a', { class: 'topic-card', href: TOPICS[topic].page });
+    card.style.setProperty('--topic-color', TOPICS[topic].color);
+    card.innerHTML = `
+      <div class="tc-top"><span class="tc-name">${esc(TOPICS[topic].name)}</span><span class="badge badge-neutral">${stats.events} live</span></div>
+      <div class="tc-stat">${fmtContracts(stats.volume)} ct</div>
+      <div class="tc-sub">${alerts} ≥$0.10 move${alerts === 1 ? '' : 's'} · ${stats.markets} markets tracked</div>`;
+    host.append(card);
   }
 }
 
-function renderChartAndOrderbook() {
-  const market = engine.getMarket(selectedTicker);
-  if (!market) return;
-
-  const selectEl = document.getElementById('chart-market-select');
-  if (selectEl && !selectEl.options.length) {
-    ALLOWED_TOPICS.forEach((topicId) => {
-      const grp = document.createElement('optgroup');
-      grp.label = TOPICS[topicId].name;
-      engine.getMarketsByTopic(topicId).forEach((m) => {
-        const opt = document.createElement('option');
-        opt.value = m.ticker;
-        opt.textContent = `${m.ticker} — ${m.title}`;
-        grp.appendChild(opt);
-      });
-      selectEl.appendChild(grp);
-    });
-  }
-  if (selectEl) selectEl.value = market.ticker;
-
-  const metaEl = document.getElementById('chart-market-meta');
-  if (metaEl) {
-    metaEl.innerHTML = `
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        ${formatTopicBadge(market.topic)}
-        <strong class="mono">${escapeHtml(market.ticker)}</strong>
-        ${formatResolutionBadge(market)}
-        <span class="mono" style="font-size:15px;font-weight:700;">Current: $${market.currentPrice.toFixed(2)}</span>
-        ${formatDeltaBadge(market.lastDelta)}
-        <span class="tiny muted">Verified Vol: ${market.volumeUsd ? '$' + market.volumeUsd.toLocaleString() : 'Unverified'}</span>
-        ${formatSourceLink(market.sourceUrl, 'Official Kalshi Market')}
-      </div>
-      <div class="tiny muted" style="margin-top:4px;">${escapeHtml(market.roi.reason)}</div>
-    `;
-  }
-
-  const canvas = document.getElementById('live-price-chart');
-  renderPriceChart(canvas, market, selectedTimeframe, {
-    onMarkerSelect: (marker) => {
-      selectedMarker = marker;
-      renderCatalystPanel(market);
-    }
-  });
-
-  renderCatalystPanel(market);
-
-  const obEl = document.getElementById('live-orderbook-panel');
-  if (obEl) {
-    obEl.innerHTML = renderOrderbookHtml(market.orderbook, market.ticker);
-  }
-
-  // Update quick trade defaults
-  const priceInput = document.getElementById('qt-price');
-  if (priceInput && document.activeElement !== priceInput) {
-    priceInput.value = market.currentPrice.toFixed(2);
-  }
-}
-
-function renderCatalystPanel(market) {
-  const el = document.getElementById('chart-catalysts');
-  if (!el) return;
-  const markers = market.series.jumpMarkers || [];
-  const activeHtml = selectedMarker && selectedMarker.ticker === market.ticker
-    ? `<div class="status-banner ok" style="margin-bottom:8px;">
-         <strong>Selected >= $0.10 Jump Marker (${selectedMarker.delta >= 0 ? '+' : ''}$${selectedMarker.delta.toFixed(2)}):</strong>
-         ${escapeHtml(selectedMarker.label)} ·
-         ${formatSourceLink(selectedMarker.url, selectedMarker.sourceName)}
-       </div>`
-    : '';
-
-  if (!markers.length) {
-    el.innerHTML = `
-      ${activeHtml}
-      <strong>Sharp Jump Catalysts (&gt;= $0.10):</strong>
-      <span class="muted">No &gt;= $0.10 catalyst markers logged for ${escapeHtml(market.ticker)} yet. Click "Trigger &gt;= $0.10 Swing" or select a market with verified catalysts.</span>
-    `;
+function renderEventsTable() {
+  const body = qs('#events-table-body');
+  if (!body) return;
+  const events = data.allEvents()
+    .filter((e) => state.eventTopic === 'all' || e.topic === state.eventTopic)
+    .sort((a, b) => (b.est_dollars_traded || 0) - (a.est_dollars_traded || 0));
+  body.innerHTML = '';
+  if (!events.length) {
+    body.innerHTML = '<tr><td colspan="9" class="table-empty">No tracked events for this filter in the current snapshot.</td></tr>';
     return;
   }
-
-  el.innerHTML = `
-    ${activeHtml}
-    <strong>Events &amp; Verified Website Links Linked to &gt;= $0.10 Jumps on ${escapeHtml(market.ticker)}</strong>
-    <span class="tiny muted">(Click any diamond marker on the chart to inspect)</span>
-    <ul class="catalyst-list">
-      ${markers
-        .map(
-          (mk) => `
-        <li>
-          <span class="delta ${mk.delta >= 0 ? 'delta-up' : 'delta-down'}">${mk.delta >= 0 ? '+' : ''}$${mk.delta.toFixed(2)}</span>
-          ${escapeHtml(mk.label)} — ${formatSourceLink(mk.url, mk.sourceName)}
-        </li>
-      `
-        )
-        .join('')}
-    </ul>
-  `;
+  for (const ev of events.slice(0, 40)) {
+    const lead = ev.markets.slice().sort((a, b) => (b.volume || 0) - (a.volume || 0))[0];
+    const vol24 = ev.markets.reduce((s, m) => s + (m.volume_24h || 0), 0);
+    const resolvedYes = ev.markets.filter((m) => (m.result || '').toLowerCase() === 'yes').length;
+    const resolvedNo = ev.markets.filter((m) => (m.result || '').toLowerCase() === 'no').length;
+    const openCount = ev.markets.filter((m) => m.status === 'active').length;
+    const statusBadge = openCount
+      ? `<span class="badge badge-open">${openCount} open</span>`
+      : `<span class="badge badge-neutral">closed</span>`;
+    const tr = el('tr');
+    tr.innerHTML = `
+      <td class="title"><a class="row-link" href="${esc(ev.kalshi_url)}" target="_blank" rel="noopener noreferrer">${esc(ev.title || ev.event_ticker)}</a>
+        <div class="ticker">${esc(ev.event_ticker)}</div></td>
+      <td>${topicDot(ev.topic)}</td>
+      <td class="num">${fmtContracts(ev.volume_total)}</td>
+      <td class="num">${fmtUsd(ev.est_dollars_traded)}<div class="tiny">estimate</div></td>
+      <td class="num">${fmtContracts(vol24)}</td>
+      <td class="num">${lead ? fmtPrice(data.bestPrice(lead)) : '—'}<div class="tiny">${lead ? esc((lead.subtitle || '').slice(0, 26)) : ''}</div></td>
+      <td>${statusBadge}${resolvedYes || resolvedNo ? `<div class="tiny">YES ${resolvedYes} · NO ${resolvedNo}</div>` : ''}</td>
+      <td class="tiny">${esc(fmtDate(lead?.close_time))}</td>
+      <td class="tiny"><a href="${esc(ev.kalshi_url)}" target="_blank" rel="noopener noreferrer">Kalshi</a> · <a href="${esc(lead?.api_url || SITE.apiBase)}" target="_blank" rel="noopener noreferrer">API</a></td>`;
+    body.append(tr);
+  }
 }
 
-function renderMarketsTable() {
-  const tbody = document.getElementById('markets-table-body');
-  if (!tbody) return;
-
-  const topicsToShow = selectedTableTopic === 'all' ? ALLOWED_TOPICS : [selectedTableTopic];
-  const rows = [];
-
-  topicsToShow.forEach((topicId) => {
-    const t = TOPICS[topicId];
-    const items = engine.getMarketsByTopic(topicId);
-    rows.push(`
-      <tr class="topic-group-row">
-        <td colspan="9">
-          ${formatTopicBadge(topicId)}
-          <span style="margin-left:6px;">${escapeHtml(t.name)} — ${items.length} Verified Markets (Sorted by Dollar Volume)</span>
-          <a href="${t.pagePath}" style="float:right;font-size:12px;">Open ${escapeHtml(t.name)} Subpage →</a>
-        </td>
-      </tr>
-    `);
-
-    items.forEach((m) => {
-      const isSelected = m.ticker === selectedTicker;
-      rows.push(`
-        <tr class="${isSelected ? 'selected-row' : ''}">
-          <td>
-            <button class="link-btn ticker-jump-btn" data-ticker="${escapeHtml(m.ticker)}">${escapeHtml(m.ticker)}</button>
-            <div class="tiny muted">${escapeHtml(m.closeWindow)}</div>
-          </td>
-          <td>
-            <strong>${escapeHtml(m.title)}</strong>
-            <div class="tiny muted">Settlement: ${escapeHtml(m.settlementSource)}</div>
-          </td>
-          <td class="mono">${formatDollarVolume(m.volumeUsd)}</td>
-          <td class="mono"><strong>${formatPrice(m.currentPrice)}</strong> ${formatDeltaBadge(m.lastDelta)}</td>
-          <td class="mono">${formatPrice(m.observedPrice)}</td>
-          <td>${formatResolutionBadge(m)}</td>
-          <td class="tiny">${m.roi.qualified ? `<span class="badge badge-verified">High ROI (+${m.roi.expectedRoiPct}%)</span>` : '<span class="muted">Watch</span>'}</td>
-          <td>${formatSourceLink(m.sourceUrl, m.sourceLabel)}</td>
-          <td>
-            <button class="btn-xs btn-inspect" data-ticker="${escapeHtml(m.ticker)}">Chart</button>
-          </td>
-        </tr>
-      `);
-    });
-  });
-
-  tbody.innerHTML = rows.join('');
+function topicDot(topic) {
+  const t = TOPICS[topic];
+  return `<span class="badge badge-neutral"><span class="dot" style="background:${t?.color || '#64748b'}"></span>${esc(t?.name || topic)}</span>`;
 }
 
-function bindEvents() {
-  const selectEl = document.getElementById('chart-market-select');
-  if (selectEl) {
-    selectEl.addEventListener('change', (e) => {
-      selectedTicker = e.target.value;
-      selectedMarker = null;
-      renderChartAndOrderbook();
-      renderMarketsTable();
-    });
+function renderResolutions() {
+  const body = qs('#resolutions-table-body');
+  if (!body) return;
+  const rows = data.resolutions().slice(0, 20);
+  body.innerHTML = '';
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="6" class="table-empty">No settlements captured in this refresh window.</td></tr>';
+    return;
   }
-
-  document.querySelectorAll('[data-timeframe]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      selectedTimeframe = btn.dataset.timeframe;
-      document.querySelectorAll('[data-timeframe]').forEach((b) => b.classList.toggle('active', b === btn));
-      renderChartAndOrderbook();
-    });
-  });
-
-  document.querySelectorAll('[data-topic-filter]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      selectedTableTopic = btn.dataset.topicFilter;
-      document.querySelectorAll('[data-topic-filter]').forEach((b) => b.classList.toggle('active', b === btn));
-      renderMarketsTable();
-    });
-  });
-
-  const liveBtn = document.getElementById('btn-toggle-live');
-  if (liveBtn) {
-    liveBtn.addEventListener('click', () => {
-      const running = engine.toggleLive();
-      liveBtn.innerHTML = running
-        ? '<span class="live-dot"></span>Live Stream: ON'
-        : '<span class="live-dot paused"></span>Live Stream: PAUSED';
-    });
+  for (const r of rows) {
+    const tr = el('tr');
+    tr.innerHTML = `
+      <td>${esc(fmtDate(r.close_time))}</td>
+      <td class="title"><a class="row-link" href="${esc(r.kalshi_url)}" target="_blank" rel="noopener noreferrer">${esc(r.event_title || r.title)}</a>
+        <div class="ticker">${esc(r.ticker)}</div></td>
+      <td>${topicDot(r.topic)}</td>
+      <td><span class="badge badge-${String(r.result).toLowerCase() === 'yes' ? 'yes' : 'no'}">${esc(r.result)}</span></td>
+      <td class="num">${isNum(r.settlement_value) ? `$${r.settlement_value.toFixed(2)}` : '—'}</td>
+      <td class="num">${fmtContracts(r.volume)}</td>`;
+    body.append(tr);
   }
-
-  const triggerBtn = document.getElementById('btn-trigger-swing');
-  if (triggerBtn) {
-    triggerBtn.addEventListener('click', () => {
-      const m = engine.getMarket(selectedTicker);
-      const target = m && m.status === 'Open' ? m.ticker : null;
-      engine.runTick(target);
-    });
-  }
-
-  const testApiBtn = document.getElementById('btn-test-demo-api');
-  if (testApiBtn) {
-    testApiBtn.addEventListener('click', async () => {
-      const banner = document.getElementById('demo-api-status');
-      if (banner) {
-        banner.textContent = 'Testing live Kalshi Demo REST connectivity (external-api.demo.kalshi.co)...';
-        banner.className = 'status-banner';
-      }
-      const res = await engine.client.testPublicConnectivity();
-      if (banner) {
-        banner.textContent = res.status.message;
-        banner.className = res.ok ? 'status-banner ok' : 'status-banner warn';
-      }
-    });
-  }
-
-  // Delegate clicks on ticker buttons, Chart buttons, and orderbook price rows
-  document.body.addEventListener('click', (e) => {
-    const inspectBtn = e.target.closest('.btn-inspect, .ticker-jump-btn');
-    if (inspectBtn && inspectBtn.dataset.ticker) {
-      selectedTicker = inspectBtn.dataset.ticker;
-      selectedMarker = null;
-      renderChartAndOrderbook();
-      renderMarketsTable();
-      const chartCard = document.getElementById('interactive-chart-section');
-      if (chartCard) chartCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      return;
-    }
-
-    const obRow = e.target.closest('.ob-row');
-    if (obRow && obRow.dataset.price) {
-      const priceInput = document.getElementById('qt-price');
-      if (priceInput) priceInput.value = obRow.dataset.price;
-    }
-  });
-
-  // Quick Trade Form
-  const qtForm = document.getElementById('quick-trade-form');
-  if (qtForm) {
-    const catSelect = document.getElementById('qt-category');
-    if (catSelect) {
-      catSelect.innerHTML = TRADE_CATEGORIES.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-    }
-    qtForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const msgEl = document.getElementById('qt-feedback');
-      try {
-        const side = document.getElementById('qt-side').value;
-        const contracts = Number(document.getElementById('qt-contracts').value);
-        const price = Number(document.getElementById('qt-price').value);
-        const category = document.getElementById('qt-category').value;
-        const trade = engine.executePaperTrade({
-          ticker: selectedTicker,
-          action: 'BUY',
-          side,
-          contracts,
-          price,
-          category,
-          note: `Dashboard Quick Trade (${category})`
-        });
-        if (msgEl) {
-          msgEl.className = 'status-banner ok';
-          msgEl.textContent = `Executed Demo Trade ${trade.id}: BUY ${trade.contracts} ${trade.side} on ${trade.ticker} @ $${trade.price.toFixed(2)}. Track in Portfolio & Strategies.`;
-        }
-      } catch (err) {
-        if (msgEl) {
-          msgEl.className = 'status-banner warn';
-          msgEl.textContent = err.message;
-        }
-      }
-    });
-  }
-
-  window.addEventListener('resize', () => renderChartAndOrderbook());
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  renderHeader('dashboard');
-  renderFooter();
-  bindEvents();
+function initChart() {
+  const canvas = qs('#chart-canvas');
+  chart = new PriceChart(canvas, {
+    tooltipEl: qs('#chart-tooltip'),
+    popoverEl: qs('#chart-popover'),
+  });
+  qs('#chart-market-select').addEventListener('change', (ev) => {
+    state.selectedTicker = ev.target.value;
+    drawChart();
+  });
+  drawChart();
+}
 
-  const renderAll = () => {
-    renderKpis();
-    renderTopicCards();
-    renderDualChats();
-    renderChartAndOrderbook();
-    renderMarketsTable();
-  };
+function selectMarket(ticker) {
+  state.selectedTicker = ticker;
+  const select = qs('#chart-market-select');
+  if (select) select.value = ticker;
+  drawChart();
+  qs('#chart-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
-  renderAll();
-  engine.subscribe(() => renderAll());
-  engine.start();
-});
+function drawChart() {
+  if (!chart || !state.selectedTicker) return;
+  qs('#chart-market-select').value = state.selectedTicker;
+  const market = data.byTicker.get(state.selectedTicker);
+  if (!market) return;
+
+  const refs = data.snapshot?.topics?.[market.topic]?.reference_links || [];
+  const catalystLinks = refs.filter((r) => r.reachable).map((r) => ({ label: r.label, url: r.url }));
+
+  let series;
+  let tfLabel;
+  if (state.timeframe === 'live') {
+    series = data.liveSeries(market.ticker, 300);
+    tfLabel = 'live browser ticks (seconds)';
+  } else {
+    series = data.candlesFor(market.ticker, state.timeframe).map((c) => ({ t: c.t, price: c.price }));
+    tfLabel = TIMEFRAMES.find((t) => t.id === state.timeframe)?.label || state.timeframe;
+  }
+  if (!series.length) {
+    const m1 = data.candlesFor(market.ticker, '1m').map((c) => ({ t: c.t, price: c.price }));
+    series = m1;
+    if (state.timeframe === 'live') tfLabel += ' — no ticks yet, showing 1-minute candles';
+  }
+
+  const markers = data.alerts()
+    .filter((a) => a.ticker === market.ticker)
+    .map((a) => ({
+      ...a,
+      ts: typeof a.ts === 'number' ? a.ts * 1000 : Date.parse(a.iso_time),
+      catalyst_links: catalystLinks,
+    }));
+
+  chart.setData({ series, markers, label: tfLabel, priceLabel: `${market.ticker} · ${tfLabel}` });
+
+  const meta = qs('#chart-meta');
+  const price = data.bestPrice(market);
+  const ob = market.orderbook;
+  meta.innerHTML = `
+    <div class="pill-row">
+      <span class="badge ${market.status === 'active' ? 'badge-open' : 'badge-neutral'}">${esc(market.status || 'unknown')}</span>
+      ${topicDot(market.topic)}
+      <span class="badge badge-neutral">last ${fmtPrice(price)}</span>
+      <span class="badge badge-neutral">bid ${fmtPrice(ob?.best_yes_bid ?? market.yes_bid)} / ask ${fmtPrice(ob?.best_yes_ask ?? market.yes_ask)}</span>
+      ${market.result ? `<span class="badge badge-${String(market.result).toLowerCase()}">resolved ${esc(String(market.result).toUpperCase())}</span>` : ''}
+      <span class="tiny">closes ${esc(fmtDateTime(market.close_time))}</span>
+      <span class="tiny"><a href="${esc(market.kalshi_url)}" target="_blank" rel="noopener noreferrer">Kalshi page</a> · <a href="${esc(market.api_url)}" target="_blank" rel="noopener noreferrer">API record</a></span>
+    </div>
+    <div class="small" style="margin-top:4px">${esc(market.event_title || '')} — ${esc(market.title || '')}</div>`;
+
+  renderCatalysts(market, catalystLinks);
+  renderOrderbook(qs('#orderbook-panel'), market, {
+    onLevelClick: (level) => {
+      const qty = qs('#qt-qty');
+      if (qty) qty.value = String(Math.max(1, Math.floor(level.contracts)));
+      toast(`Loaded ${Math.floor(level.contracts)} contracts at ${fmtPrice(level.price)} into the ticket`, 'ok');
+    },
+  });
+  renderQuickTradeDefaults();
+  updateTicketPreview();
+}
+
+function renderCatalysts(market, links) {
+  const host = qs('#chart-catalysts');
+  if (!host) return;
+  const moves = data.alerts().filter((a) => a.ticker === market.ticker).slice(0, 4);
+  const items = moves.map((a) => `
+    <li>
+      <strong>${fmtDelta(a.delta)}</strong> ${fmtPrice(a.from_price)} → ${fmtPrice(a.to_price)}
+      at ${esc(fmtClock(typeof a.ts === 'number' ? a.ts * 1000 : Date.parse(a.iso_time)))} (${esc(a.interval)})
+      — <a href="${esc(a.kalshi_url)}" target="_blank" rel="noopener noreferrer">event</a>
+    </li>`).join('');
+  host.innerHTML = `
+    <h3 style="margin-bottom:6px">≥ $0.10 jump markers on this contract</h3>
+    ${items ? `<ul class="tight">${items}</ul>` : '<div class="small">No ≥ $0.10 move for this contract in the current candle window.</div>'}
+    <div class="hr"></div>
+    <div class="small"><strong>Primary-source pages for this topic</strong> (candidate causes, not confirmed):</div>
+    <ul class="tight small">${links.map((l) => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.label)}</a></li>`).join('') || '<li>none verified this refresh</li>'}</ul>
+    <div class="tiny">Marker causality is not asserted: Kalshi candles show the price move, the linked pages are the official data sources for the topic.</div>`;
+}
+
+function renderQuickTradeDefaults() {
+  const strategySelect = qs('#qt-strategy');
+  if (!strategySelect || strategySelect.options.length) return;
+  for (const name of ['Manual', 'Swing Mean-Reversion', 'Momentum Breakout', 'High-ROI Model', 'News Catalyst']) {
+    strategySelect.append(el('option', { value: name, text: name }));
+  }
+}
+
+function updateTicketPreview() {
+  const host = qs('#qt-preview');
+  if (!host || !state.selectedTicker) return;
+  const market = data.byTicker.get(state.selectedTicker);
+  const side = qs('#qt-side')?.value || 'YES';
+  const qty = Number(qs('#qt-qty')?.value || 1);
+  const quote = account.priceFor(market.ticker, side);
+  if (!quote) { host.textContent = 'No usable quote.'; return; }
+  const cost = quote.price * qty;
+  host.innerHTML = `Est. ${qty} × ${fmtPrice(quote.price)} = <strong>$${cost.toFixed(2)}</strong> <span class="tiny">(${esc(quote.source)}; max payout $${(qty * 1).toFixed(2)})</span>`;
+}
+
+function bindControls() {
+  qs('#qt-side')?.addEventListener('change', updateTicketPreview);
+  qs('#qt-qty')?.addEventListener('input', updateTicketPreview);
+  qs('#quick-trade-form')?.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    if (!state.selectedTicker) return;
+    const side = qs('#qt-side').value;
+    const qty = Number(qs('#qt-qty').value);
+    const strategy = qs('#qt-strategy').value;
+    try {
+      const pos = account.buy({ ticker: state.selectedTicker, side, qty, strategy, note: 'dashboard ticket' });
+      qs('#qt-feedback').innerHTML = `<span class="status-ok">Filled</span> ${pos.qty} × ${side} @ ${fmtPrice(pos.entry)} (${esc(pos.entry_source)})`;
+      toast(`Paper fill: ${pos.qty} × ${side} ${state.selectedTicker}`, 'ok');
+      refreshTradeKpis();
+      renderKpis();
+      updateTicketPreview();
+    } catch (err) {
+      qs('#qt-feedback').innerHTML = `<span class="status-err">${esc(err.message)}</span>`;
+    }
+  });
+  qs('#btn-refresh-data')?.addEventListener('click', async () => {
+    try {
+      await data.load();
+      renderStatus(); renderKpis(); renderTopicCards(); renderEventsTable(); renderResolutions();
+      drawChart();
+      toast('Snapshot reloaded from the repository', 'ok');
+    } catch (err) {
+      toast(`Reload failed: ${err.message}`, 'err');
+    }
+  });
+  qs('#btn-toggle-live')?.addEventListener('click', (ev) => {
+    if (data.live.enabled) {
+      data.stopLive();
+      ev.target.textContent = 'Live polling: OFF';
+    } else {
+      data.startLive();
+      ev.target.textContent = 'Live polling: ON';
+    }
+  });
+  qs('#btn-pause-all')?.addEventListener('click', (ev) => togglePause(ev, [feedAll]));
+  qs('#btn-pause-model')?.addEventListener('click', (ev) => togglePause(ev, [feedModel]));
+}
+
+function togglePause(ev, feeds) {
+  state.feedsPaused = !state.feedsPaused;
+  for (const feed of feeds) feed.setPaused(state.feedsPaused);
+  ev.target.textContent = state.feedsPaused ? 'Resume feed' : 'Pause feed';
+}
+
+function refreshTradeKpis() {
+  const cash = qs('#qt-cash');
+  if (cash && account) {
+    cash.innerHTML = `Paper cash <strong>$${account.cash.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> · ${account.openPositions.length} open positions · <a href="portfolio.html">Portfolio →</a>`;
+  }
+}
+
+boot();
