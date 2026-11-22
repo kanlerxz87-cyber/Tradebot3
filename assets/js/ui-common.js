@@ -221,7 +221,11 @@ export function renderOrderbookHtml(orderbook, ticker) {
 export function renderAlertItemHtml(alert, isHighRoiFeed = false) {
   const dirIcon = alert.direction === 'UP' ? '▲' : '▼';
   const dirCls = alert.direction === 'UP' ? 'chat-up' : 'chat-down';
-  const simTag = alert.simulated ? '<span class="badge badge-sim">Live Demo Tick</span>' : '<span class="badge badge-verified">Verified Observed Swing</span>';
+  const simTag = alert.simulated
+    ? '<span class="badge badge-sim">Live Demo Tick</span>'
+    : alert.verifiedSwing
+    ? '<span class="badge badge-verified">Verified Observed Swing</span>'
+    : '<span class="badge badge-unverified" title="Seeded from catalog; not an observed Kalshi tick. See Flagged for Review.">Unverified Catalog Alert</span>';
   const roiHtml =
     isHighRoiFeed && alert.roi
       ? `<div class="roi-callout"><strong>High-ROI Model Signal:</strong> ${escapeHtml(alert.roi.reason)}</div>`

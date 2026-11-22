@@ -2,7 +2,7 @@
 
 > **Repository:** `kanlerxz87-cyber/Tradebot3`
 > **Live Site (GitHub Pages):** https://kanlerxz87-cyber.github.io/Tradebot3/
-> **Active Session ID:** `arena-3716ae8d`
+> **Active Session ID:** `arena-a8cfdaeb` (prior session: `arena-3716ae8d`, merged via PR #1)
 > **Working Branch:** `arena/3716ae8d-tradebot3` (Arena fixed session branch; branched from `main` at `62713af9e466cd393c61be0df37e5de0872919cc`)
 > **Last Updated:** 2026-11-22 (UTC)
 
@@ -25,6 +25,7 @@
 | T-03 | Kalshi Demo API client (RSA-PSS signing + public REST + paper fallback), `>= $0.10` swing alert engine, dual chat feeds, lifecycle resolution tracker, automated strategy simulator & portfolio engine | `done` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `assets/js/kalshi-client.js`, `assets/js/engine.js`, `assets/js/charts.js`, `assets/js/ui-common.js` |
 | T-04 | GitHub Pages site: Landing Dashboard, 5 Separate Category Subpages, Portfolio/Strategy Lab, API Verification/Suggestions, and Flagged for Review page | `done` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `.nojekyll`, `index.html`, `portfolio.html`, `verification.html`, `flagged-for-review.html`, `categories/*.html`, `assets/css/styles.css`, `assets/js/dashboard.js`, `assets/js/category-page.js`, `assets/js/portfolio-page.js`, `assets/js/verification-page.js` |
 | T-05 | Automated verification script, link integrity check, live HTTP server testing, PR creation, merge to `main`, and GitHub Pages deploy confirmation | `done` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `scripts/verify_site.py`, `COORDINATION.md` |
+| T-06 | Re-verify stored Kalshi values against official kalshi.com pages (sample of 6 markets); relabel unverified swing alerts as Unverified; publish mismatches on Flagged for Review | `done` (sample only) | `arena-a8cfdaeb` | `arena/a8cfdaeb-tradebot3` | `assets/js/ui-common.js`, `assets/js/engine.js`, `flagged-for-review.html`, `COORDINATION.md` |
 | R-01 | Flagged Irregularities IRREG-01 through IRREG-08 & unverified static fields (published on `flagged-for-review.html`) | `needs review` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `flagged-for-review.html`, `assets/js/data.js` |
 
 ---
@@ -117,3 +118,21 @@
 - **PR URL:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/1
 - **Merge Method:** `gh pr merge 1 --merge` (merged into `main` on 2026-11-22 UTC after passing `scripts/verify_site.py` with 0 broken links)
 - **GitHub Pages Live URL:** https://kanlerxz87-cyber.github.io/Tradebot3/
+
+---
+
+## Session Log — arena-a8cfdaeb (2026-11-22 UTC)
+
+- **Claim:** T-06 claimed by `arena-a8cfdaeb` on `arena/a8cfdaeb-tradebot3` (base `08ad596`, main). Other remote branches `arena/65788ad9-tradebot3` (claim commit only, base `62713af`) and `arena/6ef90159-tradebot3` (build commits, base `62713af`) were read-only reviewed and not modified.
+- **Repo review:** `python3 scripts/verify_site.py` passed on the base commit (23 files, 35 internal links, 0 broken).
+- **Official sources checked (fetched 2026-11-22):**
+  - https://docs.kalshi.com/getting_started/demo_env — demo REST `external-api.demo.kalshi.co/trade-api/v2` (recommended) and `demo-api.kalshi.co/trade-api/v2` (also supported); WS `external-api-ws.demo.kalshi.co/trade-api/ws/v2` and `demo-api.kalshi.co/trade-api/ws/v2`. **Matches site.**
+  - https://docs.kalshi.com/getting_started/api_environments — same demo hosts; also notes new `user-ws.demo.kalshi.co` for fill/order updates and `external-feeds.demo.kalshi.co` for external feeds. **The site does not mention these; they are logged as IRREG-11 (Low).**
+  - Market pages (6 sampled): see table on `flagged-for-review.html` "Re-verification 2026-11-22". Results: 2 MATCH, 4 MISMATCH (stored price and/or volume and/or status differ from official page).
+- **Irregularities found this session (published on Flagged for Review):**
+  - **IRREG-09 (High):** The landing page and category pages label seeded `>= $0.10` swing alerts as "Verified Observed Swing". `engine.js seedInitialAlerts()` builds them from authored catalog deltas, not observed ticks. Fixed: badge now reads "Unverified Catalog Alert" unless `verifiedSwing` is true (none are).
+  - **IRREG-10 (High):** Stored `observedPrice` disagrees with the official page for KXAAAGASMAX-26DEC31 (stored 0.51, official Yes 6¢), KXAAAGASMIN-26DEC31 (0.55 vs 69¢), KXPRESNOMD-28 (0.26 vs 24¢), KXETHMINY-27JAN01 (0.42 vs 63¢). Stored values are retained and flagged; not silently replaced. Needs a refresh pass.
+  - **IRREG-12 (Medium):** CONTROLS-2026 stored as Open; official page title is "Senate Control 2026 Results: Democrats Win" with Democratic Party 100%. Status needs confirmation.
+  - **IRREG-13 (Low):** Stored volumes differ from official pages for 4 of 6 sampled markets (e.g. KXAAAGASMAX $1,836,232 stored vs $2,150,412 official). Likely a timing difference; not confirmed.
+- **Scope limits:** 6 of 29 markets sampled. Golf, Culture, and Crypto markets beyond the sample have not been re-verified. Kalshi's own pages do not show a snapshot time for each value, so historical values cannot be confirmed.
+- **Status:** T-06 done for the sampled scope. Remaining 23 markets are unverified and remain flagged.
