@@ -116,6 +116,7 @@ export function fmtDateTime(value) {
   const t = parseTs(value);
   if (!Number.isFinite(t)) return '—';
   return new Date(t).toLocaleString('en-US', {
+    timeZone: 'UTC',
     month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
   });
 }
@@ -124,6 +125,7 @@ export function fmtClock(value) {
   const t = parseTs(value);
   if (!Number.isFinite(t)) return '—';
   return new Date(t).toLocaleTimeString('en-US', {
+    timeZone: 'UTC',
     hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
   });
 }
@@ -131,7 +133,7 @@ export function fmtClock(value) {
 export function fmtDate(value) {
   const t = parseTs(value);
   if (!Number.isFinite(t)) return '—';
-  return new Date(t).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' });
+  return new Date(t).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'short', day: '2-digit' });
 }
 
 export function timeAgo(value) {
