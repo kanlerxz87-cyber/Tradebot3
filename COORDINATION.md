@@ -201,7 +201,7 @@
 ## Current Independent Audit — `arena-2f46e0b1` (2026-11-22 UTC)
 
 ### Scope and findings
-- Rebased audit commit `086d2a2` onto `origin/main` at `5851fb3`; resolution is still in progress until all conflicts are staged and `git rebase --continue` completes. No push or PR has been made.
+- Rebased audit commit `086d2a2` onto `origin/main` at `5851fb3`; rebase completed as `a7df015` on `arena/2f46e0b1-tradebot3`. The resolved tree passed `git diff --check`, `python3 scripts/verify_site.py` (29 markets, 16 API rows, 12 irregularities, zero broken links), `node --check` across all JS modules, and HTTP 200 smoke checks on 11 routes. Push/PR/deployment are not yet recorded.
 - Preserved the historical Session 2 source ledger above, including the official Kalshi Senate Control result: Determined, YES, 100%.
 - Current live quote, swing, volume, and resting depth remain blank. Eight earlier Session 2 market-page observations are stored in separate `snapshot*` fields with the capture timestamp `2026-11-22T07:27:00Z`; the interface identifies these as historical page snapshots, not live Demo data. All remaining rows have no snapshot values.
 - Paper simulation seeds/fair values remain explicitly simulation-only; audit caveats IRREG-15 through IRREG-17 cover snapshot freshness, absence of a continuous authenticated market stream, and disabled live account/order synchronization.
