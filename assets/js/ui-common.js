@@ -42,7 +42,7 @@ export function renderHeader(activeKey) {
           <span class="brand-mark">TB3</span>
           <div>
             <div class="brand-title">Tradebot3 · Kalshi Demo</div>
-            <div class="brand-sub">5-Topic Live Event &amp; Swing Alert Dashboard</div>
+            <div class="brand-sub">5-Topic Market Catalog &amp; Paper Simulator</div>
           </div>
         </a>
         <nav class="nav-links" aria-label="Primary Navigation">
@@ -69,7 +69,7 @@ export function renderFooter() {
     <footer class="site-footer">
       <div class="container footer-inner">
         <div>
-          <strong>Tradebot3 — Kalshi Demo Dashboard</strong> · Strictly scoped to Gas Prices, Elections, Culture, Crypto &amp; Golf.
+          <strong>Tradebot3 — Kalshi Market Catalog &amp; Paper Simulator</strong> · Strictly scoped to Gas Prices, Elections, Culture, Crypto &amp; Golf. No live market feed is currently connected.
           <div class="muted small">Last verified against official Kalshi docs &amp; market pages: ${escapeHtml(LAST_VERIFIED_UTC)}. Unconfirmable values are left blank and flagged as Unverified.</div>
         </div>
         <div class="footer-links">
@@ -94,6 +94,25 @@ export function formatDollarVolume(volumeUsd) {
     return formatUnverifiedCell('Unverified');
   }
   return `$${Number(volumeUsd).toLocaleString('en-US')}`;
+}
+
+function formatSnapshotTime(timestamp) {
+  if (!timestamp) return 'Snapshot time unavailable';
+  return `Captured ${escapeHtml(timestamp.replace('T', ' ').replace('Z', ' UTC'))}`;
+}
+
+export function formatSnapshotVolume(volumeUsd, timestamp) {
+  if (volumeUsd === null || volumeUsd === undefined || !timestamp) {
+    return formatUnverifiedCell('No verified snapshot');
+  }
+  return `$${Number(volumeUsd).toLocaleString('en-US')}<div class="tiny muted">${formatSnapshotTime(timestamp)} · not live</div>`;
+}
+
+export function formatSnapshotPrice(price, swing, timestamp) {
+  if (price === null || price === undefined || !timestamp) {
+    return formatUnverifiedCell('No verified snapshot');
+  }
+  return `$${Number(price).toFixed(2)}${swing !== null && swing !== undefined ? ` ${formatDeltaBadge(swing)}` : ''}<div class="tiny muted">${formatSnapshotTime(timestamp)} · not live</div>`;
 }
 
 export function formatPrice(price) {
@@ -124,7 +143,7 @@ export function formatResolutionBadge(market) {
     return `<span class="badge badge-no">Resolved NO ($0.00)</span>`;
   }
   if (market.resolution === 'OPEN') {
-    return `<span class="badge badge-open">Live / Open</span>`;
+    return `<span class="badge badge-open">Open (unresolved)</span>`;
   }
   return formatUnverifiedCell('Unverified');
 }
@@ -222,13 +241,13 @@ export function renderAlertItemHtml(alert, isHighRoiFeed = false) {
   const dirIcon = alert.direction === 'UP' ? '▲' : '▼';
   const dirCls = alert.direction === 'UP' ? 'chat-up' : 'chat-down';
   const simTag = alert.simulated
-    ? '<span class="badge badge-sim">Live Demo Tick</span>'
+    ? '<span class="badge badge-sim">Paper Simulation — Not Live Market Data</span>'
     : alert.verifiedSwing
     ? '<span class="badge badge-verified">Verified Observed Swing</span>'
-    : '<span class="badge badge-unverified" title="Seeded from catalog; not an observed Kalshi tick. See Flagged for Review.">Unverified Catalog Alert</span>';
+    : '<span class="badge badge-unverified">Unverified Alert</span>';
   const roiHtml =
     isHighRoiFeed && alert.roi
-      ? `<div class="roi-callout"><strong>High-ROI Model Signal:</strong> ${escapeHtml(alert.roi.reason)}</div>`
+      ? `<div class="roi-callout"><strong>Unvalidated Paper Scenario Signal:</strong> ${escapeHtml(alert.roi.reason)}</div>`
       : '';
 
   return `

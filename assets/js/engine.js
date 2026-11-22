@@ -1,17 +1,15 @@
 /**
- * Tradebot3 Live Alerting, Orderbook, Portfolio & Automated Strategy Engine
- * - Enforces >= $0.10 swing alerts in either direction into TWO scrolling chats:
- *   1) All Events Feed
- *   2) High-ROI Model Selective Feed
- * - Generates Seconds / Minutes / Hours chart histories + pinned >= $0.10 catalyst markers
- * - Tracks Demo Portfolio positions, realized/unrealized P&L, trade categorization,
- *   automated simulated strategies, and custom category-based strategies.
+ * Tradebot3 Paper Simulation Engine — no live Kalshi market stream is connected.
+ * - Produces local random >= $0.10 scenario alerts in two scrolling paper feeds.
+ * - Generates simulated Seconds / Minutes / Hours chart histories and synthetic depth.
+ * - Tracks a local mock portfolio, categorized paper trades, and strategy scenarios.
+ * - Dynamic official quotes, volume, and liquidity remain blank in the catalog.
  */
 
 import { VERIFIED_MARKETS, TOPICS, ALLOWED_TOPICS } from './data.js';
 import { KalshiDemoClient } from './kalshi-client.js';
 
-const STORAGE_KEY = 'tradebot3_demo_state_v1';
+const STORAGE_KEY = 'tradebot3_paper_state_v2';
 export const SWING_ALERT_THRESHOLD = 0.10; // >= $0.10 in either direction
 
 export const TRADE_CATEGORIES = [
@@ -155,7 +153,7 @@ export function evaluateHighRoi(market, currentPrice, delta = 0, orderbook = nul
   if (market.status === 'Resolved') {
     return { qualified: false, edge: 0, expectedRoiPct: 0, side: 'NONE', liquidityScore: 0, reason: 'Market settled' };
   }
-  const fair = market.modelFairValue ?? currentPrice;
+  const fair = market.simulationFairValue ?? currentPrice;
   const rawEdge = +(fair - currentPrice).toFixed(3);
   const side = rawEdge >= 0 ? 'YES' : 'NO';
   const entryCost = side === 'YES' ? currentPrice : +(1 - currentPrice).toFixed(2);
@@ -178,18 +176,18 @@ export function evaluateHighRoi(market, currentPrice, delta = 0, orderbook = nul
     edge: +netEdge.toFixed(2),
     expectedRoiPct,
     liquidityScore,
-    reason: `${swingNote} · Model Fair $${fair.toFixed(2)} vs $${currentPrice.toFixed(2)} -> Buy ${side} (Net Edge $${netEdge.toFixed(2)}, Exp ROI +${expectedRoiPct}%, Liq ${liquidityScore}/100)`
+    reason: `SIMULATION ONLY · Unvalidated fair-value assumption $${fair.toFixed(2)} vs simulated price $${currentPrice.toFixed(2)} -> Buy ${side} (Scenario edge $${netEdge.toFixed(2)}, scenario ROI +${expectedRoiPct}%, simulated liquidity ${liquidityScore}/100)`
   };
 }
 
 function generateInitialSeries(market, nowMs) {
   const seed = market.ticker.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-  const basePrice = market.observedPrice;
+  const basePrice = market.simulationSeedPrice;
   const isResolved = market.status === 'Resolved';
 
   const makePoints = (count, stepMs) => {
     const pts = [];
-    let p = isResolved ? (market.resolution === 'YES' ? 0.68 : 0.32) : clampPrice(basePrice - (market.observedSwing || 0));
+    let p = isResolved ? (market.resolution === 'YES' ? 0.68 : 0.32) : clampPrice(basePrice - (market.simulationSeedSwing || 0));
     for (let i = count - 1; i >= 0; i -= 1) {
       const ts = nowMs - i * stepMs;
       const progress = 1 - i / Math.max(1, count - 1);
@@ -201,7 +199,7 @@ function generateInitialSeries(market, nowMs) {
           ? market.resolution === 'YES'
             ? 0.65 + progress * 0.35
             : 0.35 - progress * 0.35
-          : basePrice - (market.observedSwing || 0) * (1 - progress);
+          : basePrice - (market.simulationSeedSwing || 0) * (1 - progress);
         p = isResolved && progress > 0.85 ? basePrice : clampPrice(p * 0.55 + target * 0.45 + noise);
       }
       pts.push({ ts, price: +p.toFixed(2) });
@@ -216,7 +214,7 @@ function generateInitialSeries(market, nowMs) {
   // Pin verified >= $0.10 catalyst jumps onto the series
   const jumpMarkers = [];
   (market.catalysts || []).forEach((cat, idx) => {
-    if (Math.abs(cat.delta) >= SWING_ALERT_THRESHOLD) {
+    if (market.catalystsVerified === true && Math.abs(cat.delta) >= SWING_ALERT_THRESHOLD) {
       const tsMin = nowMs - Math.min(35, Math.max(5, Math.round(cat.timeOffsetMin / 6))) * 60 * 1000;
       const tsHr = nowMs - Math.min(28, Math.max(3, Math.round(cat.timeOffsetMin / 15))) * 3600 * 1000;
       const tsSec = nowMs - Math.min(40, 10 + idx * 12) * 1000;
@@ -267,7 +265,6 @@ export class TradebotEngine {
     this.highRoiAlerts = [];
     this.portfolio = this.loadState();
     this.initMarkets();
-    this.seedInitialAlerts();
   }
 
   loadState() {
@@ -275,109 +272,9 @@ export class TradebotEngine {
       cashBalance: 10000.0,
       startingBalance: 10000.0,
       positions: {},
-      trades: [
-        {
-          id: 'TRD-1001',
-          ts: Date.now() - 1000 * 60 * 140,
-          ticker: 'KXAAAGASMIN-26DEC31',
-          topic: 'gas-prices',
-          action: 'BUY',
-          side: 'YES',
-          contracts: 40,
-          price: 0.45,
-          exitPrice: 0.55,
-          status: 'CLOSED',
-          pnl: 4.0,
-          roiPct: 22.2,
-          category: 'News Catalyst',
-          strategyId: 'strat-momentum',
-          mode: 'Paper Demo',
-          note: 'Entered on AAA national average dropping under $4/gal (+10¢ jump)'
-        },
-        {
-          id: 'TRD-1002',
-          ts: Date.now() - 1000 * 60 * 110,
-          ticker: 'KXETHMINY-27JAN01',
-          topic: 'crypto',
-          action: 'BUY',
-          side: 'YES',
-          contracts: 50,
-          price: 0.25,
-          exitPrice: 0.42,
-          status: 'CLOSED',
-          pnl: 8.5,
-          roiPct: 68.0,
-          category: 'High-ROI Model',
-          strategyId: 'strat-high-roi',
-          mode: 'Paper Demo',
-          note: 'Model flagged ETH downside mispricing after Waller 50bp hike remarks'
-        },
-        {
-          id: 'TRD-1003',
-          ts: Date.now() - 1000 * 60 * 80,
-          ticker: 'KXPGATOUR-THRC26-MTHO',
-          topic: 'golf',
-          action: 'BUY',
-          side: 'YES',
-          contracts: 60,
-          price: 0.13,
-          exitPrice: null,
-          status: 'OPEN',
-          pnl: 0,
-          roiPct: 0,
-          category: 'Momentum Breakout',
-          strategyId: 'strat-momentum',
-          mode: 'Paper Demo',
-          note: 'RSM Classic Round 1-2 surge to T1 (+10¢ breakout)'
-        },
-        {
-          id: 'TRD-1004',
-          ts: Date.now() - 1000 * 60 * 50,
-          ticker: 'KXPRESNOMD-28',
-          topic: 'elections',
-          action: 'BUY',
-          side: 'YES',
-          contracts: 50,
-          price: 0.26,
-          exitPrice: null,
-          status: 'OPEN',
-          pnl: 0,
-          roiPct: 0,
-          category: 'High-ROI Model',
-          strategyId: 'strat-high-roi',
-          mode: 'Paper Demo',
-          note: 'Emerson poll surge + Model Fair Value $0.34 vs $0.26'
-        }
-      ],
+      trades: [],
       strategies: JSON.parse(JSON.stringify(DEFAULT_STRATEGIES)),
-      equityCurve: [
-        { ts: Date.now() - 1000 * 60 * 180, equity: 10000.0 },
-        { ts: Date.now() - 1000 * 60 * 130, equity: 10004.0 },
-        { ts: Date.now() - 1000 * 60 * 95, equity: 10012.5 },
-        { ts: Date.now() - 1000 * 60 * 40, equity: 10014.1 },
-        { ts: Date.now(), equity: 10012.5 }
-      ]
-    };
-
-    // Build initial positions map from open seeded trades
-    fallback.cashBalance = 9991.7; // 10000 + 4.0 + 8.5 - (60*0.13) - (50*0.26)
-    fallback.positions = {
-      'KXPGATOUR-THRC26-MTHO:YES': {
-        ticker: 'KXPGATOUR-THRC26-MTHO',
-        topic: 'golf',
-        side: 'YES',
-        contracts: 60,
-        avgPrice: 0.13,
-        category: 'Momentum Breakout'
-      },
-      'KXPRESNOMD-28:YES': {
-        ticker: 'KXPRESNOMD-28',
-        topic: 'elections',
-        side: 'YES',
-        contracts: 50,
-        avgPrice: 0.26,
-        category: 'High-ROI Model'
-      }
+      equityCurve: [{ ts: Date.now(), equity: 10000.0 }]
     };
 
     try {
@@ -391,7 +288,7 @@ export class TradebotEngine {
         return parsed;
       }
     } catch (_) {
-      // Ignore storage errors
+      // Ignore storage errors; start with an empty simulated portfolio.
     }
     return fallback;
   }
@@ -418,14 +315,14 @@ export class TradebotEngine {
     const now = Date.now();
     this.markets = VERIFIED_MARKETS.filter((m) => ALLOWED_TOPICS.includes(m.topic)).map((m, idx) => {
       const series = generateInitialSeries(m, now);
-      const orderbook = buildSimulatedOrderbook(m.observedPrice, m.volumeUsd, idx + 11);
-      const currentPrice = m.observedPrice;
-      const roi = evaluateHighRoi(m, currentPrice, m.observedSwing || 0, orderbook);
+      const currentPrice = m.simulationSeedPrice;
+      const orderbook = buildSimulatedOrderbook(currentPrice, m.simulationVolumeSeed, idx + 11);
+      const roi = evaluateHighRoi(m, currentPrice, m.simulationSeedSwing || 0, orderbook);
       return {
         ...m,
         currentPrice,
-        prevPrice: clampPrice(currentPrice - (m.observedSwing || 0)),
-        lastDelta: m.observedSwing || 0,
+        prevPrice: clampPrice(currentPrice - (m.simulationSeedSwing || 0)),
+        lastDelta: m.simulationSeedSwing || 0,
         orderbook,
         series,
         roi,
@@ -434,44 +331,6 @@ export class TradebotEngine {
     });
   }
 
-  seedInitialAlerts() {
-    const now = Date.now();
-    const initialSwings = this.markets.filter(
-      (m) => m.status === 'Open' && (Math.abs(m.observedSwing || 0) >= SWING_ALERT_THRESHOLD || (m.catalysts && m.catalysts.some((c) => Math.abs(c.delta) >= SWING_ALERT_THRESHOLD)))
-    );
-
-    initialSwings.forEach((m, idx) => {
-      const primaryCat = (m.catalysts || []).find((c) => Math.abs(c.delta) >= SWING_ALERT_THRESHOLD);
-      const delta = Math.abs(m.observedSwing || 0) >= SWING_ALERT_THRESHOLD
-        ? m.observedSwing
-        : primaryCat
-        ? primaryCat.delta
-        : 0.10;
-      const fromPrice = clampPrice(m.currentPrice - delta);
-      const alert = {
-        id: `ALT-SEED-${idx + 1}`,
-        ts: now - (initialSwings.length - idx) * 1000 * 42,
-        ticker: m.ticker,
-        title: m.title,
-        topic: m.topic,
-        fromPrice,
-        toPrice: m.currentPrice,
-        delta: +delta.toFixed(2),
-        direction: delta >= 0 ? 'UP' : 'DOWN',
-        catalystLabel: primaryCat ? primaryCat.label : 'Catalog-listed >= $0.10 move (unverified tick; see Flagged for Review)',
-        catalystUrl: primaryCat ? primaryCat.url : m.sourceUrl,
-        catalystSource: primaryCat ? primaryCat.sourceName : m.sourceLabel,
-        verifiedSourceUrl: m.sourceUrl,
-        roi: evaluateHighRoi(m, m.currentPrice, delta, m.orderbook),
-        simulated: false,
-        verifiedSwing: false
-      };
-      this.allAlerts.unshift(alert);
-      if (alert.roi.qualified) {
-        this.highRoiAlerts.unshift(alert);
-      }
-    });
-  }
 
   subscribe(fn) {
     this.listeners.add(fn);
@@ -514,14 +373,14 @@ export class TradebotEngine {
     this.notify('status');
   }
 
-  toggleLive() {
+  toggleSimulation() {
     if (this.running) this.stop();
     else this.start();
     return this.running;
   }
 
   /**
-   * Simulate a real-time tick across open markets; periodically produces a >= $0.10 swing alert.
+   * Generate a local paper-simulation tick; periodically generates a synthetic >= $0.10 scenario alert.
    */
   runTick(forceSwingTicker = null) {
     this.tickCount += 1;
@@ -556,7 +415,7 @@ export class TradebotEngine {
       m.currentPrice = next;
       m.lastDelta = actualDelta;
       m.lastUpdated = now;
-      m.orderbook = buildSimulatedOrderbook(next, m.volumeUsd, idx + this.tickCount);
+      m.orderbook = buildSimulatedOrderbook(next, m.simulationVolumeSeed, idx + this.tickCount);
       m.roi = evaluateHighRoi(m, next, actualDelta, m.orderbook);
 
       // Append to seconds series
@@ -593,7 +452,7 @@ export class TradebotEngine {
           delta: actualDelta,
           direction: actualDelta >= 0 ? 'UP' : 'DOWN',
           catalystLabel: cat
-            ? `Simulated Demo Tick (${cat.sourceName} reference): ${cat.label}`
+            ? `Simulated paper tick; unverified context reference (${cat.sourceName}), not a proven catalyst: ${cat.label}`
             : `Simulated Demo Tick: Rapid orderbook repricing (${actualDelta >= 0 ? '+' : ''}$${actualDelta.toFixed(2)})`,
           catalystUrl: cat ? cat.url : m.sourceUrl,
           catalystSource: cat ? cat.sourceName : m.sourceLabel,

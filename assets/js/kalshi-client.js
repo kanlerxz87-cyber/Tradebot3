@@ -198,9 +198,9 @@ export class KalshiDemoClient {
           this.baseUrl = ep;
           this.lastStatus = {
             connected: true,
-            mode: 'live-public-rest',
+            mode: 'public-rest-connectivity-check',
             endpoint: ep,
-            message: `Live Kalshi Demo REST reachable (${(data.markets || []).length} sample markets fetched).`,
+            message: `Kalshi Demo REST reachable (${(data.markets || []).length} sample markets fetched); connectivity only — sample data is not synchronized into the dashboard.`,
             lastChecked: new Date().toISOString()
           };
           return { ok: true, status: this.lastStatus, data };

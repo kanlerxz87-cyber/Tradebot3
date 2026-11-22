@@ -98,9 +98,9 @@ export function renderPriceChart(canvas, market, timeframe = 'minutes', { onMark
     ctx.fillText(formatAxisTime(ts, timeframe), x, pad.top + plotH + 8);
   }
 
-  // Model Fair Value reference line (if open)
-  if (market.status === 'Open' && typeof market.modelFairValue === 'number') {
-    const fy = yFor(market.modelFairValue);
+  // Paper-only, unvalidated simulation fair-value scenario line (if open)
+  if (market.status === 'Open' && typeof market.simulationFairValue === 'number') {
+    const fy = yFor(market.simulationFairValue);
     ctx.save();
     ctx.setLineDash([5, 5]);
     ctx.strokeStyle = '#7c3aed';
@@ -114,7 +114,7 @@ export function renderPriceChart(canvas, market, timeframe = 'minutes', { onMark
     ctx.fillStyle = '#6d28d9';
     ctx.font = '600 10px system-ui, sans-serif';
     ctx.textAlign = 'right';
-    ctx.fillText(`Model Fair $${market.modelFairValue.toFixed(2)}`, width - pad.right - 4, Math.max(pad.top + 8, fy - 7));
+    ctx.fillText(`Sim Scenario $${market.simulationFairValue.toFixed(2)}`, width - pad.right - 4, Math.max(pad.top + 8, fy - 7));
   }
 
   // Area fill under price curve

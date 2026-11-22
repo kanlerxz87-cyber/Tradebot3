@@ -15,6 +15,8 @@ import {
   renderFooter,
   escapeHtml,
   formatDollarVolume,
+  formatSnapshotVolume,
+  formatSnapshotPrice,
   formatPrice,
   formatDeltaBadge,
   formatTopicBadge,
@@ -41,11 +43,10 @@ function renderTopicHeaderAndKpis() {
   const openCount = list.filter((m) => m.status === 'Open').length;
   const yesCount = list.filter((m) => m.resolution === 'YES').length;
   const noCount = list.filter((m) => m.resolution === 'NO').length;
-  const totalVol = list.reduce((s, m) => s + (m.volumeUsd || 0), 0);
 
   const heroTitle = document.getElementById('topic-hero-title');
   const heroDesc = document.getElementById('topic-hero-desc');
-  if (heroTitle) heroTitle.innerHTML = `${formatTopicBadge(topicId)} ${escapeHtml(topicInfo.name)} — Kalshi Live &amp; Resolved Events`;
+  if (heroTitle) heroTitle.innerHTML = `${formatTopicBadge(topicId)} ${escapeHtml(topicInfo.name)} — Kalshi Market Catalog &amp; Paper Simulator`;
   if (heroDesc) heroDesc.textContent = topicInfo.description;
 
   const kpiEl = document.getElementById('topic-kpi-strip');
@@ -54,12 +55,12 @@ function renderTopicHeaderAndKpis() {
       <div class="kpi-card">
         <div class="kpi-label">${escapeHtml(topicInfo.name)} Contracts</div>
         <div class="kpi-value">${list.length}</div>
-        <div class="kpi-sub">${openCount} Open · ${yesCount} YES · ${noCount} NO</div>
+        <div class="kpi-sub">${openCount} Open · ${yesCount} Resolved YES · ${noCount} Resolved NO</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">Verified Dollar Volume</div>
-        <div class="kpi-value">$${totalVol.toLocaleString('en-US')}</div>
-        <div class="kpi-sub">Excluding unverified blank volume cells</div>
+        <div class="kpi-label">Current Market Volume</div>
+        <div class="kpi-value">Unavailable</div>
+        <div class="kpi-sub">Live values blank until synchronized market-data feed is connected</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Topic &gt;= $0.10 Alerts</div>
@@ -98,7 +99,7 @@ function renderTopicChartAndOrderbook() {
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <strong class="mono">${escapeHtml(market.ticker)}</strong>
         ${formatResolutionBadge(market)}
-        <span class="mono"><strong>$${market.currentPrice.toFixed(2)}</strong></span>
+        <span class="badge badge-sim">Paper simulated price: $${market.currentPrice.toFixed(2)}</span>
         ${formatDeltaBadge(market.lastDelta)}
         ${formatSourceLink(market.sourceUrl, 'Kalshi Official')}
       </div>
@@ -154,7 +155,7 @@ function renderTopicAlerts() {
   if (allEl) {
     allEl.innerHTML = topicAlerts.length
       ? topicAlerts.map((a) => renderAlertItemHtml(a, false)).join('')
-      : `<p class="muted small">No &gt;= $0.10 swings logged yet for ${escapeHtml(topicInfo.name)}. Click "Trigger &gt;= $0.10 Swing" to test.</p>`;
+      : `<p class="muted small">Paper simulation only; no live Kalshi stream is connected. Click "Trigger &gt;= $0.10 Swing" to test simulated alerts.</p>`;
   }
   if (roiEl) {
     roiEl.innerHTML = topicRoi.length
@@ -174,9 +175,9 @@ function renderTopicTable() {
     <tr>
       <td class="mono"><button class="link-btn btn-inspect" data-ticker="${escapeHtml(m.ticker)}">${escapeHtml(m.ticker)}</button></td>
       <td><strong>${escapeHtml(m.title)}</strong><div class="tiny muted">${escapeHtml(m.contractLabel)}</div></td>
-      <td class="mono">${formatDollarVolume(m.volumeUsd)}</td>
+      <td class="mono">${formatSnapshotVolume(m.snapshotVolumeUsd, m.snapshotAt)}</td>
       <td class="mono"><strong>${formatPrice(m.currentPrice)}</strong> ${formatDeltaBadge(m.lastDelta)}</td>
-      <td class="mono">${formatPrice(m.observedPrice)}</td>
+      <td class="mono">${formatSnapshotPrice(m.snapshotPrice, m.snapshotSwing, m.snapshotAt)}</td>
       <td>${formatResolutionBadge(m)}</td>
       <td class="small">${escapeHtml(m.settlementSource)}</td>
       <td class="small">${escapeHtml(m.closeWindow)}</td>
@@ -248,7 +249,7 @@ function bindEvents() {
         });
         if (fb) {
           fb.className = 'status-banner ok';
-          fb.textContent = `Demo Order Filled (${trade.id}): BUY ${trade.contracts} ${trade.side} on ${trade.ticker} @ $${trade.price.toFixed(2)}.`;
+          fb.textContent = `Paper Trade Filled (${trade.id}): BUY ${trade.contracts} ${trade.side} on ${trade.ticker} @ $${trade.price.toFixed(2)}.`;
         }
       } catch (err) {
         if (fb) {

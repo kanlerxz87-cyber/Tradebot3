@@ -10,6 +10,8 @@ import {
   renderFooter,
   escapeHtml,
   formatDollarVolume,
+  formatSnapshotVolume,
+  formatSnapshotPrice,
   formatPrice,
   formatDeltaBadge,
   formatTopicBadge,
@@ -27,7 +29,6 @@ let selectedMarker = null;
 function renderKpis() {
   const openCount = engine.markets.filter((m) => m.status === 'Open').length;
   const resolvedCount = engine.markets.filter((m) => m.status === 'Resolved').length;
-  const totalVol = engine.markets.reduce((sum, m) => sum + (m.volumeUsd || 0), 0);
   const summary = engine.getPortfolioSummary();
 
   const el = document.getElementById('kpi-strip');
@@ -36,12 +37,12 @@ function renderKpis() {
     <div class="kpi-card">
       <div class="kpi-label">Tracked Kalshi Events</div>
       <div class="kpi-value">${engine.markets.length}</div>
-      <div class="kpi-sub">${openCount} Live/Open · ${resolvedCount} Resolved (5 topics only)</div>
+      <div class="kpi-sub">${openCount} Open · ${resolvedCount} Resolved (5 topics only)</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Verified Dollar Volume</div>
-      <div class="kpi-value">$${(totalVol / 1e9).toFixed(2)}B</div>
-      <div class="kpi-sub">Sum of verified official Kalshi volumes</div>
+      <div class="kpi-label">Current Market Volume</div>
+      <div class="kpi-value">Unavailable</div>
+      <div class="kpi-sub">Live values blank until synchronized market-data feed is connected</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">&gt;= $0.10 Swing Alerts</div>
@@ -49,7 +50,7 @@ function renderKpis() {
       <div class="kpi-sub">All Events / High-ROI Selective</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Demo Portfolio Equity</div>
+      <div class="kpi-label">Paper Simulation Equity</div>
       <div class="kpi-value">$${summary.totalEquity.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
       <div class="kpi-sub ${summary.totalPnl >= 0 ? 'delta-up' : 'delta-down'}">P&amp;L: ${summary.totalPnl >= 0 ? '+' : ''}$${summary.totalPnl.toFixed(2)} (${summary.totalRoiPct >= 0 ? '+' : ''}${summary.totalRoiPct}%)</div>
     </div>
@@ -74,7 +75,7 @@ function renderTopicCards() {
         <strong style="font-size:15px;">${escapeHtml(t.name)}</strong>
         <div class="tiny muted">${escapeHtml(t.description)}</div>
         <div class="tiny mono" style="margin-top:auto;padding-top:6px;border-top:1px solid #e2e8f0;">
-          Top: ${escapeHtml(top.ticker)} · ${top.volumeUsd ? '$' + top.volumeUsd.toLocaleString() : 'Unverified Vol'}
+          Tracked first: ${escapeHtml(top.ticker)} · Live volume: Unverified
         </div>
       </a>
     `;
@@ -93,7 +94,7 @@ function renderDualChats() {
   if (allEl) {
     allEl.innerHTML = engine.allAlerts.length
       ? engine.allAlerts.map((a) => renderAlertItemHtml(a, false)).join('')
-      : '<p class="muted small">Listening for >= $0.10 price swings across the 5 topics...</p>';
+      : '<p class="muted small">Paper simulation only. No live Kalshi price feed is connected; use “Trigger >= $0.10 Swing” to test simulated alerts.</p>';
   }
 
   if (roiEl) {
@@ -130,9 +131,9 @@ function renderChartAndOrderbook() {
         ${formatTopicBadge(market.topic)}
         <strong class="mono">${escapeHtml(market.ticker)}</strong>
         ${formatResolutionBadge(market)}
-        <span class="mono" style="font-size:15px;font-weight:700;">Current: $${market.currentPrice.toFixed(2)}</span>
+        <span class="badge badge-sim">Simulated paper price: $${market.currentPrice.toFixed(2)}</span>
         ${formatDeltaBadge(market.lastDelta)}
-        <span class="tiny muted">Verified Vol: ${market.volumeUsd ? '$' + market.volumeUsd.toLocaleString() : 'Unverified'}</span>
+        <span class="tiny muted">Current volume: Unverified</span>
         ${formatSourceLink(market.sourceUrl, 'Official Kalshi Market')}
       </div>
       <div class="tiny muted" style="margin-top:4px;">${escapeHtml(market.roi.reason)}</div>
@@ -215,7 +216,7 @@ function renderMarketsTable() {
       <tr class="topic-group-row">
         <td colspan="9">
           ${formatTopicBadge(topicId)}
-          <span style="margin-left:6px;">${escapeHtml(t.name)} — ${items.length} Verified Markets (Sorted by Dollar Volume)</span>
+          <span style="margin-left:6px;">${escapeHtml(t.name)} — ${items.length} Market Pages (Live volume unavailable; not ranked)</span>
           <a href="${t.pagePath}" style="float:right;font-size:12px;">Open ${escapeHtml(t.name)} Subpage →</a>
         </td>
       </tr>
@@ -233,11 +234,11 @@ function renderMarketsTable() {
             <strong>${escapeHtml(m.title)}</strong>
             <div class="tiny muted">Settlement: ${escapeHtml(m.settlementSource)}</div>
           </td>
-          <td class="mono">${formatDollarVolume(m.volumeUsd)}</td>
+          <td class="mono">${formatSnapshotVolume(m.snapshotVolumeUsd, m.snapshotAt)}</td>
           <td class="mono"><strong>${formatPrice(m.currentPrice)}</strong> ${formatDeltaBadge(m.lastDelta)}</td>
-          <td class="mono">${formatPrice(m.observedPrice)}</td>
+          <td class="mono">${formatSnapshotPrice(m.snapshotPrice, m.snapshotSwing, m.snapshotAt)}</td>
           <td>${formatResolutionBadge(m)}</td>
-          <td class="tiny">${m.roi.qualified ? `<span class="badge badge-verified">High ROI (+${m.roi.expectedRoiPct}%)</span>` : '<span class="muted">Watch</span>'}</td>
+          <td class="tiny">${m.roi.qualified ? `<span class="badge badge-sim">Simulated scenario signal (+${m.roi.expectedRoiPct}%)</span>` : '<span class="muted">Paper watch</span>'}</td>
           <td>${formatSourceLink(m.sourceUrl, m.sourceLabel)}</td>
           <td>
             <button class="btn-xs btn-inspect" data-ticker="${escapeHtml(m.ticker)}">Chart</button>
@@ -280,10 +281,10 @@ function bindEvents() {
   const liveBtn = document.getElementById('btn-toggle-live');
   if (liveBtn) {
     liveBtn.addEventListener('click', () => {
-      const running = engine.toggleLive();
+      const running = engine.toggleSimulation();
       liveBtn.innerHTML = running
-        ? '<span class="live-dot"></span>Live Stream: ON'
-        : '<span class="live-dot paused"></span>Live Stream: PAUSED';
+        ? '<span class="live-dot"></span>Paper Simulation: ON'
+        : '<span class="live-dot paused"></span>Paper Simulation: PAUSED';
     });
   }
 
@@ -301,7 +302,7 @@ function bindEvents() {
     testApiBtn.addEventListener('click', async () => {
       const banner = document.getElementById('demo-api-status');
       if (banner) {
-        banner.textContent = 'Testing live Kalshi Demo REST connectivity (external-api.demo.kalshi.co)...';
+        banner.textContent = 'Testing public Kalshi Demo REST reachability only; this will not synchronize dashboard values...';
         banner.className = 'status-banner';
       }
       const res = await engine.client.testPublicConnectivity();
@@ -358,7 +359,7 @@ function bindEvents() {
         });
         if (msgEl) {
           msgEl.className = 'status-banner ok';
-          msgEl.textContent = `Executed Demo Trade ${trade.id}: BUY ${trade.contracts} ${trade.side} on ${trade.ticker} @ $${trade.price.toFixed(2)}. Track in Portfolio & Strategies.`;
+          msgEl.textContent = `Executed Paper Trade ${trade.id}: BUY ${trade.contracts} ${trade.side} on ${trade.ticker} @ $${trade.price.toFixed(2)}. Track in Portfolio & Strategies.`;
         }
       } catch (err) {
         if (msgEl) {

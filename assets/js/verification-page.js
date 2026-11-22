@@ -83,7 +83,7 @@ function renderFlaggedPage() {
           <div class="small muted" style="margin-top:3px;">${escapeHtml(ir.detail)}</div>
         </td>
         <td><span class="badge badge-unverified">${escapeHtml(ir.status)}</span></td>
-        <td>${formatSourceLink(ir.sourceUrl, ir.sourceLabel)}</td>
+        <td>${formatSourceLink(ir.sourceUrl, ir.sourceLabel)}${ir.secondarySourceUrl ? `<br />${formatSourceLink(ir.secondarySourceUrl, 'Second official API source')}` : ''}${ir.tertiarySourceUrl ? `<br />${formatSourceLink(ir.tertiarySourceUrl, 'Third official API source')}` : ''}</td>
       </tr>
     `
     ).join('');
@@ -92,14 +92,18 @@ function renderFlaggedPage() {
   const unverifiedBody = document.getElementById('unverified-fields-body');
   if (unverifiedBody) {
     const flaggedRows = VERIFIED_MARKETS.filter(
-      (m) => m.volumeUsd === null || m.resolution === null || m.verifiedRestingLiquidity === null
+      (m) => m.observedPrice === null || m.observedSwing === null || m.volumeUsd === null || m.resolution === null || m.verifiedRestingLiquidity === null
     );
     unverifiedBody.innerHTML = flaggedRows
       .map((m) => {
         const missingFields = [];
-        if (m.volumeUsd === null) missingFields.push('Dollar Volume (blank)');
-        if (m.resolution === null) missingFields.push('Final YES/NO Settlement (blank)');
-        if (m.verifiedRestingLiquidity === null) missingFields.push('Live Resting Orderbook Depth (dynamic)');
+        if (m.observedPrice === null) missingFields.push('Current YES price (not streamed)');
+        if (m.observedSwing === null) missingFields.push('Current price swing (not streamed)');
+        if (m.volumeUsd === null) missingFields.push('Current dollar volume (not streamed)');
+        if (m.snapshotAt) missingFields.push(`Historical official-page snapshot only: ${m.snapshotAt}`);
+        else missingFields.push('No timestamped quote/volume snapshot on file');
+        if (m.resolution === null) missingFields.push('Final YES/NO settlement (blank/unconfirmed)');
+        if (m.verifiedRestingLiquidity === null) missingFields.push('Resting orderbook depth (blank; dynamic)');
         return `
         <tr>
           <td class="mono"><strong>${escapeHtml(m.ticker)}</strong></td>

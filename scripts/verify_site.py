@@ -107,12 +107,20 @@ for (const m of VERIFIED_MARKETS) {
   }
 }
 
-// 2. Every table row has a valid https:// official sourceUrl
+// 2. Every rendered table row links to an allowlisted official source host.
+const officialHosts = new Set(['docs.kalshi.com', 'kalshi.com', 'github.com', 'kanlerxz87-cyber.github.io', 'www.eia.gov']);
 const checkSources = (name, rows) => {
   if (!rows.length) throw new Error(`Empty dataset: ${name}`);
   for (const r of rows) {
-    if (!r.sourceUrl || !r.sourceUrl.startsWith('https://')) {
-      throw new Error(`Missing/invalid sourceUrl in ${name}: ${JSON.stringify(r)}`);
+    let host = '';
+    try { host = new URL(r.sourceUrl).hostname; } catch (_) {}
+    if (!r.sourceUrl || !r.sourceUrl.startsWith('https://') || !officialHosts.has(host)) {
+      throw new Error(`Missing/non-allowlisted official sourceUrl in ${name}: ${JSON.stringify(r)}`);
+    }
+    for (const key of ['secondarySourceUrl', 'tertiarySourceUrl']) {
+      if (r[key] && !officialHosts.has(new URL(r[key]).hostname)) {
+        throw new Error(`Non-official ${key} in ${name}: ${JSON.stringify(r)}`);
+      }
     }
   }
 };
@@ -123,6 +131,19 @@ checkSources('REPO_AUDIT_ITEMS', REPO_AUDIT_ITEMS);
 checkSources('INTERACTIVE_SUGGESTIONS', INTERACTIVE_SUGGESTIONS);
 
 for (const m of VERIFIED_MARKETS) {
+  for (const field of ['observedPrice', 'observedSwing', 'volumeUsd', 'verifiedRestingLiquidity']) {
+    if (m[field] !== null) throw new Error(`Dynamic/unverified market field must remain blank: ${m.ticker}.${field}`);
+  }
+  if (!Number.isFinite(m.simulationSeedPrice) || !m.sourceUrl.startsWith('https://kalshi.com/')) {
+    throw new Error(`Missing explicit simulation seed or official market source: ${m.ticker}`);
+  }
+  const snapshotFields = [m.snapshotPrice, m.snapshotSwing, m.snapshotVolumeUsd];
+  if (m.snapshotAt) {
+    if (!Number.isFinite(Date.parse(m.snapshotAt))) throw new Error(`Invalid snapshot timestamp: ${m.ticker}`);
+    if (!snapshotFields.some((v) => v !== null)) throw new Error(`Empty timestamped snapshot: ${m.ticker}`);
+  } else if (snapshotFields.some((v) => v !== null)) {
+    throw new Error(`Snapshot values lack a verified timestamp: ${m.ticker}`);
+  }
   for (const c of m.catalysts || []) {
     if (!c.url || !c.url.startsWith('https://')) {
       throw new Error(`Invalid catalyst URL on ${m.ticker}: ${JSON.stringify(c)}`);
@@ -144,6 +165,7 @@ if (ob.bestYesBid !== 0.42 || ob.bestYesAsk !== 0.44 || ob.spread !== 0.02) {
 // 4. Engine live tick, >= $0.10 swing alert, trade execution, resolution & custom strategy test
 const eng = new TradebotEngine();
 const beforeAlerts = eng.allAlerts.length;
+if (beforeAlerts !== 0) throw new Error('Static market data must not be presented as observed alerts');
 eng.runTick('KXPRESNOMD-28');
 if (eng.allAlerts.length <= beforeAlerts) {
   throw new Error('Expected >= $0.10 forced swing alert to fire');

@@ -2,8 +2,8 @@
 
 > **Repository:** `kanlerxz87-cyber/Tradebot3`
 > **Live Site (GitHub Pages):** https://kanlerxz87-cyber.github.io/Tradebot3/
-> **Active Session ID:** `arena-59730b38` (Session 2 refresh; priors: `arena-3716ae8d` merged via PR #1, `arena-a8cfdaeb` merged via PR #2/#3)
-> **Working Branch:** `arena/59730b38-tradebot3` (Arena fixed session branch; branched from `main` at `08ad596f66ebccb189754df5fa6dadac6365989c`, rebased onto `991a8eb`)
+> **Historical Session:** `arena-59730b38` (Session 2 refresh; PR #6)
+> **Current Audit Session:** `arena-2f46e0b1` on `arena/2f46e0b1-tradebot3` (Arena-fixed branch; based on `08ad596f66ebccb189754df5fa6dadac6365989c`; rebasing onto `5851fb3`)
 > **Last Updated:** 2026-11-22 (UTC)
 
 ---
@@ -17,15 +17,14 @@
 | S2-03 | Executive summary Session 2 addendum (corrections + re-verification results) | `done` | `arena-59730b38` | `arena/59730b38-tradebot3` | `EXECUTIVE_SUMMARY.md` |
 | S2-04 | Re-run automated verification + live server test, open PR to `main`, merge, confirm GitHub Pages deploy | `done` | `arena-59730b38` | `arena/59730b38-tradebot3` | `scripts/verify_site.py` (run only, no edits), `COORDINATION.md` (PR record) |
 
-> Session 1 tasks T-01..T-05 and session `arena-a8cfdaeb` task T-06 are `done` and merged (PRs #1–#3); R-01 and static IRREG-09..13 remain `needs review` (published on site). Session 2 scopes touch only the files listed above and do not overlap any in-progress claim. Session 2 is the refresh pass requested by static IRREG-10; its new dynamic item is numbered **IRREG-14** to avoid colliding with static IRREG-09..13.
+> Session 1, T-06, and Session 2 records above are historical and preserved. The current independent audit is recorded below; do not treat its ongoing rebase as a completed push or deployment.
 
 ---
 
 ## Coordination Protocol Notes
-- All tasks were claimed prior to editing and pushed immediately on `arena/3716ae8d-tradebot3`.
-- Because Arena binds this session to `arena/3716ae8d-tradebot3`, all commits, pushes, and the pull request to `main` are performed on `arena/3716ae8d-tradebot3` without creating or switching branches.
-- Items marked `needs review` are published transparently on [`flagged-for-review.html`](flagged-for-review.html) with official source links and do not block integration or deployment.
-- Every table row across the site links to an official verified source. Any value that could not be confirmed statically is left blank and flagged `Unverified`.
+- Historical session claims above document earlier work; the active Arena branch for the current audit is `arena/2f46e0b1-tradebot3`.
+- This audit is in progress during a rebase onto `origin/main`; do not push until all rebase conflicts are resolved and checks pass.
+- Items marked `needs review` remain published transparently on [`flagged-for-review.html`](flagged-for-review.html); review findings do not block deployment when accurately labeled.
 
 ---
 
@@ -40,7 +39,7 @@
 | T-05 | Automated verification script, link integrity check, live HTTP server testing, PR creation, merge to `main`, and GitHub Pages deploy confirmation | `done` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `scripts/verify_site.py`, `COORDINATION.md` |
 | T-06 | Re-verify stored Kalshi values against official kalshi.com pages (sample of 6 markets); relabel unverified swing alerts as Unverified; publish mismatches on Flagged for Review | `done` (sample only) | `arena-a8cfdaeb` | `arena/a8cfdaeb-tradebot3` | `assets/js/ui-common.js`, `assets/js/engine.js`, `flagged-for-review.html`, `COORDINATION.md` |
 | R-01 | Flagged Irregularities IRREG-01 through IRREG-08 & unverified static fields (published on `flagged-for-review.html`) | `needs review` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `flagged-for-review.html`, `assets/js/data.js` |
-| T-06 | Independent post-merge review of inherited implementation, official-source claims, truthful live/simulated labeling, and verification coverage | `in progress` | `arena-2f46e0b1` | `arena/2f46e0b1-tradebot3` | `COORDINATION.md`, `EXECUTIVE_SUMMARY.md`, `index.html`, `portfolio.html`, `flagged-for-review.html`, `assets/js/data.js`, `assets/js/engine.js`, `assets/js/dashboard.js`, `assets/js/ui-common.js`, `scripts/verify_site.py` |
+| T-07 | Independent audit of inherited data/claims, paper-vs-live semantics, official sources, and site validation | `in progress` | `arena-2f46e0b1` | `arena/2f46e0b1-tradebot3` | `COORDINATION.md`, `EXECUTIVE_SUMMARY.md`, dashboard/category pages, `assets/js/*.js`, `scripts/verify_site.py` |
 
 ---
 
@@ -197,3 +196,17 @@
 - **PR URL:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/6
 - **Merge Method:** `gh pr merge 6 --merge` (merged into `main` on 2026-11-22T07:29:19Z as `24fe002` after passing `scripts/verify_site.py` with 0 broken links); flagged items (R-01 + static IRREG-09..13 + IRREG-14, `needs review`) do not block merge and remain published on `flagged-for-review.html`.
 - **GitHub Pages Live URL:** https://kanlerxz87-cyber.github.io/Tradebot3/ (deploy success confirmed via `pages/builds/latest` status `built`; record-keeping follow-up PR #7 merged after)
+
+
+## Current Independent Audit — `arena-2f46e0b1` (2026-11-22 UTC)
+
+### Scope and findings
+- Rebased audit commit `086d2a2` onto `origin/main` at `5851fb3`; resolution is still in progress until all conflicts are staged and `git rebase --continue` completes. No push or PR has been made.
+- Preserved the historical Session 2 source ledger above, including the official Kalshi Senate Control result: Determined, YES, 100%.
+- Current live quote, swing, volume, and resting depth remain blank. Eight earlier Session 2 market-page observations are stored in separate `snapshot*` fields with the capture timestamp `2026-11-22T07:27:00Z`; the interface identifies these as historical page snapshots, not live Demo data. All remaining rows have no snapshot values.
+- Paper simulation seeds/fair values remain explicitly simulation-only; audit caveats IRREG-15 through IRREG-17 cover snapshot freshness, absence of a continuous authenticated market stream, and disabled live account/order synchronization.
+- Official docs used for audit: https://docs.kalshi.com/getting_started/rate_limits, https://docs.kalshi.com/api-reference/orders/create-order-v2, https://docs.kalshi.com/api-reference/portfolio/get-balance, https://docs.kalshi.com/getting_started/api_keys. The Senate result source is https://kalshi.com/markets/controls/senate-winner/controls-2026.
+
+### Data schema and validation notes
+- `snapshotPrice`, `snapshotSwing`, `snapshotVolumeUsd`, and `snapshotAt` are separate from current dynamic fields `observedPrice`, `observedSwing`, and `volumeUsd`; simulation fields are prefixed `simulation`.
+- This audit's final validation and deployment outcome will be recorded only after conflict resolution, `git diff --check`, `python3 scripts/verify_site.py`, JavaScript syntax checks, route smoke test, and push/PR steps.
