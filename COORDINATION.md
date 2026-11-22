@@ -326,3 +326,10 @@ The branch originally carried a wholesale rewrite of the catalog (static quotes,
 | T-16 | Fix event-ticker vs contract-`marketTicker` bug in read-only `fetchLiveOrderbook` (`Pull Demo Book` previously queried parent event tickers on 25/29 multi-strike rows and hit `IRREG-05` empty books), render `Live Demo REST Book` badge in `ui-common.js` with 30s snapshot retention across simulated ticks, and surface `marketTicker` + `REST v2 JSON` links in UI while keeping the client strictly read-only (`T-06`) | `done` | `arena-ca98b078` | `arena/ca98b078-tradebot3` | `assets/js/kalshi-client.js`, `assets/js/engine.js`, `assets/js/ui-common.js`, `assets/js/dashboard.js`, `assets/js/category-page.js` |
 | T-17 | Expand `scripts/verify_site.py` for 29/29 `marketTicker`, `IRREG-23..25`, `fetchLiveOrderbook('KXPRESNOMD-28') -> 'KXPRESNOMD-28-JOSS'` routing & official settlement-host checks, reconcile cleanly onto `origin/main` (`9026f3b`), open/merge PR to `main`, and verify GitHub Pages deploy | `done` | `arena-ca98b078` | `arena/ca98b078-tradebot3` | `scripts/verify_site.py`, `COORDINATION.md` |
 
+### PR & GitHub Pages Record (`arena-ca98b078`)
+- **Source Branch:** `arena/ca98b078-tradebot3` -> `main`
+- **PR URL:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/18
+- **Merge Method & Result:** `gh pr merge 18 --merge` — MERGED on `2026-11-22T08:02:25Z` as commit `3cd505e5a59cb641c7735cd7ab05d6f18a904cc9` after `python3 scripts/verify_site.py` reported `ALL VERIFICATION CHECKS PASSED`.
+- **GitHub Pages Live URL:** https://kanlerxz87-cyber.github.io/Tradebot3/ (build `1392112676` for `3cd505e5a59cb641c7735cd7ab05d6f18a904cc9` completed with `"status":"built"` at `2026-11-22T08:02:49Z`, `"error":{"message":null}`).
+
+
