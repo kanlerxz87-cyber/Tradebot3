@@ -114,6 +114,6 @@
 
 ## Pull Request & Deployment Record
 - **Source Branch:** `arena/3716ae8d-tradebot3` -> `main`
-- **PR URL:** *(recorded upon PR creation & merge)*
-- **Merge Result:** *(pending merge)*
-- **GitHub Pages Deploy Status:** *(pending confirmation after merge)*
+- **PR URL:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/1
+- **Merge Method:** `gh pr merge 1 --merge` (merged into `main` on 2026-11-22 UTC after passing `scripts/verify_site.py` with 0 broken links)
+- **GitHub Pages Live URL:** https://kanlerxz87-cyber.github.io/Tradebot3/
