@@ -110,12 +110,10 @@
         </table>
       </div>
       <p class="tiny muted">
-        Scope: 6 of 29 stored markets were sampled, not all. The remaining 23 are not yet re-verified. Swing alerts
-        (the ">= $0.10" feed and its catalyst labels) are authored catalog entries, not observed ticks, and are now badged
-        "Unverified Catalog Alert" in the UI. Demo prices may also differ from production (see IRREG-03).
+        Scope: 6 of 29 stored markets were sampled, not all. The remaining 23 are not yet re-verified. The previous seeded swing alerts have been removed. New automatic ticks are explicitly tagged as simulated paper ticks; source links are context only, not causal evidence. Demo prices may also differ from production (see IRREG-03).
       </p>
       <ul class="tiny">
-        <li><strong>IRREG-09 (High):</strong> Seeded &gt;= $0.10 swing alerts were labelled "Verified Observed Swing" but are authored catalog entries (<code>engine.js seedInitialAlerts()</code>). Relabelled "Unverified Catalog Alert" on 2026-11-22.</li>
+        <li><strong>IRREG-09 (High):</strong> Seeded &gt;= $0.10 swing alerts were falsely labelled "Verified Observed Swing"; this follow-up removed them. Runtime generated ticks are labeled simulated.</li>
         <li><strong>IRREG-10 (High):</strong> Stored prices disagree with official pages for 4 of 6 sampled markets (see table above). Stored values kept and flagged; a refresh pass is needed.</li>
         <li><strong>IRREG-11 (Low):</strong> Kalshi docs also list <code>user-ws.demo.kalshi.co</code> (fill and order updates) and <code>external-feeds.demo.kalshi.co</code> (external feeds) as demo hosts. The site does not mention them. Source: <a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener">docs.kalshi.com API Environments ↗</a></li>
         <li><strong>IRREG-12 (Medium):</strong> CONTROLS-2026 is stored as Open, but the official page title reads "Senate Control 2026 Results: Democrats Win". Status needs confirmation.</li>
