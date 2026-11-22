@@ -1038,7 +1038,7 @@ export const FLAGGED_IRREGULARITIES = [
     severity: 'High',
     category: 'Live Data & Execution',
     item: 'The GitHub Pages app uses local paper simulation, not a live Kalshi feed or order executor',
-    detail: 'The site does not establish an authenticated WebSocket connection or submit orders. Price ticks, chart history, orderbook depth, alerts, and portfolio fills are local simulations. The optional REST connector can test access/read balance only. This revision removes fabricated seeded alerts/trades and labels paper output explicitly.',
+    detail: 'The site does not establish an authenticated WebSocket connection or submit orders. Price ticks, chart history, orderbook depth, alerts, and portfolio fills are local simulations. The optional REST connector can test access/read balance only. This revision removes fabricated seeded alerts/trades and labels paper output explicitly; the T-06 audit (PR #15) also removed the leftover live Demo order toggle so the code now enforces this statement.',
     status: 'Needs Review',
     sourceUrl: 'https://docs.kalshi.com/getting_started/quick_start_websockets',
     sourceLabel: 'Kalshi Docs — Authenticated WebSocket Requirements'
@@ -1078,7 +1078,7 @@ export const FLAGGED_IRREGULARITIES = [
     severity: 'Medium',
     category: 'API Client, Bugfix & Catalyst Link Remediation (Session arena-ff314ece)',
     item: 'Upgraded Kalshi Demo client (Ed25519 default + PKCS#1 RSA + V2 YES/NO mapping), fixed Quick Trade NO-side price sync & 2026 PGA Tour leaderboard link',
-    detail: 'Independent audit by session arena-ff314ece verified all 29 live Kalshi markets + 14 Kalshi API docs pages and remediated four remaining technical gaps while preserving PR #4 (IRREG-16/17 paper-simulation disclosures) and PR #7 (IRREG-18/19): (1) kalshi-client.js now supports Kalshi\'s recommended default Ed25519 keys plus PKCS#1-to-PKCS#8 RSA-PSS wrapping, Create Order V2 reciprocal YES/NO mapping (mapYesNoOrderToV2), and live Demo REST orderbook fetching (getMarketOrderbook); (2) fixed Quick Trade NO-side price synchronization bug (YES -> currentPrice, NO -> 1 - currentPrice) and added Cost/Payout estimator; (3) updated KXPGATOUR-THRC26-MTHO catalyst link from 2025 /past-results to live 2026 /leaderboard; (4) added interactive chart hover crosshair tooltip, Alert Chat topic/search filters, live Demo book pull, status filter, optional live Demo order submission toggle, and Trade Category Net P&L Bar Chart.',
+    detail: 'Independent audit by session arena-ff314ece verified all 29 live Kalshi markets + 14 Kalshi API docs pages and remediated four remaining technical gaps while preserving PR #4 (IRREG-16/17 paper-simulation disclosures) and PR #7 (IRREG-18/19): (1) kalshi-client.js now supports Kalshi\'s recommended default Ed25519 keys plus PKCS#1-to-PKCS#8 RSA-PSS wrapping, Create Order V2 reciprocal YES/NO mapping (mapYesNoOrderToV2), and live Demo REST orderbook fetching (getMarketOrderbook); (2) fixed Quick Trade NO-side price synchronization bug (YES -> currentPrice, NO -> 1 - currentPrice) and added Cost/Payout estimator; (3) updated KXPGATOUR-THRC26-MTHO catalyst link from 2025 /past-results to live 2026 /leaderboard; (4) added interactive chart hover crosshair tooltip, Alert Chat topic/search filters, Demo REST book pull, status filter, and Trade Category Net P&L Bar Chart. The optional live Demo order-submission toggle added in that pass was removed by the T-06 factual audit (PR #15) because every page states that no order is submitted; the client is now read-only.',
     status: 'Remediated in PR #10 — Published for Transparency',
     sourceUrl: 'https://docs.kalshi.com/getting_started/api_keys',
     sourceLabel: 'Kalshi Docs — API Keys & Official Pages'
@@ -1092,6 +1092,16 @@ export const FLAGGED_IRREGULARITIES = [
     status: 'Needs Review',
     sourceUrl: 'https://docs.kalshi.com/getting_started/api_environments',
     sourceLabel: 'Kalshi Docs — API Environments'
+  },
+  {
+    id: 'IRREG-22',
+    severity: 'Low',
+    category: 'Paper-Only Execution (T-06 audit)',
+    item: 'Order submission is documented but not implemented; the model no longer invents a fair value',
+    detail: 'The portfolio ticket previously offered an optional "Submit signed Create Order V2 to Live Kalshi Demo REST" checkbox even though the page hero, README and IRREG-16 stated that the UI never submits orders. T-06 (PR #15) removed the toggle, the executeLiveOrPaperTrade branch, and the createOrderV2/createOrderFromYesNo client methods. evaluateHighRoi() also no longer falls back to the market price when a row lacks modelFairValue, so the illustrative feed cannot manufacture an edge. POST /portfolio/events/orders and mapYesNoOrderToV2 remain documented reference material only.',
+    status: 'Needs Review',
+    sourceUrl: 'https://docs.kalshi.com/api-reference/orders/create-order-v2',
+    sourceLabel: 'Kalshi Docs — Create Order (V2)'
   }
 ];
 
@@ -1207,7 +1217,7 @@ export const INTERACTIVE_SUGGESTIONS = [
     priority: 'P2 — Trader UX',
     area: 'Push & Audio Alerting',
     suggestion: 'Add Browser Web Notifications, Sound Cues & Watchlist Threshold Sliders',
-    rationale: 'Let traders enable desktop alerts specifically for the High-ROI Model chat feed (or customize the swing threshold from $0.05 to $0.25 per topic) so opportunities are never missed while viewing another tab.',
+    rationale: 'Let traders enable desktop alerts for the general >= $0.10 change feed, and optionally for the illustrative model filter, plus a per-topic swing threshold from $0.05 to $0.25. Model values remain heuristic; the feed is not investment advice.',
     sourceUrl: 'https://docs.kalshi.com/websockets',
     sourceLabel: 'Kalshi WebSocket API'
   },

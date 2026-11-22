@@ -7,6 +7,7 @@
 > **Last Updated:** 2026-11-22 (UTC)
 >
 > This checkout contains prior T-01–T-06 sample-audit and Session 2 API/data refresh work on `main`. T-07 is a separate simulator/runtime-integrity follow-up on the current branch above.
+> A later additive audit from `arena/e9a6c584-tradebot3` (PR #15) is recorded at the bottom of this file.
 
 ---
 
@@ -269,4 +270,44 @@
   - **Merge Method & Result:** `gh pr merge 13 --merge` — MERGED on 2026-11-22T07:46:32Z as commit `50ae0ebbf08c22fd9e86216f6bdd4b478989a2a4` after passing `python3 scripts/verify_site.py` with 0 broken links.
   - **GitHub Pages Live URL:** https://kanlerxz87-cyber.github.io/Tradebot3/ (build `1392081606` for `50ae0eb` completed with status `built` at `2026-11-22T07:46:58Z`, no errors).
 
+---
 
+## Session `arena/e9a6c584-tradebot3` — T-06 Post-Merge Factual Audit (2026-11-22 UTC)
+
+**Branch:** `arena/e9a6c584-tradebot3` (branched from `main` @ `08ad596f`, reconciled onto `main` @ `09e7d98`)
+**PR:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/15
+
+| Task ID | Task Description | Status | File Scope |
+| --- | --- | --- | --- |
+| T-06 | Post-merge factual audit: reconcile "live"/model/execution claims with the shipped code, fix a self-contradicting order toggle, harden the illustrative model and verifier | `done` | `COORDINATION.md`, `README.md`, `EXECUTIVE_SUMMARY.md`, `index.html`, `portfolio.html`, `verification.html`, `assets/js/{data,engine,kalshi-client,portfolio-page,dashboard,ui-common,verification-page}.js`, `scripts/verify_site.py` |
+
+### Findings and fixes
+
+1. **Contradictory order path (High).** `portfolio.html` advertised "Optional: Submit signed Create Order V2 to Live Kalshi Demo REST" while its own hero, `README.md` and IRREG-16 stated that the UI never submits orders. Removed the `trade-live-demo` toggle, the `executeLiveOrPaperTrade` branch, and the `createOrderV2` / `createOrderFromYesNo` client methods. The client is now read-only (public market data plus optional authenticated `GET /portfolio/balance`); `mapYesNoOrderToV2` remains pure reference material for the documented Create Order V2 mapping.
+2. **Fabricated fair value (Medium).** `evaluateHighRoi()` used `market.modelFairValue ?? currentPrice`, silently manufacturing a zero-edge "fair value" from the quote for rows without a model value. It now returns no signal in that case, and alert copy labels remaining model values as an illustrative heuristic, not a forecast.
+3. **Retired "High-ROI" labelling (Low).** UI copy, trade categories, strategy names, notification titles, README and EXECUTIVE_SUMMARY now describe the filter as illustrative; a `localStorage` migration renames any persisted `High-ROI Model` category to `Illustrative Model`.
+4. **Doc/page reconciliation (Low).** Verification page states the deployment is static and read-only; topic/model copy no longer implies validated ROI or exchange execution; `flagged-for-review.html` gains **IRREG-22** and updated IRREG-16/20 text describing the removal.
+
+### Reconciliation decision
+
+The branch originally carried a wholesale rewrite of the catalog (static quotes, swings and model values blanked) written against `main` @ `08ad596f`. By the time it was pushed, `main` had advanced 29 commits with independent 29-market re-verification (PRs #1–#14) that added dated official values for all rows. Rather than revert that verified work, the branch was merged onto `main` @ `09e7d98` and only the additive, non-destructive corrections above were kept. No market value, source link or prior session's audit entry was removed.
+
+### Verification performed (this audit, on the reconciled tree)
+
+- `node --check assets/js/*.js` — all 9 ES modules parse.
+- `python3 scripts/verify_site.py` — **ALL VERIFICATION CHECKS PASSED**:
+  - 23 required files; 35 internal links across 9 pages, 0 broken; all JS `getElementById` references resolve.
+  - 5-topic isolation over all 29 rows; every row keeps an official HTTPS source; `CONTROLS-2026` and `KXAAAGASCDNY-26NOV19` settlements and the single unverified volume still reconcile.
+  - Orderbook `orderbook_fp` math: YES bid `$0.42` + NO bid `$0.56` → implied YES ask `$0.44`, spread `$0.02`; Create Order V2 YES/NO mapping still matches the documented reciprocal rule.
+  - New: `evaluateHighRoi()` with `modelFairValue` removed returns `qualified: false` and `fairValue: null` (no quote-as-fair-value fallback).
+  - New: no app module or page contains `createOrderV2`, `createOrderFromYesNo`, `executeLiveOrPaperTrade`, a POST request, or the `trade-live-demo` toggle.
+  - New: user-facing docs/pages contain no retired high-ROI, live-order or fabricated fair-value claims (remediation notes are exempted).
+  - Engine still starts with zero alerts/trades, paper fills stay labeled paper, and the clean `$10,000` baseline holds.
+- Local `python3 -m http.server` smoke test: HTTP 200 on all pages, JS modules and docs.
+- **Not verified:** a live browser session against the real Kalshi Demo API, CORS behaviour, WebSocket behaviour, rendered layout, or the numeric accuracy of any catalog value (the verifier checks sources and structure, not page contents).
+
+### PR record
+
+- **Source Branch:** `arena/e9a6c584-tradebot3` -> `main`
+- **Commits:** claim `0a6dc10`, audit `ab717dc`, board update `9cf0267`, reconciliation and additive fixes on top of `main` @ `09e7d98`
+- **Status:** open for review as PR #15; merge and Pages deploy left to the reviewer.

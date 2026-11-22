@@ -90,7 +90,7 @@ import {
   INTERACTIVE_SUGGESTIONS
 } from './assets/js/data.js';
 import { parseOrderbookFp, mapYesNoOrderToV2 } from './assets/js/kalshi-client.js';
-import { TradebotEngine } from './assets/js/engine.js';
+import { TradebotEngine, evaluateHighRoi } from './assets/js/engine.js';
 import { renderAlertItemHtml } from './assets/js/ui-common.js';
 
 // 1. Strict 5-topic check
@@ -177,8 +177,19 @@ if (!nyGas || nyGas.status !== 'Resolved' || nyGas.resolution !== 'YES' || nyGas
 if (!FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-14') || !FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-20')) {
   throw new Error('Missing IRREG-14 / IRREG-20 audit records');
 }
+if (!FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-22')) {
+  throw new Error('Missing IRREG-22 paper-only execution audit record');
+}
 
-// 4. Engine live tick, >= $0.10 swing alert, trade execution, resolution & custom strategy test
+// 3d. The illustrative model must never invent a fair value from the market quote
+const noModelMarket = { ...VERIFIED_MARKETS[0] };
+delete noModelMarket.modelFairValue;
+const noModelSignal = evaluateHighRoi(noModelMarket, 0.5, 0.1, ob);
+if (noModelSignal.qualified || noModelSignal.fairValue !== null || /Model Fair \$/.test(noModelSignal.reason)) {
+  throw new Error('Model filter must not fabricate a fair value: ' + JSON.stringify(noModelSignal));
+}
+
+// 4. Engine paper tick, >= $0.10 swing alert, trade execution, resolution & custom strategy test
 const eng = new TradebotEngine();
 if (eng.allAlerts.length !== 0) throw new Error('Initial feed must not fabricate observed live alerts');
 if (eng.portfolio.trades.length !== 0) throw new Error('Paper portfolio must not start with fabricated example trades');
@@ -290,12 +301,70 @@ def check_js_syntax():
     print(f"[PASS] node --check passed on all {len(js_files)} JS modules.")
 
 
+def check_no_order_submission():
+    read_only_files = [
+        ROOT / "assets/js/kalshi-client.js",
+        ROOT / "assets/js/engine.js",
+        ROOT / "assets/js/portfolio-page.js",
+        ROOT / "assets/js/dashboard.js",
+        ROOT / "assets/js/category-page.js",
+    ]
+    forbidden = ["createOrderV2(", "createOrderFromYesNo(", "executeLiveOrPaperTrade(", "request('POST'", 'request("POST"']
+    offenders = []
+    for path in read_only_files:
+        text = path.read_text(encoding="utf-8")
+        for token in forbidden:
+            if token in text:
+                offenders.append(f"{path.relative_to(ROOT)}: {token}")
+    portfolio = (ROOT / "portfolio.html").read_text(encoding="utf-8")
+    if "trade-live-demo" in portfolio:
+        offenders.append("portfolio.html: trade-live-demo toggle")
+    if offenders:
+        raise AssertionError("Order submission must stay unimplemented: " + "; ".join(offenders))
+    print("[PASS] No app module or page can submit a Kalshi order; the client is read-only.")
+
+
+STALE_CLAIM_PATTERNS = [
+    (r"high[- ]roi model", "retired high-ROI model label"),
+    (r"live alert chat controls", "claims a live alert feed"),
+    (r"submit signed create order", "claims order submission"),
+    (r"live demo order", "claims live demo order submission"),
+    (r"model fair \$", "presents a model value as a computed fair price"),
+]
+
+
+def check_doc_claims():
+    doc_files = [
+        ROOT / "README.md",
+        ROOT / "EXECUTIVE_SUMMARY.md",
+        ROOT / "verification.html",
+        ROOT / "index.html",
+        ROOT / "portfolio.html",
+        *sorted((ROOT / "categories").glob("*.html")),
+    ]
+    # Lines that explicitly describe a removal are remediation notes, not live claims.
+    remediation = re.compile(r"removed|no longer|never|does not|deleted|previously")
+    problems = []
+    for path in doc_files:
+        for line in path.read_text(encoding="utf-8").lower().splitlines():
+            if remediation.search(line):
+                continue
+            for pattern, reason in STALE_CLAIM_PATTERNS:
+                if re.search(pattern, line):
+                    problems.append(f"{path.relative_to(ROOT)}: {reason}")
+    if problems:
+        raise AssertionError("Stale capability claims remain: " + "; ".join(problems))
+    print(f"[PASS] No retired model, live-order or fabricated fair-value claims in {len(doc_files)} user-facing docs/pages.")
+
+
 def main():
     check_required_files()
     check_js_syntax()
     check_internal_links()
     check_dom_ids()
     check_js_modules_and_data()
+    check_no_order_submission()
+    check_doc_claims()
     print("\nALL VERIFICATION CHECKS PASSED.")
 
 

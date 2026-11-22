@@ -112,12 +112,9 @@
             <input id="trade-note" type="text" placeholder="e.g., Post-swing mean reversion" />
           </div>
         </div>
-        <div style="margin-bottom:10px;">
-          <label class="tiny" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
-            <input id="trade-live-demo" type="checkbox" style="width:auto;" />
-            Optional: Submit signed Create Order V2 to Live Kalshi Demo REST (only when authenticated above; Paper Simulation otherwise)
-          </label>
-        </div>
+        <p class="tiny muted" style="margin:0 0 10px;">
+          This ticket records a local paper simulation only. No request is sent to Kalshi, even after an authenticated balance check.
+        </p>
         <button type="submit" class="btn btn-primary">Record Paper Simulation Trade</button>
         <div id="trade-feedback" style="margin-top:8px;"></div>
       </form>
@@ -196,7 +193,7 @@
         <div class="form-grid">
           <div>
             <label class="field-label" for="cs-name">Strategy Name</label>
-            <input id="cs-name" type="text" placeholder="e.g., Crypto Dip High-ROI Buyer" required />
+            <input id="cs-name" type="text" placeholder="e.g., Crypto Dip Rule Test" required />
           </div>
           <div>
             <label class="field-label" for="cs-category">Trade Category</label>
@@ -216,7 +213,7 @@
           <div>
             <label class="field-label" for="cs-rule">Execution Rule</label>
             <select id="cs-rule">
-              <option value="model-edge">High-ROI Model Edge</option>
+              <option value="model-edge">Illustrative Model Edge (heuristic)</option>
               <option value="fade">Mean-Reversion (Fade Swing)</option>
               <option value="follow">Momentum (Follow Swing)</option>
               <option value="spread">Liquidity Spread Capture</option>

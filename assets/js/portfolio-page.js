@@ -235,25 +235,19 @@ function bindEvents() {
     tradeForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fb = document.getElementById('trade-feedback');
-      const useLiveDemoApi = Boolean(document.getElementById('trade-live-demo')?.checked);
       try {
-        const { trade, liveApiResponse } = await engine.executeLiveOrPaperTrade(
-          {
-            ticker: tickerSel.value,
-            action: document.getElementById('trade-action').value,
-            side: document.getElementById('trade-side').value,
-            contracts: Number(document.getElementById('trade-contracts').value),
-            price: Number(document.getElementById('trade-price').value),
-            category: document.getElementById('trade-category').value,
-            note: document.getElementById('trade-note').value
-          },
-          { useLiveDemoApi }
-        );
+        const trade = engine.executePaperTrade({
+          ticker: tickerSel.value,
+          action: document.getElementById('trade-action').value,
+          side: document.getElementById('trade-side').value,
+          contracts: Number(document.getElementById('trade-contracts').value),
+          price: Number(document.getElementById('trade-price').value),
+          category: document.getElementById('trade-category').value,
+          note: document.getElementById('trade-note').value
+        });
         if (fb) {
           fb.className = 'status-banner ok';
-          fb.textContent = liveApiResponse
-            ? `Sent to Kalshi Demo REST (order_id=${liveApiResponse.order_id || 'ok'}) & recorded (${trade.id}): ${trade.action} ${trade.contracts} ${trade.side} on ${trade.ticker} @ $${trade.price.toFixed(2)} [${trade.category}].`
-            : `Paper simulation recorded (not sent to Kalshi) (${trade.id}): ${trade.action} ${trade.contracts} ${trade.side} on ${trade.ticker} @ $${trade.price.toFixed(2)} [${trade.category}].`;
+          fb.textContent = `Paper simulation recorded (no order was sent) (${trade.id}): ${trade.action} ${trade.contracts} ${trade.side} on ${trade.ticker} @ $${trade.price.toFixed(2)} [${trade.category}].`;
         }
       } catch (err) {
         if (fb) {

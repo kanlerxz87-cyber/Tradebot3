@@ -5,7 +5,10 @@
  *  - https://docs.kalshi.com/getting_started/api_environments
  *  - https://docs.kalshi.com/getting_started/api_keys
  *  - https://docs.kalshi.com/getting_started/orderbook_responses
- *  - https://docs.kalshi.com/api-reference/orders/create-order-v2
+ *
+ * Read-only by design: this client fetches public market data and, with a user-supplied demo key,
+ * the account balance. Create Order V2 is documented on the verification page for reference but no
+ * order-submitting request exists in the repository.
  */
 
 export const KALSHI_DEMO_REST_PRIMARY = 'https://external-api.demo.kalshi.co/trade-api/v2';
@@ -334,30 +337,4 @@ export class KalshiDemoClient {
     return bal;
   }
 
-  async createOrderV2({ ticker, side = 'bid', count, price, postOnly = false }) {
-    const clientOrderId = crypto.randomUUID ? crypto.randomUUID() : `tb3-${Date.now()}`;
-    return this.request('POST', '/portfolio/events/orders', {
-      auth: true,
-      body: {
-        ticker,
-        client_order_id: clientOrderId,
-        side,
-        count: Number(count).toFixed(2),
-        price: Number(price).toFixed(4),
-        time_in_force: 'good_till_canceled',
-        post_only: Boolean(postOnly)
-      }
-    });
-  }
-
-  async createOrderFromYesNo({ ticker, action = 'BUY', side = 'YES', contracts, price, postOnly = false }) {
-    const mapped = mapYesNoOrderToV2({ action, side, price });
-    return this.createOrderV2({
-      ticker,
-      side: mapped.side,
-      count: contracts,
-      price: mapped.price,
-      postOnly
-    });
-  }
 }

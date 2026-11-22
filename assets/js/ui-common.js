@@ -231,7 +231,7 @@ export function renderAlertItemHtml(alert, isHighRoiFeed = false) {
     : '<span class="badge badge-unverified">Unverified Catalog Alert</span>';
   const roiHtml =
     isHighRoiFeed && alert.roi
-      ? `<div class="roi-callout"><strong>High-ROI Model Signal:</strong> ${escapeHtml(alert.roi.reason)}</div>`
+      ? `<div class="roi-callout"><strong>Illustrative Model Signal:</strong> ${escapeHtml(alert.roi.reason)}</div>`
       : '';
 
   return `
