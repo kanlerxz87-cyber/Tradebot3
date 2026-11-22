@@ -3,7 +3,14 @@
 **Date:** 2026-11-22 (UTC)  
 **Repository:** `kanlerxz87-cyber/Tradebot3`  
 **Live GitHub Pages Site:** https://kanlerxz87-cyber.github.io/Tradebot3/  
-**Branch:** `arena/83838475-tradebot3` (active: full 29-market refresh + notify toggle; priors merged on `main`: `arena/1a3afb37-tradebot3` T-07 paper-sim disclosure via PR #4, `arena/59730b38-tradebot3` Session 2 via PR #6/#8, `arena/3716ae8d-tradebot3` Session 1 via PR #1, `arena-a8cfdaeb` via PR #2/#3)
+**Branch:** `arena/ca98b078-tradebot3` (active: binary contract `marketTicker` & REST v2 audit + read-only Demo REST book routing; priors merged on `main`: `arena/e9a6c584` PR #15/#17, `arena/340e65b6` PR #13/#14, `arena/83838475` PR #7/#12, `arena/ff314ece` PR #10, `arena/59730b38` PR #6/#8, `arena/1a3afb37` PR #4, `arena/a8cfdaeb` PR #2/#3, `arena/3716ae8d` PR #1)
+
+---
+
+## Session 3 Addendum — Binary Contract `marketTicker` Routing & Read-Only REST v2 Audit (`arena-ca98b078`, 2026-11-22T07:50:00Z)
+
+- **Multi-Strike Event vs Contract Ticker Bugfix (`IRREG-23`):** Verified all 29 catalog rows directly against `external-api.kalshi.com/trade-api/v2/markets`, `external-api.kalshi.com/trade-api/v2/historical/markets`, and `external-api.demo.kalshi.co/trade-api/v2/markets`. Previously, 25 of 29 rows stored parent event tickers (`KXPRESNOMD-28`, `KXAAAGASMIN-26DEC31`, `KXBTCY-27JAN0100`, etc.) in `ticker`, causing read-only `Pull Demo Book` (`GET /markets/{ticker}/orderbook`) to receive HTTP 200 empty arrays (`IRREG-05`). Every row in `VERIFIED_MARKETS` now carries its exact `marketTicker` (`KXPRESNOMD-28-JOSS`, `KXAAAGASMIN-26DEC31-3.40`, `KXBTCY-27JAN0100-B62500`, etc.), `eventTicker`, `strikeVolumeFp`, `demoObservedPrice`, and clickable `[REST v2 JSON ↗]` link, and read-only `engine.fetchLiveOrderbook` routes through `market.marketTicker` (retaining Demo REST books such as `KXPRESNOMD-28-JOSS`'s 10,879 resting contracts for 30s with a `Live Demo REST Book` badge; the client never submits orders).
+- **Historical API Cutoff (`IRREG-24`) & Settlement Sources (`IRREG-25`):** Added `GET /trade-api/v2/historical/markets` to `DEMO_API_ENDPOINTS` after confirming pre-cutoff settled 2026 Oscar and Rotten Tomatoes contracts (`KXOSCARACTO-26-MIC`, `KXOSCARACTR-26-JES`, `KXOSCARDOCU-26-MRN`, `KXRT-ODY-94`, `KXRT-BRI-50`) reside under `/historical/markets`, and verified official settlement benchmarks on `gasprices.aaa.com` (`$3.659/gal` US avg), `cfbenchmarks.com` (`BRTI` `$59,007.14`, `ETHUSD_RTI` `$1,662.37`, `SOLUSD_RTI` `$69.20`), `masters.com`, `pgatour.com`, and `rottentomatoes.com`.
 
 ---
 

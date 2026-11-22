@@ -320,7 +320,12 @@ export class KalshiDemoClient {
 
   async getMarketOrderbook(ticker, depth = 10) {
     const data = await this.request('GET', `/markets/${encodeURIComponent(ticker)}/orderbook?depth=${depth}`);
-    return parseOrderbookFp(data);
+    return {
+      ...parseOrderbookFp(data),
+      simulated: false,
+      liveSource: `Live Demo REST Book (${ticker})`,
+      fetchedAtMs: Date.now()
+    };
   }
 
   async getPortfolioBalance() {

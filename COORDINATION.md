@@ -315,3 +315,14 @@ The branch originally carried a wholesale rewrite of the catalog (static quotes,
 - **GitHub Pages:** build triggered for `2e964ce` at 2026-11-22T07:52:06Z (status observed as `building`); live URL https://kanlerxz87-cyber.github.io/Tradebot3/
 - **Post-merge state:** `main` keeps all prior 29-market re-verification and audit records; the T-06 changes are limited to read-only execution enforcement, the illustrative-model fallback fix, label/doc reconciliation, IRREG-22, and the expanded verifier.
 - **Follow-up (`arena/e9a6c584-tradebot3`, PR #17):** portfolio page title/headings and the dashboard quick-ticket wording were relabelled from "trade execution / automated strategies" to paper terminology; no functional change.
+
+---
+
+## Session `arena-ca98b078` — Binary Contract `marketTicker` & Read-Only REST v2 Audit (2026-11-22 UTC)
+
+| Task ID | Task Description | Status | Owning Session | Branch | File Scope |
+| --- | --- | --- | --- | --- | --- |
+| T-15 | Enrich all 29/29 `VERIFIED_MARKETS` with exact Kalshi REST API v2 `marketTicker`, `eventTicker`, `strikeVolumeFp`, `demoObservedPrice`, `apiMarketUrl` (`/markets` vs `/historical/markets`), official settlement-source catalysts (`gasprices.aaa.com`, `cfbenchmarks.com`, `masters.com`, `pgatour.com`, `rottentomatoes.com`), `REST Get Historical Markets` endpoint, and `IRREG-23..25` | `done` | `arena-ca98b078` | `arena/ca98b078-tradebot3` | `assets/js/data.js`, `flagged-for-review.html`, `EXECUTIVE_SUMMARY.md` |
+| T-16 | Fix event-ticker vs contract-`marketTicker` bug in read-only `fetchLiveOrderbook` (`Pull Demo Book` previously queried parent event tickers on 25/29 multi-strike rows and hit `IRREG-05` empty books), render `Live Demo REST Book` badge in `ui-common.js` with 30s snapshot retention across simulated ticks, and surface `marketTicker` + `REST v2 JSON` links in UI while keeping the client strictly read-only (`T-06`) | `done` | `arena-ca98b078` | `arena/ca98b078-tradebot3` | `assets/js/kalshi-client.js`, `assets/js/engine.js`, `assets/js/ui-common.js`, `assets/js/dashboard.js`, `assets/js/category-page.js` |
+| T-17 | Expand `scripts/verify_site.py` for 29/29 `marketTicker`, `IRREG-23..25`, `fetchLiveOrderbook('KXPRESNOMD-28') -> 'KXPRESNOMD-28-JOSS'` routing & official settlement-host checks, reconcile cleanly onto `origin/main` (`9026f3b`), open/merge PR to `main`, and verify GitHub Pages deploy | `done` | `arena-ca98b078` | `arena/ca98b078-tradebot3` | `scripts/verify_site.py`, `COORDINATION.md` |
+
