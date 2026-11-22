@@ -202,7 +202,7 @@ export const DEMO_API_ENDPOINTS = [
   {
     surface: 'WebSocket Connection Limits',
     status: 'Rate Limit Spec',
-    url: 'Basic/Adv: 200 | Premier: 500 | Paragon: 750 | Prime: 1,000',
+    url: 'Basic/Adv/Expert: 200 | Premier: 500 | Paragon: 750 | Prime/Prestige: 1,000',
     authRequired: 'Tier-based',
     notes: 'Maximum concurrent WebSocket connections per API tier.',
     sourceUrl: 'https://docs.kalshi.com/getting_started/rate_limits',
@@ -229,13 +229,13 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'Above $4.60',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.51,
-    observedSwing: -0.01,
-    volumeUsd: 1836232,
+    observedPrice: 0.06,
+    observedSwing: -0.05,
+    volumeUsd: 2150412,
     verifiedRestingLiquidity: null,
     closeWindow: 'Dec 31, 2026',
     settlementSource: 'AAA Daily Fuel Gauge',
-    modelFairValue: 0.43,
+    modelFairValue: 0.01,
     sourceUrl: 'https://kalshi.com/markets/kxaaagasmax/us-highest-gas-price-yearly/kxaaagasmax-26dec31',
     sourceLabel: 'Kalshi — US Highest Gas Price 2026',
     catalysts: [
@@ -815,13 +815,13 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'Michael Thorbjornsen',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.13,
-    observedSwing: 0.10,
-    volumeUsd: 27982941,
+    observedPrice: 0.18,
+    observedSwing: 0.01,
+    volumeUsd: 39992031,
     verifiedRestingLiquidity: null,
     closeWindow: 'Nov 22, 2026 (Max Payout Dec 5, 2026)',
     settlementSource: 'PGA Tour / ESPN / Fox Sports',
-    modelFairValue: 0.21,
+    modelFairValue: 0.26,
     sourceUrl: 'https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-thrc26',
     sourceLabel: 'Kalshi — 2026 The RSM Classic Winner',
     catalysts: [
@@ -973,6 +973,16 @@ export const FLAGGED_IRREGULARITIES = [
     status: 'Needs Review',
     sourceUrl: 'https://github.com/kanlerxz87-cyber/Tradebot3/commit/62713af9e466cd393c61be0df37e5de0872919cc',
     sourceLabel: 'GitHub Commit 62713af'
+  },
+  {
+    id: 'IRREG-09',
+    severity: 'High',
+    category: 'Dataset Re-verification',
+    item: 'Session-2 live re-check corrected 5 stale/incorrect observed values (notably KXAAAGASMAX-26DEC31: $0.51 -> $0.06)',
+    detail: 'Independent re-verification against live official Kalshi pages on 2026-11-22T07:25:00Z corrected: KXAAAGASMAX-26DEC31 Above $4.60 price $0.51->$0.06, swing -$0.01->-$0.05, vol $1,836,232->$2,150,412; KXAAAGASMIN-26DEC31 Below $3.40 price $0.55->$0.67, swing +$0.10->+$0.27, vol $115,427->$120,214; KXPRESNOMD-28 Ossoff $0.26->$0.24, vol $304,563,107->$308,045,852; KXETHMINY-27JAN01 Below $1,500 $0.42->$0.63, swing +$0.19->+$0.26, vol $1,782,347->$1,829,630; KXPGATOUR-THRC26-MTHO $0.13->$0.18, swing +$0.10->+$0.01, vol $27,982,941->$39,992,031. Model fair values were mechanically re-anchored preserving each prior model edge (documented in COORDINATION.md). Live Kalshi values drift continuously; all static snapshots carry verification timestamps. KXOSCARACTO-26 (settled YES, $25,562,603) re-confirmed exactly.',
+    status: 'Needs Review',
+    sourceUrl: 'https://kalshi.com/markets',
+    sourceLabel: 'Kalshi Official Markets (live re-check)'
   }
 ];
 

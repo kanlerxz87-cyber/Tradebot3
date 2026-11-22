@@ -3,7 +3,19 @@
 **Date:** 2026-11-22 (UTC)  
 **Repository:** `kanlerxz87-cyber/Tradebot3`  
 **Live GitHub Pages Site:** https://kanlerxz87-cyber.github.io/Tradebot3/  
-**Branch:** `arena/3716ae8d-tradebot3`
+**Branch:** `arena/3716ae8d-tradebot3` (Session 1, merged via PR #1) · `arena/59730b38-tradebot3` (Session 2 independent re-verification)
+
+---
+
+## Session 2 Addendum — Independent Re-Verification & Data Corrections (`arena-59730b38`, 2026-11-22T07:25:00Z)
+
+An independent second session re-verified every API claim line by line against live official sources and spot-checked 6 live `kalshi.com` market pages (one per topic plus a second gas market):
+
+**API claims — all re-confirmed against live `docs.kalshi.com`:** Demo REST/WS endpoints and recommended-vs-supported hosts ([demo_env](https://docs.kalshi.com/getting_started/demo_env), [api_environments](https://docs.kalshi.com/getting_started/api_environments)); `orderbook_fp` bids-only reciprocal math incl. the `$0.42`/`$0.56` → `$0.44`/`$0.02` example ([orderbook_responses](https://docs.kalshi.com/getting_started/orderbook_responses)); authenticated WS handshake headers and channel list ([quick_start_websockets](https://docs.kalshi.com/getting_started/quick_start_websockets)); candlestick intervals `1`/`60`/`1440` only ([candlesticks](https://docs.kalshi.com/api-reference/market/get-market-candlesticks)); Create Order V2 `POST /portfolio/events/orders` shape ([create-order-v2](https://docs.kalshi.com/api-reference/orders/create-order-v2)); and WebSocket connection limits (Basic/Advanced/**Expert**: 200, Premier: 500, Paragon: 750, Prime/**Prestige**: 1,000 — [rate_limits](https://docs.kalshi.com/getting_started/rate_limits)). The WS-limit row was extended with the verified Expert and Prestige tiers.
+
+**Market dataset — 5 corrections, 1 exact re-confirmation:** `KXOSCARACTO-26` (settled YES, $25,562,603) matched exactly. Five open-market rows were corrected to live official values — most notably `KXAAAGASMAX-26DEC31` (Above $4.60: **$0.51 → $0.06**, vol → $2,150,412), plus `KXAAAGASMIN-26DEC31`, `KXPRESNOMD-28`, `KXETHMINY-27JAN01`, and `KXPGATOUR-THRC26-MTHO` (full before/after ledger in `COORDINATION.md`). Model fair values were mechanically re-anchored preserving each prior model edge so the High-ROI engine stays consistent; the rule is documented in `COORDINATION.md` and the corrections are published as **IRREG-09** on the Flagged for Review page. Seeded demo-ledger trades in `engine.js` are historical records and were intentionally left untouched.
+
+**Code audit:** `kalshi-client.js` (RSA-PSS SHA-256, salt length 32, `timestamp + METHOD + path` signing, orderbook parser, Create Order V2 payload) and `engine.js` (≥$0.10 dual-chat alerts, settlement $1.00/$0.00 payouts, P&L math, strategy rules) were read line by line; no defects found. Seeded cash math re-checked: $10,000 + $4.00 + $8.50 − (60×$0.13) − (50×$0.26) = $9,991.70 ✓.
 
 ---
 
