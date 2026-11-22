@@ -1,78 +1,162 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Flagged for Review — Tradebot3</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flagged for review — Tradebot3</title>
+  <meta name="description" content="Irregularities, unverified values and the row-by-row audit of the previous Kalshi market dataset, with official source links." />
   <link rel="stylesheet" href="assets/css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f766e'/><text x='50' y='66' font-size='46' font-family='sans-serif' font-weight='bold' fill='white' text-anchor='middle'>T3</text></svg>" />
 </head>
-<body data-root-depth="0" data-page-mode="flagged">
+<body>
   <div id="site-header"></div>
 
-  <main class="page-main container">
-    <section class="page-hero">
+  <main class="wrap doc">
+    <section class="page-head">
       <div>
-        <h1>Flagged for Review — Irregularities &amp; Unverified Fields</h1>
-        <p>
-          Per our strict zero-hallucination verification policy, every technical irregularity, browser/API limitation,
-          and market field that could not be confirmed from a static official source is published transparently here
-          with official source links for manual review. Unconfirmable table cells across the site are left blank and marked <strong>Unverified</strong>.
-        </p>
+        <h1>Flagged for review</h1>
+        <div class="sub">
+          Everything this project could not confirm from an official source, plus the irregularities found while auditing
+          the repository. Nothing here is hidden from the dashboard — it is listed so you can decide what to trust.
+        </div>
       </div>
-      <div class="hero-controls">
-        <a class="btn btn-primary" href="index.html">← Back to Dashboard</a>
-        <a class="btn" href="verification.html">API Verification</a>
-      </div>
-    </section>
-
-    <!-- Flagged Technical & Repo Irregularities -->
-    <section class="card">
-      <div class="card-header">
-        <h2>Flagged Technical, API &amp; Repository Irregularities</h2>
-        <span class="badge badge-unverified">Status: Needs Review (Non-Blocking)</span>
-      </div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Severity</th>
-              <th>Category</th>
-              <th>Irregularity &amp; Verification Detail</th>
-              <th>Status</th>
-              <th>Official Source Link</th>
-            </tr>
-          </thead>
-          <tbody id="irregularities-body"></tbody>
-        </table>
+      <div class="pill-row">
+        <a class="btn" href="verification.html">Verification method</a>
+        <a class="btn btn-primary" href="assets/data/legacy-audit.json" target="_blank" rel="noopener noreferrer">Raw audit JSON</a>
       </div>
     </section>
 
-    <!-- Unverified Market Fields -->
-    <section class="card">
-      <div class="card-header">
-        <h2>Markets With Blank / Unverified Static Fields</h2>
-        <span class="tiny muted">Fields not exposed in official static market snapshots are left blank rather than inferred</span>
-      </div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Ticker</th>
-              <th>Topic</th>
-              <th>Market Title</th>
-              <th>Fields Left Blank / Dynamic</th>
-              <th>Flag</th>
-              <th>Official Source Link</th>
-            </tr>
-          </thead>
-          <tbody id="unverified-fields-body"></tbody>
-        </table>
-      </div>
-    </section>
+    <div class="status-bar" id="flagged-status">Loading audit results…</div>
+
+    <h2>1. Irregularities</h2>
+    <div class="table-wrap card">
+      <table class="data">
+        <thead><tr><th style="width:8%">ID</th><th style="width:8%">Severity</th><th style="width:34%">Issue</th><th>Impact and what the site does</th><th style="width:16%">Source</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>IRREG-01</td><td><span class="badge badge-down">High</span></td>
+            <td>A browser cannot open an authenticated Kalshi WebSocket: the handshake requires <code>KALSHI-ACCESS-*</code> headers that the WebSocket API does not allow a page to set.</td>
+            <td>True sub-second streaming needs a server relay. This site polls REST every 20 s and labels the “Live · sec” chart as browser ticks.</td>
+            <td><a href="https://docs.kalshi.com/getting_started/quick_start_websockets" target="_blank" rel="noopener noreferrer">WS quick start</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-02</td><td><span class="badge badge-warn">Medium</span></td>
+            <td>Whether Kalshi sends CORS headers for browser <code>fetch()</code> from a GitHub Pages origin is <strong>not documented</strong> and could not be tested from this build environment.</td>
+            <td>Status is “unverified”. If the browser is blocked the header says so and the snapshot is used. No key is ever required for market data.</td>
+            <td><a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener noreferrer">API environments</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-03</td><td><span class="badge badge-warn">Medium</span></td>
+            <td>Demo and production are separate books with separate credentials; Kalshi warns demo pricing “may not be reflective” of real markets.</td>
+            <td>Market data is production. The snapshot records a measured demo/production price gap (table below).</td>
+            <td><a href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">Demo env</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-04</td><td><span class="badge badge-warn">Medium</span></td>
+            <td>The public API exposes contract volume, not dollar volume. Any “$ traded” figure must be derived.</td>
+            <td>Ranking uses official contract volume. The dollar column is explicitly labelled an estimate (contracts × last price).</td>
+            <td><a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-05</td><td><span class="badge badge-warn">Medium</span></td>
+            <td>Candlesticks exist only for 1, 60 and 1440-minute periods, at most 5,000 periods per request; the newest candle may lag a few seconds.</td>
+            <td>Seconds-level series are built from browser polling and labelled. Backtests state their ~2-hour sample.</td>
+            <td><a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Candlesticks</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-06</td><td><span class="badge badge-neutral">Low</span></td>
+            <td>An orderbook request for an unknown ticker returns HTTP 200 with empty arrays, not 404.</td>
+            <td>Emptiness is never treated as “zero liquidity of a real market”: the market record is checked separately.</td>
+            <td><a href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Orderbook responses</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-07</td><td><span class="badge badge-neutral">Low</span></td>
+            <td>The request named several demo hosts. Kalshi recommends the <code>external-api</code> hosts but keeps the shared hosts supported.</td>
+            <td>Both are documented; the site defaults to the recommended host.</td>
+            <td><a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener noreferrer">API environments</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-08</td><td><span class="badge badge-warn">Medium</span></td>
+            <td>Topic membership is a judgement call. Kalshi's own categories are broad (for example, a NATO Secretary-General market is filed under “Elections”), and category labels are not stable.</td>
+            <td>Membership is decided by the documented series-prefix and keyword rules written into <code>snapshot.json</code>; every market shows why it was included.</td>
+            <td><a href="assets/data/snapshot.json" target="_blank" rel="noopener noreferrer">snapshot rules</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-09</td><td><span class="badge badge-down">High</span></td>
+            <td>The previous version of this repository displayed <code>modelFairValue</code>, <code>observedSwing</code> and “verified resting liquidity” as if they were verified Kalshi data. They were model inputs with no official source.</td>
+            <td>Removed everywhere. The model now exposes only its component scores, and every displayed market value names its API field.</td>
+            <td><a href="assets/data/legacy-audit.json" target="_blank" rel="noopener noreferrer">legacy audit</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-10</td><td><span class="badge badge-down">High</span></td>
+            <td>Most tickers in the previous 29-row catalogue do not resolve in the live API (see the table below).</td>
+            <td>The catalogue was replaced by markets fetched from the API in the current run; the old rows are preserved here for review, not republished as data.</td>
+            <td><a href="assets/data/legacy-audit.json" target="_blank" rel="noopener noreferrer">legacy audit</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-11</td><td><span class="badge badge-warn">Medium</span></td>
+            <td>News links in the previous version were attached to specific ≥ $0.10 moves as causes.</td>
+            <td>Removed. Charts now show the move and list the topic's official primary sources as candidates; causality is never asserted.</td>
+            <td><a href="verification.html#metrics" target="_blank" rel="noopener noreferrer">metric definitions</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-12</td><td><span class="badge badge-neutral">Low</span></td>
+            <td>Kalshi's fee schedule is not reproduced on this site.</td>
+            <td>Paper P&amp;L is gross and labelled as such. The demo connection is read-only; no unverified order schema is shipped.</td>
+            <td><a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create order</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>2. Legacy dataset — row-by-row audit</h2>
+    <p class="small">
+      For each claim in the previous <code>assets/js/data.js</code>, this session sent <code>GET /markets/{ticker}</code> to
+      the official production API. “Not found” means Kalshi returned no such market. Claimed volumes are <strong>not</strong>
+      reused anywhere on the current site.
+    </p>
+    <div class="status-bar" id="audit-summary" style="margin-bottom:10px">Audit summary loading…</div>
+    <div class="table-wrap card">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Claimed ticker</th><th>Topic</th><th>Claimed volume</th><th>Claimed price</th>
+            <th>Exists in API?</th><th>Live last price</th><th>Live volume (ct)</th><th>Live result</th>
+            <th>Claimed URL status</th><th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="legacy-body">
+          <tr><td colspan="10" class="table-empty">Loading audit…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>3. Values deliberately left blank</h2>
+    <div class="table-wrap card">
+      <table class="data">
+        <thead><tr><th>Value</th><th>Why it is blank / unverified</th><th>Source that would settle it</th></tr></thead>
+        <tbody>
+          <tr><td>Dollar volume (official)</td><td>Kalshi's public API does not publish a dollar-volume field; only contracts. The “Est. $ traded” column is our arithmetic, not Kalshi's number.</td><td><a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets schema</a></td></tr>
+          <tr><td>Trading fees in P&amp;L</td><td>The fee schedule is not reproduced from an official page in his project, so P&amp;L is gross.</td><td><a href="https://docs.kalshi.com/" target="_blank" rel="noopener noreferrer">Kalshi docs</a></td></tr>
+          <tr><td>Demo order execution</td><td>Order placement needs a verified request schema and a browser route to the demo API; neither could be exercised here.</td><td><a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create Order V2</a></td></tr>
+          <tr><td>Cause of a price jump</td><td>No official source states why a contract repriced. Charts show the move and list candidate primary sources without asserting causality.</td><td>—</td></tr>
+          <tr><td>Browser CORS behaviour</td><td>Not documented by Kalshi and not testable from the build environment; the live badge reports what actually happens in your browser.</td><td><a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener noreferrer">API environments</a></td></tr>
+          <tr><td>Resting liquidity for markets with no book</td><td>The orderbook snapshot only covers tracked markets at refresh time; absence of a book is shown as blank, not zero.</td><td><a href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Orderbook</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>4. Demo vs production spot check</h2>
+    <p class="small">Same ticker, both environments, same refresh. This is why the dashboard never presents demo prices as production prices.</p>
+    <div class="table-wrap card">
+      <table class="data">
+        <thead><tr><th>Ticker</th><th class="num">Production last</th><th class="num">Demo last</th><th class="num">Production volume (ct)</th><th class="num">Demo volume (ct)</th></tr></thead>
+        <tbody id="demo-body"><tr><td colspan="5" class="table-empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
   </main>
 
   <div id="site-footer"></div>
-  <script type="module" src="assets/js/verification-page.js"></script>
+  <script type="module" src="assets/js/flagged.js"></script>
 </body>
 </html>

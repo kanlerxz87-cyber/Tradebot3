@@ -1,115 +1,134 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gas Prices — Kalshi Demo Category Dashboard · Tradebot3</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gas Prices — Tradebot3 Kalshi dashboard</title>
+  <meta name="description" content="Live Kalshi Gas Prices markets: official prices and volume, ≥$0.10 swing alerts, candle chart with jump markers, orderbook liquidity and YES/NO resolution history." />
   <link rel="stylesheet" href="../assets/css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f766e'/><text x='50' y='66' font-size='46' font-family='sans-serif' font-weight='bold' fill='white' text-anchor='middle'>T3</text></svg>" />
 </head>
-<body data-root-depth="1" data-topic="gas-prices">
+<body data-topic="gas-prices">
   <div id="site-header"></div>
-
-  <main class="page-main container">
-    <section class="page-hero">
+  <main class="wrap">
+    <section class="page-head">
       <div>
-        <h1 id="topic-hero-title">Gas Prices — Kalshi Live &amp; Resolved Events</h1>
-        <p id="topic-hero-desc">AAA national and state regular gasoline Kalshi prediction markets.</p>
+        <h1 id="topic-title">Gas Prices</h1>
+        <div class="sub" id="topic-blurb">AAA national and state regular-gasoline threshold contracts (Economics category).</div>
       </div>
-      <div class="hero-controls">
-        <button id="cat-trigger-swing" class="btn btn-primary">Trigger &gt;= $0.10 Swing</button>
-        <a class="btn" href="../index.html">← All 5 Topics</a>
+      <div class="pill-row">
+        <a class="btn" href="../index.html">← All topics</a>
+        <a class="btn btn-primary" href="../portfolio.html">Portfolio &amp; strategy lab</a>
       </div>
     </section>
 
-    <section id="topic-kpi-strip" class="kpi-grid"></section>
+    <div id="topic-status" class="status-bar">Loading the official Kalshi snapshot…</div>
 
-    <section class="card">
-      <div class="card-header">
-        <h2>Interactive Price Chart &amp; Orderbook Liquidity (Gas Prices)</h2>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <select id="cat-market-select" style="width:auto;min-width:280px;" aria-label="Select Gas Prices Market"></select>
-          <div class="seg-group">
-            <button class="seg-btn" data-timeframe="seconds">Seconds</button>
-            <button class="seg-btn active" data-timeframe="minutes">Minutes</button>
-            <button class="seg-btn" data-timeframe="hours">Hours</button>
-          </div>
+    <section id="topic-kpis" class="kpi-grid" style="margin-top:14px"></section>
+
+    <section class="card" style="margin-top:14px">
+      <div class="card-head">
+        <h2>Price movement</h2>
+        <div class="chart-toolbar">
+          <select id="chart-market-select" aria-label="Select a market" style="min-width:280px;max-width:420px"></select>
+          <div id="chart-tf" class="seg" role="group" aria-label="Chart timeframe"></div>
         </div>
       </div>
-      <div id="cat-chart-meta" style="margin-bottom:10px;"></div>
-      <div class="grid-chart-ob">
-        <div>
-          <div class="chart-canvas-wrap">
-            <canvas id="cat-price-chart"></canvas>
+      <div class="card-body">
+        <div id="chart-meta" style="margin-bottom:8px"></div>
+        <div class="grid" style="grid-template-columns:1.55fr 1fr;align-items:start">
+          <div class="chart-shell">
+            <div class="chart-canvas-wrap">
+              <canvas id="chart-canvas" class="price-chart" role="img" aria-label="Contract price chart"></canvas>
+              <div id="chart-tooltip" class="chart-tooltip"></div>
+              <div id="chart-popover" class="marker-popover"></div>
+            </div>
+            <div class="chart-legend">
+              <span class="key"><span class="dot" style="background:#0f766e"></span>YES price</span>
+              <span class="key"><span class="dot" style="background:#047857"></span>≥$0.10 up</span>
+              <span class="key"><span class="dot" style="background:#b91c1c"></span>≥$0.10 down</span>
+            </div>
+            <div id="chart-catalysts" class="catalyst-box" style="margin-top:10px"></div>
           </div>
-          <div id="cat-catalysts" class="catalyst-box"></div>
-        </div>
-        <div>
-          <div id="cat-orderbook-panel"></div>
-          <form id="cat-trade-form" style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;">
-            <strong class="small">Quick Demo Trade (Gas Prices)</strong>
-            <div class="form-grid" style="margin-top:6px;">
-              <div>
-                <label class="field-label" for="cat-qt-side">Side</label>
-                <select id="cat-qt-side"><option value="YES">Buy YES</option><option value="NO">Buy NO</option></select>
-              </div>
-              <div>
-                <label class="field-label" for="cat-qt-contracts">Contracts</label>
-                <input id="cat-qt-contracts" type="number" min="1" max="500" value="25" required />
-              </div>
-              <div>
-                <label class="field-label" for="cat-qt-price">Price ($)</label>
-                <input id="cat-qt-price" type="number" step="0.01" min="0.01" max="0.99" value="0.51" required />
-              </div>
-              <div>
-                <label class="field-label" for="cat-qt-category">Category</label>
-                <select id="cat-qt-category"></select>
+          <div>
+            <div class="card" style="box-shadow:none">
+              <div class="card-head" style="padding:8px 12px"><h3>Liquidity ladder</h3><span class="tiny">contracts at each price</span></div>
+              <div class="card-body" id="orderbook-panel" style="padding:10px 12px"></div>
+            </div>
+            <div class="card" style="box-shadow:none;margin-top:10px">
+              <div class="card-head" style="padding:8px 12px"><h3>Paper trade ticket</h3><span class="tiny">simulated</span></div>
+              <div class="card-body" style="padding:10px 12px">
+                <form id="quick-trade-form">
+                  <label class="field" for="qt-market">Market</label>
+                  <select id="qt-market" style="margin-bottom:8px"></select>
+                  <div class="form-row-3">
+                    <div><label class="field" for="qt-side">Side</label><select id="qt-side"><option>YES</option><option>NO</option></select></div>
+                    <div><label class="field" for="qt-qty">Contracts</label><input id="qt-qty" type="number" min="1" value="10" /></div>
+                    <div><label class="field" for="qt-strategy">Category</label><select id="qt-strategy"></select></div>
+                  </div>
+                  <div id="qt-preview" class="hint" style="margin-bottom:8px">—</div>
+                  <button class="btn btn-primary" type="submit" style="width:100%">Place paper order</button>
+                  <div id="qt-feedback" style="margin-top:8px"></div>
+                  <div id="qt-cash" class="hint"></div>
+                </form>
               </div>
             </div>
-            <button type="submit" class="btn btn-primary btn-sm">Execute Demo Order</button>
-            <div id="cat-qt-feedback" style="margin-top:8px;"></div>
-          </form>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="grid-2" style="margin-bottom:18px;">
-      <div class="card" style="margin-bottom:0;">
-        <div class="card-header"><h2>Gas Prices &gt;= $0.10 Swing Alerts (All)</h2></div>
-        <div id="cat-chat-all" class="chat-feed" style="height:260px;"></div>
+    <section class="chat-layout" style="margin-top:14px">
+      <div class="card">
+        <div class="chat-head"><div class="chat-title">All ≥ $0.10 swings <span class="badge badge-up" id="count-all">0</span></div></div>
+        <div id="chat-all" class="chat-feed compact" role="log" aria-live="polite"></div>
       </div>
-      <div class="card" style="margin-bottom:0;">
-        <div class="card-header"><h2>Gas Prices High-ROI Model Alerts</h2></div>
-        <div id="cat-chat-roi" class="chat-feed" style="height:260px;"></div>
+      <div class="card">
+        <div class="chat-head"><div class="chat-title">High-ROI model <span class="badge badge-info" id="count-model">0</span></div></div>
+        <div id="chat-model" class="chat-feed compact" role="log" aria-live="polite"></div>
       </div>
     </section>
 
-    <section class="card">
-      <div class="card-header">
-        <h2>Verified Gas Prices Events Table</h2>
-        <span class="tiny muted">Sorted by verified dollar volume · Blank fields flagged as Unverified</span>
+    <section class="card" style="margin-top:14px">
+      <div class="card-head">
+        <h2>Markets in Gas Prices</h2>
+        <span class="card-note">Events are grouped together; markets within an event are ordered by official volume.</span>
       </div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Ticker</th>
-              <th>Event &amp; Contract</th>
-              <th>Verified Dollar Volume</th>
-              <th>Live Demo Price</th>
-              <th>Verified Observed</th>
-              <th>Resolution</th>
-              <th>Settlement Source</th>
-              <th>Close Window</th>
-              <th>Official Source Link</th>
-            </tr>
-          </thead>
-          <tbody id="cat-markets-body"></tbody>
-        </table>
+      <div class="card-body tight">
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Market</th><th class="num">Last</th><th class="num">Bid / ask</th><th class="num">Spread</th>
+                <th class="num">Volume (ct)</th><th class="num">24h (ct)</th><th class="num">Open interest</th>
+                <th class="num">Book depth</th><th>Status</th><th>Source</th>
+              </tr>
+            </thead>
+            <tbody id="topic-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:14px">
+      <div class="card-head">
+        <h2>Resolution history</h2>
+        <span class="card-note">Official <code>result</code> / <code>settlement_value_dollars</code> from Kalshi's API.</span>
+      </div>
+      <div class="card-body tight">
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>Settled</th><th>Market</th><th>Result</th><th class="num">Settlement</th><th class="num">Volume</th><th>Source</th></tr></thead>
+            <tbody id="topic-resolutions"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-body" style="padding-top:8px">
+        <div class="card-note" id="topic-references"></div>
       </div>
     </section>
   </main>
-
   <div id="site-footer"></div>
-  <script type="module" src="../assets/js/category-page.js"></script>
+  <script type="module" src="../assets/js/category.js"></script>
 </body>
 </html>

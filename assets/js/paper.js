@@ -42,16 +42,25 @@ export class PaperAccount {
   get openPositions() { return this.state.positions; }
   get closedTrades() { return this.state.trades; }
 
-  priceFor(ticker, side) {
+  /**
+   * Quote for an action: buying lifts the ask, selling hits the bid.
+   * Using the bid for marks/exits keeps P&L honest about the spread.
+   */
+  priceFor(ticker, side, action = 'buy') {
     const market = this.data.byTicker.get(ticker);
     if (!market) return null;
     const ob = market.orderbook;
+    const buying = action === 'buy';
     if (side === 'YES') {
+      if (buying && isNum(ob?.best_yes_ask)) return { price: ob.best_yes_ask, source: 'orderbook ask' };
+      if (!buying && isNum(ob?.best_yes_bid)) return { price: ob.best_yes_bid, source: 'orderbook bid' };
       if (isNum(ob?.best_yes_ask)) return { price: ob.best_yes_ask, source: 'orderbook ask' };
       if (isNum(ob?.best_yes_bid)) return { price: ob.best_yes_bid, source: 'orderbook bid' };
       if (isNum(market.last_price)) return { price: market.last_price, source: 'last trade (no book)' };
       return null;
     }
+    if (buying && isNum(ob?.best_no_ask)) return { price: ob.best_no_ask, source: 'orderbook ask' };
+    if (!buying && isNum(ob?.best_no_bid)) return { price: ob.best_no_bid, source: 'orderbook bid' };
     if (isNum(ob?.best_no_ask)) return { price: ob.best_no_ask, source: 'orderbook ask' };
     if (isNum(ob?.best_no_bid)) return { price: ob.best_no_bid, source: 'orderbook bid' };
     if (isNum(market.last_price)) return { price: 1 - market.last_price, source: 'implied from last trade' };
@@ -64,7 +73,7 @@ export class PaperAccount {
     if (market.status !== 'active') throw new Error('Market is not open');
     const q = Math.floor(Number(qty));
     if (!q || q < 1) throw new Error('Enter at least 1 contract');
-    const quote = this.priceFor(ticker, side);
+    const quote = this.priceFor(ticker, side, 'buy');
     if (!quote || !isNum(quote.price)) throw new Error('No usable price for this market');
     const cost = quote.price * q;
     if (cost > this.state.cash) throw new Error(`Insufficient paper cash (need $${cost.toFixed(2)})`);
@@ -95,7 +104,7 @@ export class PaperAccount {
     const idx = this.state.positions.findIndex((p) => p.id === positionId);
     if (idx < 0) throw new Error('Position not found');
     const pos = this.state.positions[idx];
-    const quote = price !== null ? { price, source: 'manual' } : this.priceFor(pos.ticker, pos.side);
+    const quote = price !== null ? { price, source: 'manual' } : this.priceFor(pos.ticker, pos.side, 'sell');
     if (!quote || !isNum(quote.price)) throw new Error('No usable exit price');
     const proceeds = quote.price * pos.qty;
     const pnl = (quote.price - pos.entry) * pos.qty;
@@ -150,7 +159,7 @@ export class PaperAccount {
 
   markPosition(pos) {
     const market = this.data.byTicker.get(pos.ticker);
-    const quote = this.priceFor(pos.ticker, pos.side);
+    const quote = this.priceFor(pos.ticker, pos.side, 'sell');
     const mark = quote?.price;
     const value = isNum(mark) ? mark * pos.qty : pos.entry * pos.qty;
     const pnl = isNum(mark) ? (mark - pos.entry) * pos.qty : 0;

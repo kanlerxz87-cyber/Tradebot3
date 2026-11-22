@@ -1,99 +1,215 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API Verification, Repo Audit &amp; Suggestions — Tradebot3</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>API verification &amp; repository audit — Tradebot3</title>
+  <meta name="description" content="Line-by-line verification of the Kalshi demo and production endpoints used by Tradebot3, metric definitions, the repository audit and suggestions for a more live dashboard." />
   <link rel="stylesheet" href="assets/css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f766e'/><text x='50' y='66' font-size='46' font-family='sans-serif' font-weight='bold' fill='white' text-anchor='middle'>T3</text></svg>" />
 </head>
-<body data-root-depth="0" data-page-mode="verification">
+<body>
   <div id="site-header"></div>
 
-  <main class="page-main container">
-    <section class="page-hero">
+  <main class="wrap doc">
+    <section class="page-head">
       <div>
-        <h1>Official Kalshi Demo API Verification, Repo Audit &amp; Interactive Suggestions</h1>
-        <p>
-          Line-by-line verification of every Kalshi Demo REST endpoint, WebSocket URL, authentication requirement, orderbook schema,
-          repository file audit, and prioritized architectural suggestions to make the dashboard even more live and interactive.
-          Every table row links directly to its official source.
-        </p>
+        <h1>API verification &amp; repository audit</h1>
+        <div class="sub">
+          Every endpoint and behaviour quoted on this site is traced to Kalshi's official documentation and, where the
+          endpoint is public, exercised live. Anything that could not be confirmed is left blank and listed on the
+          <a href="flagged-for-review.html">Flagged for review</a> page.
+        </div>
       </div>
-      <div class="hero-controls">
-        <a class="btn btn-primary" href="flagged-for-review.html">View Flagged for Review →</a>
-        <a class="btn" href="EXECUTIVE_SUMMARY.md">Executive Summary</a>
-      </div>
-    </section>
-
-    <!-- Kalshi Demo API Verification Table -->
-    <section class="card">
-      <div class="card-header">
-        <h2>1. Verified Kalshi Demo API Endpoints &amp; Specifications</h2>
-        <span class="badge badge-verified">Verified Against docs.kalshi.com (2026-11-22)</span>
-      </div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>API Surface</th>
-              <th>Status</th>
-              <th>Verified URL / Specification</th>
-              <th>Authentication</th>
-              <th>Verified Notes</th>
-              <th>Official Source Link</th>
-            </tr>
-          </thead>
-          <tbody id="api-endpoints-body"></tbody>
-        </table>
+      <div class="pill-row">
+        <a class="btn" href="flagged-for-review.html">Flagged items</a>
+        <a class="btn btn-primary" href="assets/data/snapshot.json" target="_blank" rel="noopener noreferrer">Raw snapshot JSON</a>
       </div>
     </section>
 
-    <!-- Line-by-Line Repository Audit Table -->
-    <section class="card">
-      <div class="card-header">
-        <h2>2. Repository Line-by-Line Audit</h2>
-        <a class="tiny" href="COORDINATION.md">View COORDINATION.md Log →</a>
-      </div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Repository File / Component</th>
-              <th>Audit Type</th>
-              <th>Verification Finding</th>
-              <th>Status</th>
-              <th>Source Link</th>
-            </tr>
-          </thead>
-          <tbody id="repo-audit-body"></tbody>
-        </table>
-      </div>
-    </section>
+    <div class="status-bar" id="verification-status">Loading live verification metadata…</div>
 
-    <!-- Suggestions to Make the Site More Live & Interactive -->
-    <section class="card">
-      <div class="card-header">
-        <h2>3. Suggestions to Make the Dashboard More Live &amp; Interactive</h2>
-        <span class="tiny muted">Actionable upgrades grounded in official Kalshi API capabilities</span>
-      </div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Priority</th>
-              <th>Area</th>
-              <th>Recommendation</th>
-              <th>Impact &amp; Technical Rationale</th>
-              <th>Official Reference</th>
-            </tr>
-          </thead>
-          <tbody id="suggestions-body"></tbody>
-        </table>
-      </div>
-    </section>
+    <h2>1. Official endpoints in use</h2>
+    <p class="small">Verified against <a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener noreferrer">API Environments and Endpoints</a> and <a href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">Test in the Demo Environment</a>.</p>
+    <div class="table-wrap card">
+      <table class="data">
+        <thead><tr><th>Environment</th><th>Surface</th><th>Recommended base URL</th><th>Also supported</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr><td>Production</td><td>REST Trade API</td><td class="ticker">https://external-api.kalshi.com/trade-api/v2</td><td class="ticker">https://api.elections.kalshi.com/trade-api/v2</td><td><a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener noreferrer">docs</a></td></tr>
+          <tr><td>Demo</td><td>REST Trade API</td><td class="ticker">https://external-api.demo.kalshi.co/trade-api/v2</td><td class="ticker">https://demo-api.kalshi.co/trade-api/v2</td><td><a href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">docs</a></td></tr>
+          <tr><td>Production</td><td>WebSocket API</td><td class="ticker">wss://external-api-ws.kalshi.com/trade-api/ws/v2</td><td class="ticker">wss://api.elections.kalshi.com/trade-api/ws/v2</td><td><a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener noreferrer">docs</a></td></tr>
+          <tr><td>Demo</td><td>WebSocket API</td><td class="ticker">wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2</td><td class="ticker">wss://demo-api.kalshi.co/trade-api/ws/v2</td><td><a href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">docs</a></td></tr>
+          <tr><td>Production</td><td>User fill/order WebSocket</td><td class="ticker">wss://user-ws.kalshi.com/trade-api/ws/v2</td><td class="ticker">—</td><td><a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener noreferrer">docs</a></td></tr>
+          <tr><td>Demo</td><td>User fill/order WebSocket</td><td class="ticker">wss://user-ws.demo.kalshi.co/trade-api/ws/v2</td><td class="ticker">—</td><td><a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener noreferrer">docs</a></td></tr>
+          <tr><td>Demo</td><td>Web app (sign-up, keys)</td><td class="ticker">https://demo.kalshi.co/</td><td class="ticker">—</td><td><a href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">docs</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>2. API behaviour verified line by line</h2>
+    <div class="table-wrap card">
+      <table class="data">
+        <thead><tr><th style="width:22%">Topic</th><th>What the official documentation says</th><th style="width:15%">How this site uses it</th><th style="width:12%">Official source</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Authentication</strong></td>
+            <td>Three headers: <code>KALSHI-ACCESS-KEY</code>, <code>KALSHI-ACCESS-TIMESTAMP</code> (milliseconds), <code>KALSHI-ACCESS-SIGNATURE</code>. The signature is base64 over <code>timestamp + METHOD + path</code>, with query parameters stripped. Ed25519 keys sign directly; RSA keys use RSA-PSS with SHA-256 and salt length equal to the digest length. Timestamps must be within 30 seconds.</td>
+            <td>Portfolio page signs <code>GET /portfolio/balance</code> with Web Crypto RSA-PSS (salt 32) from a key you paste in; nothing is stored.</td>
+            <td><a href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener noreferrer">API Keys</a></td>
+          </tr>
+          <tr>
+            <td><strong>Public market data</strong></td>
+            <td>The orderbook endpoint states that “no authentication is required”. This site's snapshot job calls <code>GET /series</code>, <code>GET /markets</code>, <code>GET /events/{ticker}</code>, <code>GET /markets/{ticker}</code>, orderbook and candlesticks without credentials.</td>
+            <td>Data pipeline uses only unauthenticated endpoints.</td>
+            <td><a href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Orderbook</a></td>
+          </tr>
+          <tr>
+            <td><strong>Orderbook shape</strong></td>
+            <td><code>orderbook_fp</code> contains <code>yes_dollars</code> and <code>no_dollars</code> arrays of <code>[price_dollars, count_fp]</code>. Arrays are ascending; the best bid is the last element. Only bids are returned: YES ask = $1.00 − best NO bid, NO ask = $1.00 − best YES bid. Unknown tickers return HTTP 200 with empty arrays, not 404.</td>
+            <td>Liquidity ladder derives implied asks and the spread with exactly those formulas.</td>
+            <td><a href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Orderbook responses</a></td>
+          </tr>
+          <tr>
+            <td><strong>Candlesticks</strong></td>
+            <td><code>GET /series/{series_ticker}/markets/{ticker}/candlesticks</code> with <code>period_interval</code> ∈ {1, 60, 1440} minutes. One request may span at most 5,000 periods; <code>start_ts</code>/<code>end_ts</code> must be seconds. The most recent candles can lag trades by a few seconds.</td>
+            <td>Chart uses 1m and 60m candles; the “Live · sec” view is built from browser polling ticks and is labelled as such.</td>
+            <td><a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Candlesticks</a></td>
+          </tr>
+          <tr>
+            <td><strong>WebSockets</strong></td>
+            <td>Connections require the same three auth headers in the handshake, signed over <code>timestamp + "GET" + "/trade-api/ws/v2"</code>. <code>ticker</code>, <code>trade</code> and <code>market_lifecycle_v2</code> carry public market data but still use the authenticated session; <code>orderbook_delta</code>, <code>fill</code>, <code>market_positions</code>, <code>communications</code>, <code>order_group_updates</code> and <code>user_orders</code> are private.</td>
+            <td>Not used directly: a static page cannot set handshake headers. The site polls REST every 20 s instead and flags the limitation.</td>
+            <td><a href="https://docs.kalshi.com/getting_started/quick_start_websockets" target="_blank" rel="noopener noreferrer">WebSocket quick start</a></td>
+          </tr>
+          <tr>
+            <td><strong>Rate limits</strong></td>
+            <td>Token-bucket budgets per read and write bucket; most requests cost 10 tokens; a throttled request returns 429 with <code>too_many_requests</code> and <code>X-RateLimit-*</code> headers. Unauthenticated public requests have separate limits.</td>
+            <td>Snapshot job sleeps between calls and backs off on 429/5xx; the browser polls at most 40 tickers every 20 seconds.</td>
+            <td><a href="https://docs.kalshi.com/getting_started/rate_limits" target="_blank" rel="noopener noreferrer">Rate limits</a></td>
+          </tr>
+          <tr>
+            <td><strong>Demo vs production</strong></td>
+            <td>Demo uses mock funds and separate credentials; Kalshi states “the price and behavior of markets in the demo environment may not be reflective of those in real markets”.</td>
+            <td>Market data is production; the demo connection is only for reading your demo balance. The divergence is measured and published.</td>
+            <td><a href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">Demo environment</a></td>
+          </tr>
+          <tr>
+            <td><strong>Historical data</strong></td>
+            <td>Markets settled before the historical cutoff expose candles only via <code>GET /historical/markets/{ticker}/candlesticks</code>.</td>
+            <td>Resolution tables rely on the market <code>result</code>/<code>settlement_value_dollars</code> fields, not on old candles.</td>
+            <td><a href="https://docs.kalshi.com/getting_started/historical_data" target="_blank" rel="noopener noreferrer">Historical data</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="metrics">3. Metric definitions (so no number is ambiguous)</h2>
+    <div class="table-wrap card">
+      <table class="data">
+        <thead><tr><th>Shown on the site</th><th>Definition</th><th>Official field / formula</th></tr></thead>
+        <tbody>
+          <tr><td>Volume (ct)</td><td>Number of contracts traded over the market's life.</td><td><code>volume_fp</code></td></tr>
+          <tr><td>24h vol (ct)</td><td>Contracts traded in the last 24 hours.</td><td><code>volume_24h_fp</code></td></tr>
+          <tr><td>Open interest</td><td>Contracts open at the end of the period.</td><td><code>open_interest_fp</code></td></tr>
+          <tr><td>Last price</td><td>Last traded YES price in dollars.</td><td><code>last_price_dollars</code></td></tr>
+          <tr><td>Bid / ask</td><td>Best YES bid; best YES ask = $1.00 − best NO bid.</td><td><code>yes_bid_dollars</code>; derived from <code>no_dollars</code></td></tr>
+          <tr><td>Spread</td><td>Best YES ask − best YES bid.</td><td>derived from <code>orderbook_fp</code></td></tr>
+          <tr><td>Book depth</td><td>Resting contracts on both bid sides at the ten best levels.</td><td>Σ <code>count_fp</code> in <code>yes_dollars</code> + <code>no_dollars</code></td></tr>
+          <tr><td>Est. $ traded</td><td><strong>Estimate only</strong>: contract volume × last price. The public API has no dollar-volume field.</td><td><code>volume_fp × last_price_dollars</code></td></tr>
+          <tr><td>≥ $0.10 move</td><td>Absolute close-to-close change between consecutive candles (or live polls) of at least $0.10 per contract.</td><td>candle <code>yes_ask.close_dollars</code>, else <code>yes_bid.close_dollars</code></td></tr>
+          <tr><td>Model score</td><td>0–100 screen: liquidity 40, spread 20, price band 15, catalyst 15, runway 10. A screen, not a probability.</td><td>see <code>assets/js/core.js → scoreMarket()</code></td></tr>
+          <tr><td>Paper P&amp;L</td><td>(exit − entry) × contracts at the quoted book price; fees excluded.</td><td>simulated, gross</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>4. Repository audit — what this review changed</h2>
+    <p class="small">
+      The previous version of this repository shipped a 29-row market catalogue with hand-entered prices and volumes.
+      This session re-checked every claimed ticker against the live production API. The full row-by-row result is in
+      <a href="assets/data/legacy-audit.json" target="_blank" rel="noopener noreferrer">assets/data/legacy-audit.json</a>
+      and rendered on the <a href="flagged-for-review.html">Flagged for review</a> page.
+    </p>
+    <div class="status-bar" id="audit-summary" style="margin-bottom:10px">Audit summary loading…</div>
+    <div class="table-wrap card">
+      <table class="data">
+        <thead><tr><th style="width:8%">ID</th><th style="width:34%">Finding</th><th>Verdict &amp; action taken</th><th style="width:14%">Evidence</th></tr></thead>
+        <tbody>
+          <tr><td>AUD-01</td><td>The legacy catalogue claimed 29 specific Kalshi markets with prices and volumes.</td><td><span class="verdict-bad">Most tickers do not exist.</span> Only a few resolve in the live API; the rest return no market record. The catalogue was removed and replaced with API-sourced markets.</td><td><a href="assets/data/legacy-audit.json" target="_blank" rel="noopener noreferrer">legacy-audit.json</a></td></tr>
+          <tr><td>AUD-02</td><td>Legacy fields <code>modelFairValue</code>, <code>observedSwing</code> and <code>verifiedRestingLiquidity</code> were presented as verified.</td><td><span class="verdict-bad">No official source.</span> These are model outputs, not Kalshi fields. They are gone; the model now shows its components instead of a fabricated fair value.</td><td><a href="flagged-for-review.html">IRREG-09</a></td></tr>
+          <tr><td>AUD-03</td><td>Legacy rows labelled "Resolved" carried a price of $1.00 with no settlement record.</td><td><span class="verdict-warn">Partially checkable.</span> Resolution is now read directly from <code>result</code> and <code>settlement_value_dollars</code>; unresolved rows stay blank.</td><td><a href="assets/data/snapshot.json" target="_blank" rel="noopener noreferrer">snapshot resolutions</a></td></tr>
+          <tr><td>AUD-04</td><td>Legacy news links (CNBC, EIA, polling, PGA articles) were attached to specific price jumps as causes.</td><td><span class="verdict-bad">Causality unproven.</span> Removed. Charts now mark the price move and list official topic sources as <em>candidate</em> context.</td><td><a href="index.html#chart-section">chart panel</a></td></tr>
+          <tr><td>AUD-05</td><td>Legacy site implied second-level streaming from Kalshi WebSockets.</td><td><span class="verdict-warn">Not possible from a static page.</span> The WS handshake needs auth headers a browser cannot set; the site now says so and labels the seconds view as browser-poll ticks.</td><td><a href="https://docs.kalshi.com/getting_started/quick_start_websockets" target="_blank" rel="noopener noreferrer">WS docs</a></td></tr>
+          <tr><td>AUD-06</td><td>No automated verification existed; the coordination board marked everything done by assertion.</td><td><span class="verdict-ok">Fixed.</span> A scheduled GitHub Action rebuilds the snapshot from the API, validates it, and commits it. <code>scripts/verify_site.py</code> checks links, topic isolation and source coverage.</td><td><a href="https://github.com/kanlerxz87-cyber/Tradebot3/blob/main/.github/workflows/refresh-data.yml" target="_blank" rel="noopener noreferrer">workflow</a></td></tr>
+          <tr><td>AUD-07</td><td>The repository had no tests and no data provenance.</td><td><span class="verdict-ok">Fixed.</span> Each market row carries <code>api_url</code> and <code>field_source</code>; the snapshot records the exact endpoints and generation time.</td><td><a href="assets/data/snapshot.json" target="_blank" rel="noopener noreferrer">snapshot</a></td></tr>
+          <tr><td>AUD-08</td><td>GitHub Pages was configured but the site build had no verification step.</td><td><span class="verdict-ok">Fixed.</span> Verification script runs in CI and locally before the pull request; the deploy is confirmed against the live URL.</td><td><a href="https://kanlerxz87-cyber.github.io/Tradebot3/" target="_blank" rel="noopener noreferrer">live site</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="paper">5. How paper fills and settlement work</h2>
+    <ul class="tight">
+      <li><strong>Entry price</strong>: the displayed YES/NO ask from the latest orderbook snapshot. If no book exists, the last trade price is used and the row says so.</li>
+      <li><strong>Mark</strong>: current best bid/ask from the same source, refreshed by the 20-second live poll.</li>
+      <li><strong>Settlement</strong>: when Kalshi publishes <code>result</code> = yes/no, an open position pays $1.00 if the side matches and $0.00 otherwise, and moves to the closed log with the reason “resolved YES/NO”.</li>
+      <li><strong>Fees</strong>: excluded everywhere, and labelled as gross, because the fee schedule is not reproduced from an official source in this project.</li>
+      <li><strong>Storage</strong>: the account lives in this browser's <code>localStorage</code>. Export produces a JSON file; reset restores $10,000.</li>
+    </ul>
+
+    <h2>6. Demo vs production spot check</h2>
+    <p class="small">Same ticker, both Kalshi environments, same refresh. Demo uses mock funds, so its prices and
+      volume diverge from the production book — which is exactly why this site never presents demo prices as market prices.</p>
+    <div class="table-wrap card">
+      <table class="data">
+        <thead><tr><th>Ticker</th><th class="num">Production last</th><th class="num">Demo last</th><th class="num">Production volume (ct)</th><th class="num">Demo volume (ct)</th></tr></thead>
+        <tbody id="demo-spot"><tr><td colspan="5" class="table-empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+
+    <h2>7. Automation — how the data stays current</h2>
+    <div class="callout callout-info">
+      <strong>Scheduled refresh.</strong> <code>.github/workflows/refresh-data.yml</code> runs every 20 minutes and on demand.
+      It executes <code>scripts/fetch_kalshi_data.py</code>, which discovers the five topics' series through
+      <code>GET /series</code>, pulls markets, orderbooks and 1-minute/1-hour candles, derives ≥ $0.10 alerts, collects
+      recent settlements, re-audits the legacy claims, and commits the result as <code>assets/data/snapshot.json</code>.
+      The page you are on reads that file and then polls the same public API for live ticks.
+    </div>
+
+    <h2>8. Suggestions to make the dashboard more live and interactive</h2>
+    <ol>
+      <li><strong>Server-side WebSocket relay.</strong> Deploy a small Cloudflare Worker or Node service that holds the
+        authenticated <code>wss://external-api-ws.kalshi.com</code> session (it can sign the handshake) and fan out
+        <code>ticker</code>, <code>trade</code>, <code>orderbook_delta</code> and <code>market_lifecycle_v2</code> to browsers
+        over SSE. This removes the 20-second polling delay and unlocks true sub-second charts.</li>
+      <li><strong>Instant resolution banners.</strong> Subscribe to <code>market_lifecycle_v2</code> so a resolved event flips
+        from “open” to YES/NO within seconds, and auto-settle paper positions at that moment.</li>
+      <li><strong>Push alerts and sound.</strong> Add Web Notifications plus an optional audio ping for model-qualified
+        ≥ $0.10 moves, with per-topic thresholds and a quiet-hours toggle.</li>
+      <li><strong>Orderbook ladder trading.</strong> Clicking a depth row already loads a ticket; the next step is a limit-order
+        form with a depth-weighted fill estimate and a “walk the book” preview showing how many contracts are available
+        at each price.</li>
+      <li><strong>Catalyst calendar.</strong> Pin scheduled official releases (EIA Weekly Petroleum Status Report, AAA daily
+        fuel gauge, AP election calls, PGA TOUR leaderboards, crypto settlement benchmarks) as vertical markers, and mark
+        a detected move as “near scheduled release” instead of guessing causality.</li>
+      <li><strong>Event-driven feed framing.</strong> Group alerts by event rather than by contract, so one news shock that
+        moves eight strikes shows as a single thread with the full repricing.</li>
+      <li><strong>Calibration and persistence.</strong> Store every alert in IndexedDB, then publish a calibration view:
+        after a ≥ $0.10 move, how often did the price retrace 50% within an hour, by topic and by liquidity bucket?</li>
+      <li><strong>Shareable state.</strong> Encode the selected market, timeframe and filters in the URL, add keyboard
+        shortcuts (j/k to move markets, 1–6 for timeframes) and a compact mode for a second monitor.</li>
+    </ol>
+
+    <h2>9. Limitations and flagged items</h2>
+    <ul class="tight">
+      <li>Demo prices and volume differ from production; the snapshot includes a measured spot check.</li>
+      <li>Public API contract volume is not dollar volume; the dollar figure on the dashboard is an estimate.</li>
+      <li>Orderbook snapshots are point-in-time (ten levels per side) and refresh with the snapshot, not tick-by-tick.</li>
+      <li>Browser CORS may block direct calls to Kalshi from GitHub Pages; the live badge reports this honestly.</li>
+      <li>Everything that could not be confirmed is listed on <a href="flagged-for-review.html">Flagged for review</a>.</li>
+    </ul>
   </main>
 
   <div id="site-footer"></div>
-  <script type="module" src="assets/js/verification-page.js"></script>
+  <script type="module" src="assets/js/verification.js"></script>
 </body>
 </html>
