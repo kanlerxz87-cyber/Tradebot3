@@ -26,6 +26,7 @@
 | T-04 | GitHub Pages site: Landing Dashboard, 5 Separate Category Subpages, Portfolio/Strategy Lab, API Verification/Suggestions, and Flagged for Review page | `done` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `.nojekyll`, `index.html`, `portfolio.html`, `verification.html`, `flagged-for-review.html`, `categories/*.html`, `assets/css/styles.css`, `assets/js/dashboard.js`, `assets/js/category-page.js`, `assets/js/portfolio-page.js`, `assets/js/verification-page.js` |
 | T-05 | Automated verification script, link integrity check, live HTTP server testing, PR creation, merge to `main`, and GitHub Pages deploy confirmation | `done` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `scripts/verify_site.py`, `COORDINATION.md` |
 | R-01 | Flagged Irregularities IRREG-01 through IRREG-08 & unverified static fields (published on `flagged-for-review.html`) | `needs review` | `arena-3716ae8d` | `arena/3716ae8d-tradebot3` | `flagged-for-review.html`, `assets/js/data.js` |
+| T-06 | Audit and correct unverifiable catalog snapshots and simulated-vs-live claims; mark unverifiable metrics blank and make paper simulation explicit | `in progress` | `arena/355115ca-tradebot3` | `arena/355115ca-tradebot3` | `COORDINATION.md`, `EXECUTIVE_SUMMARY.md`, `README.md`, `index.html`, `portfolio.html`, `assets/js/data.js`, `assets/js/engine.js`, `assets/js/dashboard.js`, `assets/js/category-page.js`, `assets/js/portfolio-page.js`, `assets/js/ui-common.js`, `flagged-for-review.html`, `scripts/verify_site.py` |
 
 ---
 
