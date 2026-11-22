@@ -1,3 +1,15 @@
-
+# Python
 __pycache__/
 *.pyc
+
+# Local tooling (used only for the offline smoke test; the site has no build step)
+node_modules/
+package-lock.json
+package.json
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Data job diagnostics (only committed when a run fails, then removed)
+assets/data/build-error.log

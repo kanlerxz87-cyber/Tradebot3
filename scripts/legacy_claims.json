@@ -1,0 +1,292 @@
+[
+  {
+    "ticker": "KXAAAGASMAX-26DEC31",
+    "topic": "gas-prices",
+    "series": "KXAAAGASMAX",
+    "url": "https://kalshi.com/markets/kxaaagasmax/us-highest-gas-price-yearly/kxaaagasmax-26dec31",
+    "volume": 1836232,
+    "price": 0.51,
+    "status": "Open",
+    "claimed_swing": -0.01
+  },
+  {
+    "ticker": "KXAAAGASMIN-26DEC31",
+    "topic": "gas-prices",
+    "series": "KXAAAGASMIN",
+    "url": "https://kalshi.com/markets/kxaaagasmin/us-lowest-gas-price-yearly/kxaaagasmin-26dec31",
+    "volume": 115427,
+    "price": 0.55,
+    "status": "Open",
+    "claimed_swing": 0.1
+  },
+  {
+    "ticker": "KXAAAGASMINCA-26DEC31-3.90",
+    "topic": "gas-prices",
+    "series": "KXAAAGASMINCA",
+    "url": "https://kalshi.com/markets/kxaaagasminca/california-lowest-gas-price-yearly",
+    "volume": 51884,
+    "price": 0.07,
+    "status": "Open",
+    "claimed_swing": null
+  },
+  {
+    "ticker": "KXAAAGASMAXCA-26DEC31",
+    "topic": "gas-prices",
+    "series": "KXAAAGASMAXCA",
+    "url": "https://kalshi.com/markets/kxaaagasmaxca/california-highest-gas-price-yearly/kxaaagasmaxca-26dec31",
+    "volume": null,
+    "price": 0.34,
+    "status": "Open",
+    "claimed_swing": -0.04
+  },
+  {
+    "ticker": "KXAAAGASCDNY-26NOV19",
+    "topic": "gas-prices",
+    "series": "KXAAAGASCDNY",
+    "url": "https://kalshi.com/markets/kxaaagascdny/new-york-gas-price/kxaaagascdny-26nov19",
+    "volume": null,
+    "price": 0.9,
+    "status": "Open",
+    "claimed_swing": null
+  },
+  {
+    "ticker": "KXPRESNOMD-28",
+    "topic": "elections",
+    "series": "KXPRESNOMD",
+    "url": "https://kalshi.com/markets/kxpresnomd/democratic-primary-winner/kxpresnomd-28",
+    "volume": 304563107,
+    "price": 0.26,
+    "status": "Open",
+    "claimed_swing": -0.01
+  },
+  {
+    "ticker": "CONTROLS-2026",
+    "topic": "elections",
+    "series": "CONTROLS",
+    "url": "https://kalshi.com/markets/controls/senate-winner/controls-2026",
+    "volume": 220875845,
+    "price": 0.97,
+    "status": "Open",
+    "claimed_swing": 0.23
+  },
+  {
+    "ticker": "KXPRESPERSON-28",
+    "topic": "elections",
+    "series": "KXPRESPERSON",
+    "url": "https://kalshi.com/markets/kxpresperson/pres-person/kxpresperson-28",
+    "volume": 111643774,
+    "price": 0.18,
+    "status": "Open",
+    "claimed_swing": 0.01
+  },
+  {
+    "ticker": "CONTROLS-2028",
+    "topic": "elections",
+    "series": "CONTROLS",
+    "url": "https://kalshi.com/markets/controls/senate-winner/controls-2028",
+    "volume": 1038096,
+    "price": 0.89,
+    "status": "Open",
+    "claimed_swing": null
+  },
+  {
+    "ticker": "KXPRESPARTY-2028",
+    "topic": "elections",
+    "series": "KXPRESPARTY",
+    "url": "https://kalshi.com/markets/kxpresparty/party-winning-presidency/kxpresparty-2028",
+    "volume": 897054,
+    "price": 0.67,
+    "status": "Open",
+    "claimed_swing": null
+  },
+  {
+    "ticker": "POWER-28",
+    "topic": "elections",
+    "series": "POWER",
+    "url": "https://kalshi.com/markets/power/party-power/power-28",
+    "volume": 596106,
+    "price": 0.63,
+    "status": "Open",
+    "claimed_swing": null
+  },
+  {
+    "ticker": "KXOSCARACTO-26",
+    "topic": "culture",
+    "series": "KXOSCARACTO",
+    "url": "https://kalshi.com/markets/kxoscaracto/oscar-for-best-actor/kxoscaracto-26",
+    "volume": 25562603,
+    "price": 1,
+    "status": "Resolved",
+    "claimed_swing": null
+  },
+  {
+    "ticker": "KXRT-ODY",
+    "topic": "culture",
+    "series": "KXRT",
+    "url": "https://kalshi.com/markets/kxrt/rotten-tomatoes-scores/kxrt-ody",
+    "volume": 7186984,
+    "price": 1,
+    "status": "Resolved",
+    "claimed_swing": null
+  },
+  {
+    "ticker": "KXOSCARACTR-26",
+    "topic": "culture",
+    "series": "KXOSCARACTR",
+    "url": "https://kalshi.com/markets/kxoscaractr/oscar-for-best-actress/kxoscaractr-26",
+    "volume": 6648461,
+    "price": 1,
+    "status": "Resolved",
+    "claimed_swing": null
+  },
+  {
+    "ticker": "KXGAMEAWARDS-2026",
+    "topic": "culture",
+    "series": "KXGAMEAWARDS",
+    "url": "https://kalshi.com/markets/kxgameawards/game-awards/kxgameawards-2026",
+    "volume": 4193638,
+    "price": 0.91,
+    "status": "Open",
+    "claimed_swing": null
+  },
+  {
+    "ticker": "KXOSCARDOCU-26",
+    "topic": "culture",
+    "series": "KXOSCARDOCU",
+    "url": "https://kalshi.com/markets/kxoscardocu/oscar-for-best-documentary-feature/kxoscardocu-26",
+    "volume": 728234,
+    "price": 1,
+    "status": "Resolved",
+    "claimed_swing": null
+  },
+  {
+    "ticker": "KXRT-BRI",
+    "topic": "culture",
+    "series": "KXRT",
+    "url": "https://kalshi.com/markets/kxrt/rotten-tomatoes-scores/kxrt-bri",
+    "volume": 418245,
+    "price": 1,
+    "status": "Resolved",
+    "claimed_swing": null
+  },
+  {
+    "ticker": "KXETHMINY-27JAN01",
+    "topic": "crypto",
+    "series": "KXETHMINY",
+    "url": "https://kalshi.com/markets/kxethminy/how-low-will-ethereum-fall-this-year/kxethminy-27jan01",
+    "volume": 1782347,
+    "price": 0.42,
+    "status": "Open",
+    "claimed_swing": 0.19
+  },
+  {
+    "ticker": "KXSOLD26-27JAN0100",
+    "topic": "crypto",
+    "series": "KXSOLD26",
+    "url": "https://kalshi.com/markets/kxsold26/sol-price-end-of-2026/kxsold26-27jan0100",
+    "volume": 213632,
+    "price": 0.89,
+    "status": "Open",
+    "claimed_swing": -0.1
+  },
+  {
+    "ticker": "KXBTCY-27JAN0100",
+    "topic": "crypto",
+    "series": "KXBTCY",
+    "url": "https://kalshi.com/markets/kxbtcy/btc-price-range-eoy/kxbtcy-27jan0100",
+    "volume": null,
+    "price": 0.19,
+    "status": "Open",
+    "claimed_swing": 0.04
+  },
+  {
+    "ticker": "KXBTCMINY-27JAN01",
+    "topic": "crypto",
+    "series": "KXBTCMINY",
+    "url": "https://kalshi.com/markets/kxbtcminy/how-low-will-bitcoin-fall-this-year/kxbtcminy-27jan01",
+    "volume": null,
+    "price": 0.58,
+    "status": "Open",
+    "claimed_swing": 0.15
+  },
+  {
+    "ticker": "KXBTC50VS100-BTC-26DEC31",
+    "topic": "crypto",
+    "series": "KXBTC50VS100",
+    "url": "https://kalshi.com/markets/kxbtc50vs100/will-btc-fall-below-50k-before-hitting-100k/kxbtc50vs100-btc-26dec31",
+    "volume": null,
+    "price": 0.18,
+    "status": "Open",
+    "claimed_swing": 0.01
+  },
+  {
+    "ticker": "KXBTCMAXMON-BTC-26MAR31",
+    "topic": "crypto",
+    "series": "KXBTCMAXMON",
+    "url": "https://kalshi.com/markets/kxbtcmaxmon/bitcoin-monthly-one-touch/kxbtcmaxmon-btc-26mar31",
+    "volume": null,
+    "price": 0,
+    "status": "Resolved",
+    "claimed_swing": null
+  },
+  {
+    "ticker": "KXPGATOUR-MAST26",
+    "topic": "golf",
+    "series": "KXPGATOUR",
+    "url": "https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-mast26",
+    "volume": 548706971,
+    "price": 1,
+    "status": "Resolved",
+    "claimed_swing": null
+  },
+  {
+    "ticker": "KXPGATOUR-PGC26-ARAI",
+    "topic": "golf",
+    "series": "KXPGATOUR",
+    "url": "https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-pgc26",
+    "volume": 393570149,
+    "price": 1,
+    "status": "Resolved",
+    "claimed_swing": null
+  },
+  {
+    "ticker": "KXPGATOUR-THRC26-MTHO",
+    "topic": "golf",
+    "series": "KXPGATOUR",
+    "url": "https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-thrc26",
+    "volume": 27982941,
+    "price": 0.13,
+    "status": "Open",
+    "claimed_swing": 0.1
+  },
+  {
+    "ticker": "KXPGATOUR-MAST27",
+    "topic": "golf",
+    "series": "KXPGATOUR",
+    "url": "https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-mast27",
+    "volume": 1894804,
+    "price": 0.16,
+    "status": "Open",
+    "claimed_swing": null
+  },
+  {
+    "ticker": "KXPGATOUR-USO26",
+    "topic": "golf",
+    "series": "KXPGATOUR",
+    "url": "https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-uso26",
+    "volume": null,
+    "price": 1,
+    "status": "Resolved",
+    "claimed_swing": null
+  },
+  {
+    "ticker": "KXPGAMASTERS-26",
+    "topic": "golf",
+    "series": "KXPGAMASTERS",
+    "url": "https://kalshi.com/markets/kxpgamasters/golfers-to-participate-in-the-masters/kxpgamasters-26",
+    "volume": null,
+    "price": 0,
+    "status": "Resolved",
+    "claimed_swing": null
+  }
+]

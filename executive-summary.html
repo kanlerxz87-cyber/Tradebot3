@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Executive summary — Tradebot3 Kalshi dashboard</title>
+  <meta name="description" content="Executive summary: scope, verified Kalshi API architecture, dashboard and alerting design, audit findings and recommendations for the Tradebot3 live-event dashboard." />
+  <link rel="stylesheet" href="assets/css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f766e'/><text x='50' y='66' font-size='46' font-family='sans-serif' font-weight='bold' fill='white' text-anchor='middle'>T3</text></svg>" />
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="wrap doc">
+    <section class="page-head">
+      <div>
+        <h1>Executive summary</h1>
+        <div class="sub">
+          What this project tracks, how the numbers are produced, what the audit of the previous build found, and what
+          should happen next. Prepared 2026-11-22 (UTC).
+        </div>
+      </div>
+      <div class="pill-row">
+        <a class="btn" href="index.html">Open dashboard</a>
+        <a class="btn btn-primary" href="flagged-for-review.html">Flagged items</a>
+      </div>
+    </section>
+
+    <div class="status-bar" id="exec-status">Loading current snapshot statistics…</div>
+
+    <h2>1. Objective and scope</h2>
+    <p>
+      Tradebot3 is a static, GitHub-Pages-hosted dashboard for live Kalshi prediction markets restricted to five topics:
+      <strong>gas prices</strong>, <strong>elections</strong>, <strong>culture</strong>, <strong>crypto</strong> and
+      <strong>golf</strong>. Within each topic it ranks live events by official Kalshi contract volume, watches every
+      contract for sudden moves of $0.10 or more in either direction, follows events until Kalshi settles them, and provides
+      a paper-trading and strategy-testing environment on real quoted prices.
+    </p>
+    <p>
+      The design rule for the whole build is simple: <strong>a displayed number must trace to an official API field or be
+      an explicitly labelled calculation.</strong> Where that was impossible, the value is blank and listed on the
+      <a href="flagged-for-review.html">Flagged for review</a> page.
+    </p>
+
+    <h2>2. Verified API architecture</h2>
+    <ul class="tight">
+      <li><strong>Market data — production, unauthenticated.</strong> <code>https://external-api.kalshi.com/trade-api/v2</code>
+        (recommended host) for <code>/series</code>, <code>/markets</code>, <code>/events/{ticker}</code>, orderbooks and
+        candlesticks. Source: <a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener noreferrer">API environments</a>.</li>
+      <li><strong>Demo account — optional, read-only.</strong>
+        <code>https://external-api.demo.kalshi.co/trade-api/v2</code> for <code>GET /portfolio/balance</code>, signed in the
+        browser with RSA-PSS. Source: <a href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">Demo environment</a>,
+        <a href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener noreferrer">API keys</a>.</li>
+      <li><strong>Orderbooks</strong> return bids only; implied asks come from the $1.00 binary reciprocal
+        (<code>YES ask = 1 − best NO bid</code>). Source:
+        <a href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Orderbook responses</a>.</li>
+      <li><strong>Candlesticks</strong> support only 1-minute, 1-hour and 1-day periods, 5,000 periods per request. Source:
+        <a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Get Market Candlesticks</a>.</li>
+      <li><strong>WebSockets</strong> need the same <code>KALSHI-ACCESS-*</code> headers in the handshake, which a browser
+        page cannot set — the reason this build polls REST. Source:
+        <a href="https://docs.kalshi.com/getting_started/quick_start_websockets" target="_blank" rel="noopener noreferrer">WebSocket quick start</a>.</li>
+    </ul>
+
+    <h2>3. What the dashboard does</h2>
+    <ol>
+      <li><strong>Highest-dollar live events.</strong> Events are ranked by official contract volume with a clearly labelled
+        dollar estimate; each row links to the Kalshi event page and the raw API record.</li>
+      <li><strong>Two live alert chats.</strong> One feed shows every ≥ $0.10 move detected from Kalshi's 1-minute candles
+        and from live polls; the second shows only moves whose market also passes a transparent 0–100 screen
+        (liquidity 40, spread 20, price band 15, catalyst 15, runway 10).</li>
+      <li><strong>Chart with jump markers.</strong> X axis is time (live seconds, 1m, 5m, 15m, 1h, 6h, 1d), Y axis is the
+        contract price in dollars. Every ≥ $0.10 move is plotted; clicking a marker opens the Kalshi event page and the
+        topic's official primary sources, labelled as candidates rather than causes.</li>
+      <li><strong>Liquidity ladder.</strong> Resting contracts and dollar value at each of the ten best levels per side, with
+        implied asks, spread and depth totals. Clicking a level loads that size into the ticket.</li>
+      <li><strong>Resolution tracking.</strong> Open events are followed until Kalshi publishes <code>result</code> and
+        <code>settlement_value_dollars</code>; the resolution tables record YES/NO outcomes, settlement value and volume,
+        and open paper positions settle automatically at $1.00 or $0.00.</li>
+      <li><strong>Paper portfolio and strategy lab.</strong> $10,000 simulated account with fills at real book prices, trade
+        categorisation, P&amp;L by category/topic/side, an equity curve, four strategy backtests on real candles, and an
+        optional live auto-trader that reacts to ≥ $0.10 alerts.</li>
+    </ol>
+
+    <h2>4. Data pipeline and verification</h2>
+    <p>
+      A GitHub Actions workflow (<code>.github/workflows/refresh-data.yml</code>) runs every 20 minutes. It discovers the
+      five topics' series through <code>GET /series</code>, fetches markets, orderbooks and candles, derives swing alerts,
+      collects recent settlements, re-checks the previous dataset's 29 claims against the live API, and commits a compact
+      <code>assets/data/snapshot.json</code>. The site reads that file and then polls the public API every 20 seconds for
+      live ticks. <code>scripts/verify_site.py</code> checks internal links, topic isolation, source coverage and the
+      snapshot schema before every publish.
+    </p>
+
+    <h2>5. Audit result (most important finding)</h2>
+    <div class="callout callout-warn">
+      <strong>The previous build's market catalogue was largely unverifiable.</strong> Of its 29 claimed Kalshi markets,
+      most do not exist in the live production API, and the prices/volumes attached to them could not be reproduced from
+      any official endpoint. Those rows have been removed and replaced with API-sourced markets. The full row-by-row
+      result — claimed value, live lookup outcome, HTTP status of the claimed link — is published on
+      <a href="flagged-for-review.html">Flagged for review</a> and in
+      <a href="assets/data/legacy-audit.json" target="_blank" rel="noopener noreferrer">legacy-audit.json</a>.
+    </div>
+    <p>
+      Also removed: invented model “fair values”, invented “observed swings”, and news links presented as the causes of
+      specific price moves. The replacement model reports its component scores and asserts nothing about the future.
+    </p>
+
+    <h2>6. Risks and limitations</h2>
+    <ul class="tight">
+      <li><strong>No authenticated streaming in the browser</strong> — 20-second polling, not tick-by-tick. A server relay is the fix.</li>
+      <li><strong>CORS is undocumented</strong> — live polling may be blocked on GitHub Pages; the UI reports the actual state and falls back to the snapshot.</li>
+      <li><strong>Demo ≠ production</strong> — measured divergence is published; demo is used only for a read-only balance check.</li>
+      <li><strong>Contract volume, not dollar volume</strong> — the dollar column is an estimate.</li>
+      <li><strong>Small samples</strong> — roughly two hours of 1-minute candles per market; backtests are illustrative, gross of fees.</li>
+    </ul>
+
+    <h2>7. Recommendations</h2>
+    <ol>
+      <li>Stand up a small server-side WebSocket relay (Cloudflare Worker) so the dashboard can stream <code>ticker</code>,
+        <code>trade</code>, <code>orderbook_delta</code> and <code>market_lifecycle_v2</code> with instant resolution banners.</li>
+      <li>Add browser notifications and an audio ping for model-qualified moves, with per-topic thresholds.</li>
+      <li>Extend the paper engine to limit orders with depth-weighted fills, then to demo order placement once the order
+        schema and CORS route are verified.</li>
+      <li>Publish a calibration view: after a ≥ $0.10 move, how often does price retrace by topic and by liquidity bucket?</li>
+      <li>Persist alerts for multi-day history so the “sudden swing” threshold can be evaluated over weeks, not hours.</li>
+    </ol>
+
+    <p class="small" style="margin-top:18px">
+      Full detail: <a href="verification.html">API verification &amp; repository audit</a> ·
+      <a href="flagged-for-review.html">Flagged for review</a> ·
+      <a href="assets/data/snapshot.json">current snapshot</a> ·
+      <a href="https://github.com/kanlerxz87-cyber/Tradebot3" target="_blank" rel="noopener noreferrer">repository</a>.
+    </p>
+  </main>
+
+  <div id="site-footer"></div>
+  <script type="module">
+    import { SITE, initChrome, qs, fmtNum, fmtDateTime, timeAgo, esc } from './assets/js/core.js';
+    initChrome({ active: 'executive-summary.html' });
+    try {
+      const res = await fetch(`${SITE.dataFile}?v=${Date.now()}`, { cache: 'no-store' });
+      const snap = await res.json();
+      const s = snap.stats || {};
+      qs('#exec-status').innerHTML = `
+        <span>Snapshot ${esc(fmtDateTime(snap.generated_at))} UTC (${esc(timeAgo(snap.generated_at))})</span>
+        <span class="sep">|</span>
+        <span>${fmtNum(s.markets_published || 0)} markets · ${fmtNum(s.events_published || 0)} events · ${fmtNum(s.alerts_published || 0)} ≥$0.10 alerts · ${fmtNum(s.resolutions_published || 0)} settlements</span>
+        <span class="sep">|</span>
+        <a href="assets/data/snapshot.json" target="_blank" rel="noopener noreferrer">raw data</a>`;
+    } catch {
+      qs('#exec-status').textContent = 'Snapshot not available yet.';
+    }
+  </script>
+</body>
+</html>

@@ -1,58 +1,103 @@
-# Tradebot3 — Kalshi Demo Market Catalog & Paper-Simulation Lab
+# Tradebot3 — Kalshi live-event dashboard & paper trading lab
 
-**Live GitHub Pages Site:** https://kanlerxz87-cyber.github.io/Tradebot3/
+**Live site:** https://kanlerxz87-cyber.github.io/Tradebot3/
 
-An interactive Kalshi market reference catalog, local alerting/portfolio simulator, and strategy test bench focused strictly on five topics: **Gas Prices**, **Elections**, **Culture**, **Crypto**, and **Golf**.
+A static dashboard for live Kalshi prediction markets, limited to five topics — **gas prices**, **elections**,
+**culture**, **crypto** and **golf**. Prices, volumes, orderbooks, candles and resolutions are pulled from Kalshi's
+official public Trade API by a scheduled GitHub Action; the page then polls the same public API for live ticks.
 
-> **Session 2 re-verification (2026-11-22 UTC, `arena/83838475`):** all 29 market rows re-checked line by line
-> against live official Kalshi pages; 22 rows updated with fresh verified prices/volumes/resolutions
-> (12 resolved, 1 unverified volume left), API specs re-confirmed against docs.kalshi.com, and an opt-in
-> desktop-notification + audio-ping toggle added to the landing dashboard. See
-> `EXECUTIVE_SUMMARY.md` §0 and `COORDINATION.md` for the full correction log.
->
-> **T-06 factual audit (2026-11-22 UTC, `arena/e9a6c584-tradebot3`, PR #15):** removed the optional
-> demo-order toggle and the order-submitting client methods so the site matches its own paper-only copy,
-> removed the model's quote-as-fair-value fallback, and clarified that catalog values, chart history and
-> depth are snapshot or simulated data.
+Everything is paper money. Nothing on this site places a real order.
 
 ---
 
-## Pages & Structure
-- **`index.html`** — Landing page, Executive Summary, Highest-volume catalog events across the 5 topics, Dual scrolling paper-simulation alert chats (`>= $0.10` swings: All Events vs. an illustrative model filter), Interactive Price Chart (Seconds / Minutes / Hours + simulated jump markers with contextual source links), and Orderbook Liquidity Ladder.
-- **`categories/gas-prices.html`** — Gas Prices dedicated subpage (static reference table + simulated chart & orderbook).
-- **`categories/elections.html`** — Elections reference subpage (static data; simulated chart/depth).
-- **`categories/culture.html`** — Culture reference subpage (static data; simulated chart/depth).
-- **`categories/crypto.html`** — Crypto reference subpage (static data; simulated chart/depth).
-- **`categories/golf.html`** — Golf reference subpage (static data; simulated chart/depth).
-- **`portfolio.html`** — Kalshi Demo API connector (Ed25519/RSA-PSS Web Crypto signing for a read-only balance check + Paper Demo Mode), Paper Trade Simulator, local Portfolio Equity & Positions Tracker, Trade Categorization & Analysis, and paper strategy tester / custom strategy builder. No order is ever submitted.
-- **`verification.html`** — Kalshi Demo API endpoint references, repository audit, and suggestions for future live upgrades.
-- **`flagged-for-review.html`** — Transparent table of all flagged irregularities and unverified fields with official source links.
-- **`EXECUTIVE_SUMMARY.md`** — Full executive summary document.
-- **`COORDINATION.md`** — Shared task board, claims, official sources, verification log, and PR/deploy record.
+## What it does
 
----
+| Page | Purpose |
+| --- | --- |
+| `index.html` | Dashboard: topic cards, highest-volume live events, two ≥ $0.10 alert chats, price chart with jump markers, orderbook ladder, paper ticket, resolution tracker. |
+| `categories/*.html` | One page per topic — same tools, scoped to that topic, with events grouped and markets ordered by official volume. |
+| `portfolio.html` | $10,000 paper account, positions, equity curve, trade log with categories, P&L by category/topic/side, four strategy backtests, live auto-trade, optional read-only Kalshi demo connection. |
+| `verification.html` | Endpoints and API behaviour verified line by line against Kalshi's docs, metric definitions, repository audit, automation description, suggestions. |
+| `flagged-for-review.html` | Irregularities, the row-by-row audit of the previous dataset, values deliberately left blank, demo-vs-production spot check. |
+| `executive-summary.html` | The one-page summary of scope, architecture, findings and recommendations. |
 
-## Kalshi Demo API Endpoints (Official Documentation)
-Verified from [Kalshi Demo Environment Docs](https://docs.kalshi.com/getting_started/demo_env) and [API Environments](https://docs.kalshi.com/getting_started/api_environments):
-- **REST Trade API (Recommended):** `https://external-api.demo.kalshi.co/trade-api/v2`
-- **REST Trade API (Also Supported):** `https://demo-api.kalshi.co/trade-api/v2`
-- **WebSocket API (Recommended):** `wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2`
-- **WebSocket API (Also Supported):** `wss://demo-api.kalshi.co/trade-api/ws/v2`
+## Verified endpoints
 
----
+| Environment | Surface | Recommended | Also supported |
+| --- | --- | --- | --- |
+| Production | REST | `https://external-api.kalshi.com/trade-api/v2` | `https://api.elections.kalshi.com/trade-api/v2` |
+| Demo | REST | `https://external-api.demo.kalshi.co/trade-api/v2` | `https://demo-api.kalshi.co/trade-api/v2` |
+| Production | WebSocket | `wss://external-api-ws.kalshi.com/trade-api/ws/v2` | `wss://api.elections.kalshi.com/trade-api/ws/v2` |
+| Demo | WebSocket | `wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2` | `wss://demo-api.kalshi.co/trade-api/ws/v2` |
 
-## Important Runtime Limitations
+Source: [API environments](https://docs.kalshi.com/getting_started/api_environments) ·
+[Demo environment](https://docs.kalshi.com/getting_started/demo_env).
 
-- The deployed GitHub Pages site is static: the catalog values are not refreshed from Kalshi. The charts, orderbook depth, ticks, and automated fills are local simulations.
-- The portfolio trade ticket and strategies do not submit orders to Kalshi. The optional API connector tests public REST connectivity and can read the account balance with a user-supplied key; it is not a live execution integration.
-- No authenticated WebSocket relay exists in this repository. A genuine live feed and live orders require a trusted backend/relay and must not expose private keys in a browser.
-- Alert-linked external pages provide context only; the site does not establish that a source caused a particular price change.
+## How the data stays current
 
-## Local Preview & Verification
-```bash
-# Run automated data, topic-isolation, source-link, and internal-link verification
-python3 scripts/verify_site.py
-
-# Serve locally
-python3 -m http.server 8080 --bind 0.0.0.0
 ```
+.github/workflows/refresh-data.yml   (every 20 min + manual)
+        └── scripts/fetch_kalshi_data.py
+                ├── GET /series?category=…        discover the five topics' series
+                ├── GET /markets?series_ticker=…  open + settled markets
+                ├── GET /events/{ticker}          official event titles, settlement sources
+                ├── GET /markets/{t}/orderbook    ten bid levels per side
+                ├── GET /series/{s}/markets/{t}/candlesticks  1m + 60m
+                ├── derive ≥ $0.10 close-to-close alerts
+                └── audit the 29 legacy claims against GET /markets/{ticker}
+        └── commits assets/data/snapshot.json + assets/data/legacy-audit.json
+```
+
+The browser reads `assets/data/snapshot.json` and then polls
+`GET /markets?tickers=…` every 20 seconds. If the browser is blocked (CORS/offline), the header says so and the
+timestamped snapshot remains in use. **No price is ever simulated.**
+
+## Verification
+
+```bash
+python3 scripts/verify_site.py     # links, imports, DOM ids, snapshot schema, source coverage
+python3 -m http.server 8080        # then open http://localhost:8080
+```
+
+`scripts/verify_site.py` fails the build if any table row lacks an official Kalshi source URL, if any market falls
+outside the five topics, if an alert is below the $0.10 threshold, or if an internal link is broken.
+
+## Topic inclusion rules
+
+Membership is decided by documented series-ticker prefixes and title keywords, written into `snapshot.json` under
+`topics.<id>.prefixes|keywords|inclusion_rule`. Kalshi's own categories are broad (a NATO Secretary-General market is
+filed under "Elections"), so the rules are published rather than implied. Every market also records `topic_rule` —
+the exact reason it was included.
+
+## Metrics
+
+* **Volume (ct)** — `volume_fp` (contracts). **24h volume** — `volume_24h_fp`. **Open interest** — `open_interest_fp`.
+* **Est. $ traded** — contracts × last price. Kalshi publishes no dollar-volume field; this is an estimate and is labelled as one.
+* **≥ $0.10 move** — absolute close-to-close change between consecutive candles or live polls.
+* **Book depth** — resting contracts across the ten best bid levels of both sides; implied asks use `YES ask = 1 − best NO bid`.
+* **Model score** — 0–100 screen (liquidity 40, spread 20, price band 15, catalyst 15, runway 10). A screen, not a forecast.
+
+## Known limitations
+
+* Browsers cannot open an authenticated Kalshi WebSocket (handshake headers), so streaming is 20-second REST polling.
+* Kalshi's candlestick API offers only 1/60/1440-minute periods, so sub-minute charts are browser ticks.
+* Demo prices/volume differ from production by design; the demo connection is read-only.
+* Paper P&L excludes fees and is labelled gross.
+* Backtests use roughly two hours of 1-minute candles per market — small samples, illustrative only.
+
+Full disclosures: [`flagged-for-review.html`](flagged-for-review.html).
+
+## Repository layout
+
+```
+index.html, portfolio.html, verification.html, flagged-for-review.html, executive-summary.html
+categories/             five topic pages
+assets/css/styles.css   design system (no external fonts/assets)
+assets/js/              core, market-data, chart, alerts, orderbook, paper, strategy, page controllers
+assets/data/            generated snapshot + legacy audit (committed by the data workflow)
+scripts/                data fetcher, site verifier, legacy claim list
+archive/                the previous dataset, preserved for audit only (not used by the site)
+.github/workflows/      scheduled data refresh
+```
+
+Not affiliated with Kalshi. Paper trading only.

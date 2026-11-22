@@ -1,0 +1,88 @@
+name: Kalshi data refresh
+
+# Refreshes the dashboard's public-data snapshot straight from Kalshi's official
+# unauthenticated Trade API. The published JSON is committed back, so GitHub
+# Pages always serves a timestamped, real snapshot instead of hard-coded numbers.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"      # every 30 minutes (UTC)
+  workflow_dispatch:
+  push:
+    # Default branch only, now that the pipeline is merged and exercised.
+    branches: ["main"]
+    paths:
+      - "scripts/fetch_kalshi_data.py"
+      - "scripts/legacy_claims.json"
+      - ".github/workflows/refresh-data.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kalshi-data-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch official Kalshi public data
+        run: |
+          set -o pipefail
+          python3 scripts/fetch_kalshi_data.py --demo-check --audit-legacy 2>&1 | tee /tmp/fetch.log
+
+      - name: Validate generated JSON
+        run: |
+          python3 - <<'PY'
+          import json, pathlib, sys
+          snap = json.loads(pathlib.Path("assets/data/snapshot.json").read_text())
+          audit = json.loads(pathlib.Path("assets/data/legacy-audit.json").read_text())
+          stats = snap["stats"]
+          print("generated_at:", snap["generated_at"])
+          print("stats:", json.dumps(stats, indent=2))
+          print("legacy claims found:", audit["claims_found_in_api"], "/", audit["claims_checked"])
+          assert snap["markets"], "snapshot has no markets"
+          assert audit["claims_checked"] == 29, "legacy audit incomplete"
+          sources = [m for m in snap["markets"] if not m.get("api_url")]
+          assert not sources, "every market needs an official API source URL"
+          for m in snap["markets"]:
+              assert m["topic"] in ("gas-prices", "elections", "culture", "crypto", "golf"), m
+          print("validation OK")
+          PY
+
+      - name: Capture failure log (diagnostics)
+        if: failure()
+        run: |
+          mkdir -p assets/data
+          tail -200 /tmp/fetch.log > assets/data/build-error.log || true
+          git config user.name "tradebot3-data-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f assets/data/build-error.log
+          git commit -m "ci: capture data build error" || true
+          git push origin "HEAD:${GITHUB_REF_NAME}" || true
+
+      - name: Commit refreshed snapshot
+        if: success()
+        run: |
+          git config user.name "tradebot3-data-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/data
+          if git diff --cached --quiet; then
+            echo "No data change this run."
+          else
+            git commit -m "data: refresh official Kalshi snapshot ($(date -u +%Y-%m-%dT%H:%MZ))"
+            git pull --rebase origin "${GITHUB_REF_NAME}" || true
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi

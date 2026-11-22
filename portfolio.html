@@ -1,273 +1,239 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Paper Portfolio, Paper Trades &amp; Strategy Tests — Tradebot3</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Portfolio &amp; Strategy Lab — Tradebot3</title>
+  <meta name="description" content="Paper portfolio on real Kalshi prices: trade ticket, positions, realised and unrealised P&L, trade categorisation, automated strategy backtests and an optional read-only Kalshi demo API connection." />
   <link rel="stylesheet" href="assets/css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f766e'/><text x='50' y='66' font-size='46' font-family='sans-serif' font-weight='bold' fill='white' text-anchor='middle'>T3</text></svg>" />
 </head>
-<body data-root-depth="0">
+<body>
   <div id="site-header"></div>
 
-  <main class="page-main container">
-    <section class="page-hero">
+  <main class="wrap">
+    <section class="page-head">
       <div>
-        <h1>Kalshi Paper Portfolio &amp; Strategy Simulation Lab</h1>
-        <p>
-          Track a local $10,000 paper balance, simulate YES/NO entries and settlements, categorize simulated results, and test automated strategies. The UI does not submit orders to Kalshi; its API connector checks REST access and account balance only.
-        </p>
+        <h1>Portfolio &amp; strategy lab</h1>
+        <div class="sub">
+          A $10,000 simulated account that fills at real Kalshi orderbook prices. Positions settle automatically when
+          Kalshi publishes an official result. Every trade carries a category, so the analytics below show which trade
+          types actually made or lost money.
+        </div>
       </div>
-      <div class="hero-controls">
-        <button id="btn-run-sim-burst" class="btn btn-primary">Run Paper Strategy Sim Burst (3 Swings)</button>
-        <button id="btn-reset-portfolio" class="btn">Reset Paper Simulator</button>
+      <div class="pill-row">
+        <button id="btn-export" class="btn" type="button">Export trades (JSON)</button>
+        <button id="btn-reset" class="btn" type="button">Reset paper account</button>
       </div>
     </section>
 
-    <!-- Portfolio KPIs -->
-    <section id="portfolio-kpis" class="kpi-grid"></section>
+    <div id="pf-status" class="status-bar">
+      Paper account is stored in this browser only. Prices come from the official Kalshi snapshot / live poll.
+      <span class="sep">|</span>
+      <a href="verification.html#paper">How fills and settlement work →</a>
+    </div>
 
-    <!-- Equity Curve + Kalshi Demo Account Connector -->
-    <section class="grid-2" style="margin-bottom:18px;">
-      <div class="card" style="margin-bottom:0;">
-        <div class="card-header">
-          <h2>Portfolio Equity Curve</h2>
-          <span class="tiny muted">Paper simulation equity (local baseline $10,000)</span>
+    <section id="pf-kpis" class="kpi-grid" style="margin-top:14px"></section>
+
+    <section class="grid" style="grid-template-columns:1.5fr 1fr;margin-top:14px;align-items:start">
+      <div class="card">
+        <div class="card-head">
+          <h2>Equity curve</h2>
+          <span class="card-note">Marked at current book; settlements are official.</span>
         </div>
-        <div style="height:220px;">
-          <canvas id="equity-curve-chart" style="width:100%;height:100%;display:block;border:1px solid #e2e8f0;border-radius:8px;"></canvas>
+        <div class="card-body">
+          <div style="height:220px"><canvas id="equity-canvas" style="width:100%;height:220px;display:block"></canvas></div>
+          <div class="tiny" style="margin-top:6px">
+            Flat line means no closed trades yet. Cash changes on every fill; equity adds the marked value of open positions.
+          </div>
         </div>
       </div>
 
-      <div class="card" style="margin-bottom:0;">
-        <div class="card-header">
-          <h2>Kalshi Demo Account API Connector</h2>
-          <a class="tiny" href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">Official Demo Docs ↗</a>
-        </div>
-        <form id="demo-api-form">
-          <div class="form-grid">
-            <div>
-              <label class="field-label" for="api-base-url">Verified Demo REST Endpoint</label>
-              <select id="api-base-url">
-                <option value="https://external-api.demo.kalshi.co/trade-api/v2">https://external-api.demo.kalshi.co/trade-api/v2 (Recommended)</option>
-                <option value="https://demo-api.kalshi.co/trade-api/v2">https://demo-api.kalshi.co/trade-api/v2 (Also Supported)</option>
-              </select>
+      <div class="card">
+        <div class="card-head"><h2>Trade ticket</h2><span class="tiny">simulated</span></div>
+        <div class="card-body">
+          <form id="pf-ticket">
+            <label class="field" for="pf-market">Market</label>
+            <select id="pf-market" style="margin-bottom:10px"></select>
+            <div class="form-row-3">
+              <div>
+                <label class="field" for="pf-side">Side</label>
+                <select id="pf-side"><option>YES</option><option>NO</option></select>
+              </div>
+              <div>
+                <label class="field" for="pf-qty">Contracts</label>
+                <input id="pf-qty" type="number" min="1" step="1" value="10" />
+              </div>
+              <div>
+                <label class="field" for="pf-category">Category</label>
+                <select id="pf-category"></select>
+              </div>
             </div>
-            <div>
-              <label class="field-label" for="api-key-id">Demo API Key ID (Optional, Session Memory Only)</label>
-              <input id="api-key-id" type="text" placeholder="Leave blank for public REST / Paper Demo" />
-            </div>
+            <label class="field" for="pf-note">Trade note (optional)</label>
+            <input id="pf-note" type="text" placeholder="e.g. fading an overreaction to the EIA print" style="margin-bottom:10px" />
+            <div id="pf-preview" class="hint" style="margin-bottom:8px">—</div>
+            <button class="btn btn-primary" type="submit" style="width:100%">Place paper order</button>
+            <div id="pf-feedback" style="margin-top:8px"></div>
+          </form>
+          <div class="hr"></div>
+          <div class="callout callout-muted small">
+            <strong>Fees are excluded.</strong> Kalshi's fee schedule is not reproduced here, because the site only
+            publishes figures it can verify field-by-field from the API. Treat P&amp;L as gross.
           </div>
-          <div style="margin-bottom:10px;">
-            <label class="field-label" for="api-private-key">Demo Private Key PEM (Optional · Supports Ed25519 Default &amp; RSA-PSS PKCS#1/PKCS#8 · Browser Session Memory Only)</label>
-            <textarea id="api-private-key" rows="2" placeholder="-----BEGIN PRIVATE KEY----- (Ed25519/PKCS#8) or -----BEGIN RSA PRIVATE KEY-----"></textarea>
-          </div>
-          <button type="submit" class="btn btn-primary btn-sm">Test / Connect Kalshi Demo API</button>
-          <div id="api-conn-feedback" class="status-banner" style="margin-top:8px;margin-bottom:0;">
-            Paper simulation only ($10,000 local mock balance). API connector does not send orders. Any entered key stays in this browser session; no credential is included in the repository.
-          </div>
-        </form>
+        </div>
       </div>
     </section>
 
-    <!-- Manual Paper Trade Ticket -->
-    <section class="card">
-      <div class="card-header">
-        <h2>Simulate a Paper Trade on an Event</h2>
-        <span class="tiny muted">Tag every trade with a category to analyze category-level ROI and build automated strategies</span>
+    <section class="card" style="margin-top:14px">
+      <div class="card-head">
+        <h2>Open positions</h2>
+        <span class="card-note">Marked at the current YES/NO quote; auto-settles on official resolution.</span>
       </div>
-      <form id="execute-trade-form">
-        <div class="form-grid">
-          <div style="grid-column:span 2;">
-            <label class="field-label" for="trade-ticker">Kalshi Event Contract (5 Topics Only)</label>
-            <select id="trade-ticker"></select>
-          </div>
-          <div>
-            <label class="field-label" for="trade-action">Action</label>
-            <select id="trade-action">
-              <option value="BUY">BUY (Open / Add)</option>
-              <option value="SELL">SELL (Close Position)</option>
-            </select>
-          </div>
-          <div>
-            <label class="field-label" for="trade-side">Contract Side</label>
-            <select id="trade-side">
-              <option value="YES">YES</option>
-              <option value="NO">NO</option>
-            </select>
-          </div>
-          <div>
-            <label class="field-label" for="trade-contracts">Contracts</label>
-            <input id="trade-contracts" type="number" min="1" max="1000" value="30" required />
-          </div>
-          <div>
-            <label class="field-label" for="trade-price">Limit / Exec Price ($)</label>
-            <input id="trade-price" type="number" step="0.01" min="0.01" max="0.99" value="0.26" required />
-          </div>
-          <div>
-            <label class="field-label" for="trade-category">Trade Category</label>
-            <select id="trade-category"></select>
-          </div>
-          <div>
-            <label class="field-label" for="trade-note">Trade Thesis / Note</label>
-            <input id="trade-note" type="text" placeholder="e.g., Post-swing mean reversion" />
-          </div>
-        </div>
-        <p class="tiny muted" style="margin:0 0 10px;">
-          This ticket records a local paper simulation only. No request is sent to Kalshi, even after an authenticated balance check.
-        </p>
-        <button type="submit" class="btn btn-primary">Record Paper Simulation Trade</button>
-        <div id="trade-feedback" style="margin-top:8px;"></div>
-      </form>
-    </section>
-
-    <!-- Open Positions & Lifecycle Resolution Controls -->
-    <section class="card">
-      <div class="card-header">
-        <h2>Open Portfolio Positions &amp; Lifecycle Resolution Tracker</h2>
-        <span class="tiny muted">Use "Settle YES" or "Settle NO" to test demo resolution payouts ($1.00 winner / $0.00 loser)</span>
-      </div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Contract</th>
-              <th>Topic</th>
-              <th>Side</th>
-              <th>Contracts</th>
-              <th>Avg Entry</th>
-              <th>Current Mark</th>
-              <th>Unrealized P&amp;L (ROI)</th>
-              <th>Category</th>
-              <th>Actions &amp; Source</th>
-            </tr>
-          </thead>
-          <tbody id="open-positions-body"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Trade Categorization Analysis + Paper Strategies -->
-    <section class="grid-2" style="margin-bottom:18px;">
-      <div class="card" style="margin-bottom:0;">
-        <div class="card-header">
-          <h2>Trade Categorization &amp; Results Analysis</h2>
-          <span class="tiny muted">Compare win rate, P&amp;L &amp; ROI by trade type</span>
-        </div>
-        <div style="height:200px;margin-bottom:12px;">
-          <canvas id="category-pnl-chart" style="width:100%;height:100%;display:block;border:1px solid #e2e8f0;border-radius:8px;" aria-label="Trade Category Net P&L Bar Chart"></canvas>
-        </div>
+      <div class="card-body tight">
         <div class="table-wrap">
-          <table class="data-table compact-table">
+          <table class="data">
             <thead>
-              <tr>
-                <th>Trade Category</th>
-                <th>Total</th>
-                <th>Closed</th>
-                <th>Win Rate</th>
-                <th>Net P&amp;L</th>
-                <th>ROI</th>
-                <th>Strategy</th>
-              </tr>
+              <tr><th>Market</th><th>Topic</th><th>Side</th><th class="num">Qty</th><th class="num">Entry</th><th class="num">Mark</th><th class="num">P&amp;L</th><th class="num">ROI</th><th></th></tr>
             </thead>
-            <tbody id="category-analytics-body"></tbody>
+            <tbody id="positions-body"></tbody>
           </table>
         </div>
       </div>
+    </section>
 
-      <div class="card" style="margin-bottom:0;">
-        <div class="card-header">
-          <h2>Simulated Paper Strategies</h2>
-          <span class="tiny muted">Strategies run only on locally simulated &gt;= $0.10 swings and never send an order</span>
+    <section class="card" style="margin-top:14px">
+      <div class="card-head">
+        <h2>Trade log &amp; categorisation</h2>
+        <div class="pill-row">
+          <select id="log-filter-topic" style="width:auto" aria-label="Filter by topic"></select>
+          <select id="log-filter-strategy" style="width:auto" aria-label="Filter by category"></select>
         </div>
-        <div id="strategies-list"></div>
+      </div>
+      <div class="card-body tight">
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr><th>Closed</th><th>Market</th><th>Topic</th><th>Category</th><th>Side</th><th class="num">Qty</th><th class="num">Entry → exit</th><th class="num">P&amp;L</th><th class="num">ROI</th><th>Reason</th></tr>
+            </thead>
+            <tbody id="trades-body"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
-    <!-- Create Custom Strategy Based on Trade Category -->
-    <section id="custom-strategy-section" class="card">
-      <div class="card-header">
-        <h2>Create Custom Paper Strategy (From Trade Category)</h2>
-        <span class="tiny muted">New strategies participate in simulated &gt;= $0.10 paper ticks only</span>
-      </div>
-      <form id="custom-strategy-form">
-        <div class="form-grid">
-          <div>
-            <label class="field-label" for="cs-name">Strategy Name</label>
-            <input id="cs-name" type="text" placeholder="e.g., Crypto Dip Rule Test" required />
-          </div>
-          <div>
-            <label class="field-label" for="cs-category">Trade Category</label>
-            <select id="cs-category"></select>
-          </div>
-          <div>
-            <label class="field-label" for="cs-topic">Target Topic</label>
-            <select id="cs-topic">
-              <option value="all">All 5 Topics</option>
-              <option value="gas-prices">Gas Prices Only</option>
-              <option value="elections">Elections Only</option>
-              <option value="culture">Culture Only</option>
-              <option value="crypto">Crypto Only</option>
-              <option value="golf">Golf Only</option>
-            </select>
-          </div>
-          <div>
-            <label class="field-label" for="cs-rule">Execution Rule</label>
-            <select id="cs-rule">
-              <option value="model-edge">Illustrative Model Edge (heuristic)</option>
-              <option value="fade">Mean-Reversion (Fade Swing)</option>
-              <option value="follow">Momentum (Follow Swing)</option>
-              <option value="spread">Liquidity Spread Capture</option>
-            </select>
-          </div>
-          <div>
-            <label class="field-label" for="cs-min-swing">Min Swing ($)</label>
-            <input id="cs-min-swing" type="number" step="0.01" min="0.05" max="0.50" value="0.10" />
-          </div>
-          <div>
-            <label class="field-label" for="cs-min-roi">Min Expected ROI (%)</label>
-            <input id="cs-min-roi" type="number" min="1" max="200" value="15" />
-          </div>
-          <div>
-            <label class="field-label" for="cs-max-contracts">Max Contracts</label>
-            <input id="cs-max-contracts" type="number" min="1" max="200" value="25" />
-          </div>
-          <div>
-            <label class="field-label" for="cs-desc">Strategy Notes</label>
-            <input id="cs-desc" type="text" placeholder="Short rule rationale" />
-          </div>
+    <section class="grid grid-3" style="margin-top:14px">
+      <div class="card">
+        <div class="card-head"><h3>P&amp;L by category</h3></div>
+        <div class="card-body tight">
+          <table class="data"><thead><tr><th>Category</th><th class="num">N</th><th class="num">P&amp;L</th><th class="num">Win%</th><th class="num">Avg ROI</th></tr></thead>
+            <tbody id="an-strategy"></tbody></table>
         </div>
-        <button type="submit" class="btn btn-primary btn-sm">Add &amp; Activate Custom Strategy</button>
-      </form>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>P&amp;L by topic</h3></div>
+        <div class="card-body tight">
+          <table class="data"><thead><tr><th>Topic</th><th class="num">N</th><th class="num">P&amp;L</th><th class="num">Win%</th><th class="num">Avg ROI</th></tr></thead>
+            <tbody id="an-topic"></tbody></table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>P&amp;L by side</h3></div>
+        <div class="card-body tight">
+          <table class="data"><thead><tr><th>Side</th><th class="num">N</th><th class="num">P&amp;L</th><th class="num">Win%</th><th class="num">Avg ROI</th></tr></thead>
+            <tbody id="an-side"></tbody></table>
+        </div>
+      </div>
     </section>
 
-    <!-- Full Trade History Ledger -->
-    <section class="card">
-      <div class="card-header">
-        <h2>Paper Trade &amp; Settlement Ledger</h2>
-        <span class="tiny muted">All manual, automated strategy, and resolved trades</span>
+    <section class="card" style="margin-top:14px">
+      <div class="card-head">
+        <h2>Automated strategy lab</h2>
+        <span class="card-note">Backtests run automatically on official 1-minute Kalshi candles.</span>
       </div>
-      <div class="table-wrap">
-        <table class="data-table compact-table">
-          <thead>
-            <tr>
-              <th>Time / ID</th>
-              <th>Contract &amp; Topic</th>
-              <th>Order</th>
-              <th>Qty</th>
-              <th>Entry → Exit</th>
-              <th>Status</th>
-              <th>Realized P&amp;L</th>
-              <th>Category</th>
-              <th>Notes &amp; Official Link</th>
-            </tr>
-          </thead>
-          <tbody id="trades-ledger-body"></tbody>
-        </table>
+      <div class="card-body">
+        <div class="callout callout-warn" style="margin-bottom:12px">
+          <strong>Read this first.</strong> The snapshot holds roughly two hours of 1-minute candles per tracked market, so
+          these are small-sample simulations, not evidence of a durable edge. Results are shown gross of fees.
+        </div>
+        <div id="lab-grid" class="grid grid-2"></div>
+        <div class="hr"></div>
+        <div class="grid grid-2">
+          <div>
+            <h3>Live auto-trade (paper)</h3>
+            <p class="small">
+              When a ≥ $0.10 swing is detected by the live poll, the selected strategy can immediately open a 10-contract
+              paper position. It is capped at one open position per market and uses the same transparent rules as the backtest.
+            </p>
+            <div class="pill-row" style="align-items:center">
+              <label class="switch"><input id="auto-enabled" type="checkbox" /> enable auto-trade</label>
+              <select id="auto-strategy" style="width:auto"></select>
+              <span id="auto-status" class="badge badge-neutral">Auto-trade OFF</span>
+            </div>
+          </div>
+          <div>
+            <h3>Build a strategy from a category</h3>
+            <p class="small">
+              Once the trade log has data, sort the category table above by P&amp;L, then enable auto-trade with the
+              matching category. Because every fill is tagged with its category, you can compare the same market across
+              momentum, fade and model-filtered entries.
+            </p>
+            <div class="callout callout-muted small">
+              Categories: Swing Mean-Reversion · Momentum Breakout · High-ROI Model · News Catalyst · Spread Capture · Manual
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:14px" id="demo">
+      <div class="card-head">
+        <h2>Kalshi demo account (optional, read-only)</h2>
+        <span class="badge badge-info">keys stay in browser memory</span>
+      </div>
+      <div class="card-body">
+        <p class="small">
+          Create an API key in the Kalshi <strong>demo</strong> environment (demo keys do not work in production and vice
+          versa). Paste the Key ID and the RSA private key PEM below. The browser signs
+          <code>GET /trade-api/v2/portfolio/balance</code> with RSA-PSS (SHA-256, salt 32) exactly as
+          <a href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener noreferrer">Kalshi's API-key guide</a>
+          describes, and sends it to <code>https://external-api.demo.kalshi.co/trade-api/v2</code>. The private key is never
+          stored, logged or committed.
+        </p>
+        <div class="callout callout-warn small" style="margin-bottom:12px">
+          Two limits are worth knowing before you try: browsers cannot use Ed25519 keys through Web Crypto (RSA only), and
+          Kalshi's demo API may not send CORS headers, in which case the request is blocked by the browser. If that happens
+          the paper account still works normally — the message below will say so.
+        </div>
+        <div class="form-row">
+          <div>
+            <label class="field" for="demo-keyid">Demo API Key ID</label>
+            <input id="demo-keyid" type="text" autocomplete="off" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+          </div>
+          <div>
+            <label class="field" for="demo-pem">RSA private key (PEM)</label>
+            <textarea id="demo-pem" rows="4" placeholder="-----BEGIN RSA PRIVATE KEY-----" autocomplete="off" spellcheck="false"></textarea>
+          </div>
+        </div>
+        <div class="pill-row">
+          <button id="demo-connect" class="btn btn-primary" type="button">Verify demo connection</button>
+          <button id="demo-positions" class="btn" type="button" disabled>Load demo positions</button>
+          <button id="demo-fills" class="btn" type="button" disabled>Load demo fills</button>
+          <button id="demo-clear" class="btn" type="button">Clear</button>
+        </div>
+        <div id="demo-status" class="hint" style="margin-top:10px">Not connected.</div>
+        <pre id="demo-data" class="tiny" style="display:none;background:#0f172a;color:#e2e8f0;padding:10px;border-radius:8px;max-height:260px;overflow:auto;margin-top:10px"></pre>
+        <div class="hr"></div>
+        <div class="callout callout-muted small">
+          <strong>Why execution stays simulated.</strong> Order placement on the demo account is deliberately not wired up
+          here. It would require posting to <code>POST /portfolio/orders</code>, which cannot be exercised from this
+          environment, and this project does not ship an unverified order schema. All strategy testing therefore runs
+          against the paper account at real market prices.
+        </div>
       </div>
     </section>
   </main>
 
   <div id="site-footer"></div>
-  <script type="module" src="assets/js/portfolio-page.js"></script>
+  <script type="module" src="assets/js/portfolio.js"></script>
 </body>
 </html>

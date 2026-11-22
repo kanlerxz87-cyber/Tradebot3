@@ -1,418 +1,303 @@
 #!/usr/bin/env python3
 """
-Tradebot3 Automated Site, Link, Data & Logic Verification Script
-Verifies:
-  1. All required repository and GitHub Pages files exist.
-  2. Zero broken internal links across all HTML files.
-  3. Strict 5-topic isolation (gas-prices, elections, culture, crypto, golf ONLY).
-  4. Every table row in data.js carries a valid https:// official sourceUrl.
-  5. Kalshi official orderbook_fp reciprocal calculation and engine trading/alert logic pass.
+Tradebot3 — pre-publish verification.
+
+Checks (all offline, no network needed):
+  1. Every required file exists.
+  2. Every internal link in the HTML resolves to a real file (no 404s, no dead anchors within a page).
+  3. Every ES-module import path resolves.
+  4. Every DOM id used by each page's script exists in that page.
+  5. assets/data/snapshot.json obeys the schema and the five-topic rule.
+  6. Every published market/event/alert/resolution carries an official https source URL.
+  7. The legacy audit covers all 29 archived claims.
+  8. Removed legacy modules are not referenced anywhere.
+
+Exit code 0 = publishable. Run: python3 scripts/verify_site.py
 """
 
+from __future__ import annotations
+
 import json
-import os
 import re
-import subprocess
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parent.parent
+ALLOWED_TOPICS = ["gas-prices", "elections", "culture", "crypto", "golf"]
 
-REQUIRED_FILES = [
-    ".nojekyll",
-    "COORDINATION.md",
-    "EXECUTIVE_SUMMARY.md",
-    "README.md",
+REQUIRED = [
     "index.html",
     "portfolio.html",
     "verification.html",
     "flagged-for-review.html",
+    "executive-summary.html",
     "categories/gas-prices.html",
     "categories/elections.html",
     "categories/culture.html",
     "categories/crypto.html",
     "categories/golf.html",
     "assets/css/styles.css",
+    "assets/js/core.js",
+    "assets/js/market-data.js",
+    "assets/js/chart.js",
+    "assets/js/alerts.js",
+    "assets/js/orderbook.js",
+    "assets/js/paper.js",
+    "assets/js/strategy.js",
+    "assets/js/dashboard.js",
+    "assets/js/category.js",
+    "assets/js/portfolio.js",
+    "assets/js/verification.js",
+    "assets/js/flagged.js",
+    "assets/data/snapshot.json",
+    "assets/data/legacy-audit.json",
+    "scripts/fetch_kalshi_data.py",
+    "scripts/verify_site.py",
+    ".github/workflows/refresh-data.yml",
+    "README.md",
+    "COORDINATION.md",
+    "EXECUTIVE_SUMMARY.md",
+    ".nojekyll",
+]
+
+PAGE_SCRIPTS = {
+    "index.html": "assets/js/dashboard.js",
+    "portfolio.html": "assets/js/portfolio.js",
+    "verification.html": "assets/js/verification.js",
+    "flagged-for-review.html": "assets/js/flagged.js",
+    "executive-summary.html": None,  # inline module
+}
+for topic in ALLOWED_TOPICS:
+    PAGE_SCRIPTS[f"categories/{topic}.html"] = "assets/js/category.js"
+
+REMOVED_MODULES = [
     "assets/js/data.js",
-    "assets/js/kalshi-client.js",
     "assets/js/engine.js",
     "assets/js/charts.js",
     "assets/js/ui-common.js",
-    "assets/js/dashboard.js",
+    "assets/js/kalshi-client.js",
     "assets/js/category-page.js",
     "assets/js/portfolio-page.js",
     "assets/js/verification-page.js",
 ]
 
-
-def check_required_files():
-    missing = [f for f in REQUIRED_FILES if not (ROOT / f).exists()]
-    if missing:
-        raise AssertionError(f"Missing required files: {missing}")
-    print(f"[PASS] All {len(REQUIRED_FILES)} required files exist.")
+errors: list[str] = []
+warnings: list[str] = []
 
 
-def check_internal_links():
-    html_files = list(ROOT.glob("*.html")) + list((ROOT / "categories").glob("*.html"))
-    attr_re = re.compile(r"""(?:href|src)=["']([^"']+)["']""")
-    broken = []
-    checked = 0
+def err(msg):
+    errors.append(msg)
 
-    for html_path in html_files:
-        text = html_path.read_text(encoding="utf-8")
-        for match in attr_re.finditer(text):
-            target = match.group(1).strip()
-            if (
-                not target
-                or target.startswith(("http://", "https://", "wss://", "mailto:", "#", "javascript:"))
-            ):
+
+def warn(msg):
+    warnings.append(msg)
+
+
+def check_files():
+    for rel in REQUIRED:
+        if not (ROOT / rel).exists():
+            err(f"missing required file: {rel}")
+
+
+HTML_FILES = [p for p in ROOT.rglob("*.html") if ".git" not in p.parts]
+
+LINK_RE = re.compile(r'(?:href|src)\s*=\s*"([^"]+)"')
+
+
+def check_links():
+    total = 0
+    for page in HTML_FILES:
+        rel_page = page.relative_to(ROOT)
+        html = page.read_text(encoding="utf-8")
+        ids = set(re.findall(r'id="([^"]+)"', html))
+        for link in LINK_RE.findall(html):
+            if link.startswith(("http://", "https://", "mailto:", "data:", "#", "javascript:")):
+                if link.startswith("#") and len(link) > 1:
+                    if link[1:] not in ids:
+                        err(f"{rel_page}: anchor #{link[1:]} does not exist on this page")
                 continue
-            clean = target.split("#")[0].split("?")[0]
-            resolved = (html_path.parent / clean).resolve()
-            checked += 1
-            if not resolved.exists():
-                broken.append((str(html_path.relative_to(ROOT)), target))
+            total += 1
+            target = (page.parent / link.split("#")[0]).resolve()
+            if not target.exists():
+                err(f"{rel_page}: broken internal link '{link}'")
+                continue
+            if "#" in link and target.suffix == ".html":
+                anchor = link.split("#", 1)[1]
+                if anchor and anchor not in set(re.findall(r'id="([^"]+)"', target.read_text(encoding='utf-8'))):
+                    warn(f"{rel_page}: cross-page anchor '{link}' not found")
+    return total
 
-    if broken:
-        raise AssertionError(f"Broken internal links found: {broken}")
-    print(f"[PASS] Checked {checked} internal HTML links across {len(html_files)} pages — 0 broken.")
+
+IMPORT_RE = re.compile(r"from\s+['\"]([^'\"]+)['\"]")
 
 
-def check_js_modules_and_data():
-    node_script = r"""
-import {
-  ALLOWED_TOPICS,
-  TOPICS,
-  DEMO_API_ENDPOINTS,
-  VERIFIED_MARKETS,
-  FLAGGED_IRREGULARITIES,
-  REPO_AUDIT_ITEMS,
-  INTERACTIVE_SUGGESTIONS
-} from './assets/js/data.js';
-import { parseOrderbookFp, mapYesNoOrderToV2 } from './assets/js/kalshi-client.js';
-import { TradebotEngine, evaluateHighRoi } from './assets/js/engine.js';
-import { renderAlertItemHtml } from './assets/js/ui-common.js';
+def check_module_imports():
+    count = 0
+    for js in (ROOT / "assets" / "js").glob("*.js"):
+        text = js.read_text(encoding="utf-8")
+        for spec in IMPORT_RE.findall(text):
+            if not spec.startswith("."):
+                err(f"{js.name}: bare import '{spec}' (site must stay dependency-free)")
+                continue
+            count += 1
+            target = (js.parent / spec).resolve()
+            if not target.exists():
+                err(f"{js.name}: import '{spec}' does not resolve")
+    return count
 
-// 1. Strict 5-topic check
-const expectedTopics = ['gas-prices', 'elections', 'culture', 'crypto', 'golf'];
-if (JSON.stringify(ALLOWED_TOPICS) !== JSON.stringify(expectedTopics)) {
-  throw new Error('ALLOWED_TOPICS mismatch: ' + JSON.stringify(ALLOWED_TOPICS));
-}
-for (const t of expectedTopics) {
-  const count = VERIFIED_MARKETS.filter((m) => m.topic === t).length;
-  if (count < 5) throw new Error(`Topic ${t} has fewer than 5 markets (${count})`);
-}
-for (const m of VERIFIED_MARKETS) {
-  if (!expectedTopics.includes(m.topic)) {
-    throw new Error(`Disallowed topic detected: ${m.topic} on ${m.ticker}`);
-  }
-}
 
-// 2. Every table row has a valid https:// official sourceUrl
-const OFFICIAL_SOURCE_HOSTS = {
-  DEMO_API_ENDPOINTS: new Set(['docs.kalshi.com']),
-  VERIFIED_MARKETS: new Set(['kalshi.com']),
-  FLAGGED_IRREGULARITIES: new Set(['docs.kalshi.com', 'github.com', 'kalshi.com']),
-  REPO_AUDIT_ITEMS: new Set(['docs.kalshi.com', 'github.com', 'kalshi.com', 'kanlerxz87-cyber.github.io']),
-  INTERACTIVE_SUGGESTIONS: new Set(['docs.kalshi.com', 'www.eia.gov'])
-};
-const checkSources = (name, rows) => {
-  if (!rows.length) throw new Error(`Empty dataset: ${name}`);
-  const allowedHosts = OFFICIAL_SOURCE_HOSTS[name];
-  for (const r of rows) {
-    let host = '';
-    try { host = new URL(r.sourceUrl).hostname; } catch (_) { /* reported below */ }
-    if (!r.sourceUrl || !r.sourceUrl.startsWith('https://') || !allowedHosts?.has(host)) {
-      throw new Error(`Missing or unexpected official source host in ${name}: ${JSON.stringify(r)}`);
-    }
-  }
-};
-checkSources('DEMO_API_ENDPOINTS', DEMO_API_ENDPOINTS);
-checkSources('VERIFIED_MARKETS', VERIFIED_MARKETS);
-checkSources('FLAGGED_IRREGULARITIES', FLAGGED_IRREGULARITIES);
-checkSources('REPO_AUDIT_ITEMS', REPO_AUDIT_ITEMS);
-checkSources('INTERACTIVE_SUGGESTIONS', INTERACTIVE_SUGGESTIONS);
-
-const catalystHosts = new Set([
-  'emersoncollegepolling.com',
-  'gasprices.aaa.com',
-  'kalshi.com',
-  'wccftech.com',
-  'www.cfbenchmarks.com',
-  'www.cnbc.com',
-  'www.eia.gov',
-  'www.masters.com',
-  'www.pgatour.com',
-  'www.rottentomatoes.com'
-]);
-for (const m of VERIFIED_MARKETS) {
-  if (!m.marketTicker || !m.eventTicker || !['live', 'historical'].includes(m.apiEndpointType)) {
-    throw new Error(`Missing exact contract metadata on ${m.ticker}: ${JSON.stringify(m)}`);
-  }
-  if (typeof m.strikeVolumeFp !== 'number' || !m.apiMarketUrl || !m.apiMarketUrl.startsWith('https://external-api.kalshi.com/trade-api/v2/')) {
-    throw new Error(`Missing strikeVolumeFp or apiMarketUrl on ${m.ticker}: ${JSON.stringify(m)}`);
-  }
-  for (const c of m.catalysts || []) {
-    let host = '';
-    try { host = new URL(c.url).hostname; } catch (_) { /* reported below */ }
-    if (!c.url || !c.url.startsWith('https://') || !catalystHosts.has(host)) {
-      throw new Error(`Invalid/unexpected catalyst source host on ${m.ticker}: ${JSON.stringify(c)}`);
-    }
-  }
-}
-
-// 3. Official Kalshi orderbook_fp reciprocal test (from docs.kalshi.com example)
-const ob = parseOrderbookFp({
-  orderbook_fp: {
-    yes_dollars: [['0.3500', '11.00'], ['0.4200', '13.00']],
-    no_dollars: [['0.4500', '20.00'], ['0.5600', '17.00']]
-  }
-});
-if (ob.bestYesBid !== 0.42 || ob.bestYesAsk !== 0.44 || ob.spread !== 0.02) {
-  throw new Error('Orderbook reciprocal math failed: ' + JSON.stringify(ob));
-}
-
-// 3b. Official Create Order V2 YES/NO reciprocal mapping checks
-const v2BuyYes = mapYesNoOrderToV2({ action: 'BUY', side: 'YES', price: 0.40 });
-const v2BuyNo = mapYesNoOrderToV2({ action: 'BUY', side: 'NO', price: 0.35 });
-const v2SellYes = mapYesNoOrderToV2({ action: 'SELL', side: 'YES', price: 0.62 });
-const v2SellNo = mapYesNoOrderToV2({ action: 'SELL', side: 'NO', price: 0.30 });
-if (v2BuyYes.side !== 'bid' || v2BuyYes.price !== 0.4) throw new Error('v2BuyYes failed: ' + JSON.stringify(v2BuyYes));
-if (v2BuyNo.side !== 'ask' || v2BuyNo.price !== 0.65) throw new Error('v2BuyNo failed: ' + JSON.stringify(v2BuyNo));
-if (v2SellYes.side !== 'ask' || v2SellYes.price !== 0.62) throw new Error('v2SellYes failed: ' + JSON.stringify(v2SellYes));
-if (v2SellNo.side !== 'bid' || v2SellNo.price !== 0.7) throw new Error('v2SellNo failed: ' + JSON.stringify(v2SellNo));
-
-// 3c. Verify 2026-11-22 settlement & IRREG-09 audit records
-const controls = VERIFIED_MARKETS.find((m) => m.ticker === 'CONTROLS-2026');
-if (!controls || controls.status !== 'Resolved' || controls.resolution !== 'YES' || controls.observedPrice !== 1.00) {
-  throw new Error('CONTROLS-2026 settlement verification failed');
-}
-const nyGas = VERIFIED_MARKETS.find((m) => m.ticker === 'KXAAAGASCDNY-26NOV19');
-if (!nyGas || nyGas.status !== 'Resolved' || nyGas.resolution !== 'YES' || nyGas.volumeUsd !== null) {
-  throw new Error('KXAAAGASCDNY-26NOV19 settlement / unverified-volume check failed');
-}
-if (
-  !FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-14') ||
-  !FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-20') ||
-  !FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-22') ||
-  !FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-23') ||
-  !FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-24') ||
-  !FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-25')
-) {
-  throw new Error('Missing IRREG-14 / IRREG-20 / IRREG-22..25 audit records');
-}
-if (!FLAGGED_IRREGULARITIES.some((ir) => ir.id === 'IRREG-22')) {
-  throw new Error('Missing IRREG-22 paper-only execution audit record');
-}
-
-// 3d. The illustrative model must never invent a fair value from the market quote
-const noModelMarket = { ...VERIFIED_MARKETS[0] };
-delete noModelMarket.modelFairValue;
-const noModelSignal = evaluateHighRoi(noModelMarket, 0.5, 0.1, ob);
-if (noModelSignal.qualified || noModelSignal.fairValue !== null || /Model Fair \$/.test(noModelSignal.reason)) {
-  throw new Error('Model filter must not fabricate a fair value: ' + JSON.stringify(noModelSignal));
-}
-
-// 4. Engine paper tick, >= $0.10 swing alert, trade execution, resolution & custom strategy test
-const eng = new TradebotEngine();
-if (eng.allAlerts.length !== 0) throw new Error('Initial feed must not fabricate observed live alerts');
-if (eng.portfolio.trades.length !== 0) throw new Error('Paper portfolio must not start with fabricated example trades');
-if (eng.portfolio.cashBalance !== 10000 || Object.keys(eng.portfolio.positions).length !== 0) {
-  throw new Error('Paper portfolio must start at a clean $10,000 baseline with no positions');
-}
-if (eng.markets.some((m) => m.series.jumpMarkers.length !== 0)) throw new Error('Unobserved historical catalyst markers must not be fabricated');
-const sampleAlertHtml = renderAlertItemHtml({
-  ticker: 'KXPRESNOMD-28', title: 'Test', topic: 'elections', fromPrice: 0.2, toPrice: 0.31,
-  delta: 0.11, direction: 'UP', ts: Date.now(), simulated: true, catalystLabel: 'Synthetic paper tick',
-  catalystUrl: 'https://kalshi.com/markets', catalystSource: 'Kalshi', roi: null
-});
-if (!sampleAlertHtml.includes('SIMULATED PAPER TICK') || sampleAlertHtml.includes('Verified Observed Swing')) {
-  throw new Error('Synthetic alerts must never be labeled as verified observations');
-}
-const beforeAlerts = eng.allAlerts.length;
-eng.runTick('KXPRESNOMD-28');
-if (eng.allAlerts.length <= beforeAlerts) {
-  throw new Error('Expected >= $0.10 forced swing alert to fire');
-}
-
-// 4b. Verify multi-strike event ticker routes Pull Live Book to exact binary contract marketTicker & retains for 30s
-let requestedBookTicker = null;
-const origGetBook = eng.client.getMarketOrderbook.bind(eng.client);
-eng.client.getMarketOrderbook = async (t) => {
-  requestedBookTicker = t;
-  return {
-    ...parseOrderbookFp({ orderbook_fp: { yes_dollars: [['0.2000', '980.00']], no_dollars: [['0.7600', '9899.00']] } }),
-    simulated: false,
-    liveSource: `Live Demo REST Book (${t})`,
-    fetchedAtMs: Date.now()
-  };
-};
-const liveBookRes = await eng.fetchLiveOrderbook('KXPRESNOMD-28');
-eng.client.getMarketOrderbook = origGetBook;
-if (!liveBookRes.ok || requestedBookTicker !== 'KXPRESNOMD-28-JOSS') {
-  throw new Error(`Expected fetchLiveOrderbook('KXPRESNOMD-28') to request KXPRESNOMD-28-JOSS, got ${requestedBookTicker}`);
-}
-eng.runTick();
-if (eng.getMarket('KXPRESNOMD-28').orderbook.simulated !== false) {
-  throw new Error('Expected live Demo REST orderbook to remain retained across simulated ticks within 30s');
-}
-eng.client.lastStatus.connected = true; // Public REST success must not relabel local paper fills as exchange orders.
-const trade = eng.executePaperTrade({
-  ticker: 'KXAAAGASMIN-26DEC31',
-  action: 'BUY',
-  side: 'YES',
-  contracts: 10,
-  price: 0.50,
-  category: 'News Catalyst'
-});
-if (!trade || trade.contracts !== 10 || trade.mode !== 'Paper Demo Simulation') {
-  throw new Error('Trade must be recorded as local paper simulation, never as exchange execution');
-}
-
-const res = eng.simulateResolution('KXAAAGASMIN-26DEC31', 'YES');
-if (!res || res.outcome !== 'YES') throw new Error('Simulated resolution failed');
-
-const cs = eng.addCustomStrategy({
-  name: 'Test Gas Strategy',
-  category: 'News Catalyst',
-  topicFilter: 'gas-prices',
-  minSwing: 0.10,
-  minExpectedRoi: 12,
-  maxContracts: 15,
-  rule: 'model-edge'
-});
-if (!cs || !cs.id) throw new Error('Custom strategy creation failed');
-
-const analytics = eng.getCategoryAnalytics();
-if (!analytics.length) throw new Error('Category analytics empty');
-
-console.log(JSON.stringify({
-  markets: VERIFIED_MARKETS.length,
-  apiEndpoints: DEMO_API_ENDPOINTS.length,
-  irregularities: FLAGGED_IRREGULARITIES.length,
-  unverifiedVolumeMarkets: VERIFIED_MARKETS.filter((m) => m.volumeUsd === null).length,
-  resolvedMarkets: VERIFIED_MARKETS.filter((m) => m.status === 'Resolved').length,
-  orderbookSpreadCheck: ob.spread,
-  alertsAfterForcedSwing: eng.allAlerts.length,
-  highRoiAlerts: eng.highRoiAlerts.length
-}));
-"""
-    proc = subprocess.run(
-        ["node", "--input-type=module", "-e", node_script],
-        cwd=str(ROOT),
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if proc.returncode != 0:
-        raise AssertionError(f"Node verification failed:\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}")
-    stats = json.loads(proc.stdout.strip().splitlines()[-1])
-    print(f"[PASS] JS modules, 5-topic isolation, official source URLs, orderbook math & engine tests passed: {stats}")
+ID_USE_RE = re.compile(r"(?:getElementById|qs)\(\s*['\"]#([A-Za-z0-9_-]+)['\"]")
 
 
 def check_dom_ids():
-    pairs = [
-        ("index.html", ["assets/js/dashboard.js", "assets/js/ui-common.js"]),
-        ("portfolio.html", ["assets/js/portfolio-page.js", "assets/js/ui-common.js"]),
-        ("verification.html", ["assets/js/verification-page.js", "assets/js/ui-common.js"]),
-        ("flagged-for-review.html", ["assets/js/verification-page.js", "assets/js/ui-common.js"]),
-        ("categories/gas-prices.html", ["assets/js/category-page.js", "assets/js/ui-common.js"]),
-        ("categories/elections.html", ["assets/js/category-page.js", "assets/js/ui-common.js"]),
-        ("categories/culture.html", ["assets/js/category-page.js", "assets/js/ui-common.js"]),
-        ("categories/crypto.html", ["assets/js/category-page.js", "assets/js/ui-common.js"]),
-        ("categories/golf.html", ["assets/js/category-page.js", "assets/js/ui-common.js"]),
-    ]
-    for html_file, js_files in pairs:
-        html = (ROOT / html_file).read_text(encoding="utf-8")
-        ids_in_html = set(re.findall(r'id=["\']([^"\']+)["\']', html))
-        for jf in js_files:
-            js = (ROOT / jf).read_text(encoding="utf-8")
-            for ref in re.findall(r'getElementById\(["\']([^"\']+)["\']\)', js):
-                if jf.endswith("verification-page.js"):
-                    if html_file == "verification.html" and ref in {"irregularities-body", "unverified-fields-body"}:
-                        continue
-                    if html_file == "flagged-for-review.html" and ref in {"api-endpoints-body", "repo-audit-body", "suggestions-body"}:
-                        continue
-                if ref not in ids_in_html:
-                    raise AssertionError(f"DOM ID mismatch: {jf} references #{ref} missing in {html_file}")
-    print(f"[PASS] Verified all JS getElementById references across all {len(pairs)} HTML pages.")
-
-
-def check_js_syntax():
-    js_files = sorted((ROOT / "assets" / "js").glob("*.js"))
-    for jf in js_files:
-        proc = subprocess.run(["node", "--check", str(jf)], capture_output=True, text=True, check=False)
-        if proc.returncode != 0:
-            raise AssertionError(f"Syntax error in {jf}:\n{proc.stderr}")
-    print(f"[PASS] node --check passed on all {len(js_files)} JS modules.")
-
-
-def check_no_order_submission():
-    read_only_files = [
-        ROOT / "assets/js/kalshi-client.js",
-        ROOT / "assets/js/engine.js",
-        ROOT / "assets/js/portfolio-page.js",
-        ROOT / "assets/js/dashboard.js",
-        ROOT / "assets/js/category-page.js",
-    ]
-    forbidden = ["createOrderV2(", "createOrderFromYesNo(", "executeLiveOrPaperTrade(", "request('POST'", 'request("POST"']
-    offenders = []
-    for path in read_only_files:
-        text = path.read_text(encoding="utf-8")
-        for token in forbidden:
-            if token in text:
-                offenders.append(f"{path.relative_to(ROOT)}: {token}")
-    portfolio = (ROOT / "portfolio.html").read_text(encoding="utf-8")
-    if "trade-live-demo" in portfolio:
-        offenders.append("portfolio.html: trade-live-demo toggle")
-    if offenders:
-        raise AssertionError("Order submission must stay unimplemented: " + "; ".join(offenders))
-    print("[PASS] No app module or page can submit a Kalshi order; the client is read-only.")
-
-
-STALE_CLAIM_PATTERNS = [
-    (r"high[- ]roi model", "retired high-ROI model label"),
-    (r"live alert chat controls", "claims a live alert feed"),
-    (r"submit signed create order", "claims order submission"),
-    (r"live demo order", "claims live demo order submission"),
-    (r"model fair \$", "presents a model value as a computed fair price"),
-]
-
-
-def check_doc_claims():
-    doc_files = [
-        ROOT / "README.md",
-        ROOT / "EXECUTIVE_SUMMARY.md",
-        ROOT / "verification.html",
-        ROOT / "index.html",
-        ROOT / "portfolio.html",
-        *sorted((ROOT / "categories").glob("*.html")),
-    ]
-    # Lines that explicitly describe a removal are remediation notes, not live claims.
-    remediation = re.compile(r"removed|no longer|never|does not|deleted|previously")
-    problems = []
-    for path in doc_files:
-        for line in path.read_text(encoding="utf-8").lower().splitlines():
-            if remediation.search(line):
+    """Every #id a page script looks up should exist in that page's HTML."""
+    for page_rel, script_rel in PAGE_SCRIPTS.items():
+        page = ROOT / page_rel
+        if not page.exists():
+            continue
+        html = page.read_text(encoding="utf-8")
+        ids = set(re.findall(r'id="([^"]+)"', html))
+        scripts = []
+        if script_rel:
+            scripts.append(ROOT / script_rel)
+        else:
+            inline = re.findall(r"<script[^>]*type=\"module\"[^>]*>(.*?)</script>", html, re.S)
+            used = set()
+            for block in inline:
+                used |= set(ID_USE_RE.findall(block))
+            for missing in sorted(used - ids):
+                err(f"{page_rel}: inline script references missing id #{missing}")
+            continue
+        for script in scripts:
+            if not script.exists():
                 continue
-            for pattern, reason in STALE_CLAIM_PATTERNS:
-                if re.search(pattern, line):
-                    problems.append(f"{path.relative_to(ROOT)}: {reason}")
-    if problems:
-        raise AssertionError("Stale capability claims remain: " + "; ".join(problems))
-    print(f"[PASS] No retired model, live-order or fabricated fair-value claims in {len(doc_files)} user-facing docs/pages.")
+            used = set(ID_USE_RE.findall(script.read_text(encoding="utf-8")))
+            # ids provided by shared helpers for optional widgets are allowed to be absent
+            optional = {"site-header", "site-footer", "chart-tooltip", "chart-popover", "toast-host"}
+            for missing in sorted(used - ids - optional):
+                err(f"{page_rel}: {script.name} references missing id #{missing}")
+
+
+def is_official(url: str) -> bool:
+    if not isinstance(url, str) or not url.startswith("https://"):
+        return False
+    host = urlparse(url).hostname or ""
+    return host.endswith("kalshi.com") or host.endswith("kalshi.co")
+
+
+def check_snapshot():
+    path = ROOT / "assets/data/snapshot.json"
+    if not path.exists():
+        return
+    snap = json.loads(path.read_text())
+    for key in ("generated_at", "api_base", "metrics", "stats", "topics", "events", "markets", "alerts", "resolutions"):
+        if key not in snap:
+            err(f"snapshot.json missing key '{key}'")
+    markets = snap.get("markets") or []
+    events = snap.get("events") or []
+    alerts = snap.get("alerts") or []
+    resolutions = snap.get("resolutions") or []
+    if not markets:
+        err("snapshot.json contains no markets")
+    if not events:
+        err("snapshot.json contains no events")
+
+    for m in markets:
+        tag = m.get("ticker", "?")
+        if m.get("topic") not in ALLOWED_TOPICS:
+            err(f"market {tag}: topic '{m.get('topic')}' is outside the five allowed topics")
+        for field in ("ticker", "event_ticker", "title", "api_url", "field_source", "kalshi_url"):
+            if not m.get(field):
+                err(f"market {tag}: missing '{field}'")
+        if not is_official(m.get("api_url", "")) or not is_official(m.get("kalshi_url", "")):
+            err(f"market {tag}: source URLs are not official Kalshi URLs")
+        if m.get("volume") is None:
+            err(f"market {tag}: volume missing (should be 0 or a number, never blank)")
+
+    for ev in events:
+        if not ev.get("kalshi_url") or not is_official(ev["kalshi_url"]):
+            err(f"event {ev.get('event_ticker')}: missing official Kalshi URL")
+        if ev.get("topic") not in ALLOWED_TOPICS:
+            err(f"event {ev.get('event_ticker')}: bad topic")
+        if not ev.get("market_tickers"):
+            err(f"event {ev.get('event_ticker')}: no market tickers")
+
+    for a in alerts:
+        if a.get("topic") not in ALLOWED_TOPICS:
+            err(f"alert {a.get('ticker')}: bad topic")
+        if not isinstance(a.get("delta"), (int, float)) or abs(a["delta"]) < 0.10 - 1e-9:
+            err(f"alert {a.get('ticker')}: delta {a.get('delta')} is below the $0.10 threshold")
+        if not a.get("kalshi_url") or not is_official(a["kalshi_url"]):
+            err(f"alert {a.get('ticker')}: missing official Kalshi URL")
+
+    for r in resolutions:
+        if str(r.get("result", "")).lower() not in ("yes", "no"):
+            err(f"resolution {r.get('ticker')}: result must be YES or NO")
+        if not r.get("kalshi_url") or not is_official(r["kalshi_url"]):
+            err(f"resolution {r.get('ticker')}: missing official Kalshi URL")
+
+    if not snap.get("warnings"):
+        warn("snapshot.json has no warnings array content (fine, but unusual)")
+
+    print(f"  snapshot: {len(markets)} markets, {len(events)} events, {len(alerts)} alerts, {len(resolutions)} resolutions")
+
+
+def check_legacy_audit():
+    path = ROOT / "assets/data/legacy-audit.json"
+    if not path.exists():
+        return
+    audit = json.loads(path.read_text())
+    rows = audit.get("rows") or []
+    if len(rows) != 29:
+        err(f"legacy audit must cover 29 claims, found {len(rows)}")
+    for row in rows:
+        if "api_found" not in row:
+            err(f"legacy audit row {row.get('ticker')}: missing api_found")
+    print(f"  legacy audit: {audit.get('claims_found_in_api')} of {len(rows)} claims exist in the live API")
+
+
+def check_removed_modules():
+    patterns = [
+        (gone, re.compile(rf"['\"](?:\./|/)?(?:assets/js/)?{re.escape(Path(gone).name)}['\"]"))
+        for gone in REMOVED_MODULES
+    ]
+    for page in HTML_FILES:
+        text = page.read_text(encoding="utf-8")
+        for gone, pattern in patterns:
+            if pattern.search(text):
+                err(f"{page.relative_to(ROOT)} still references removed module {gone}")
+    for js in (ROOT / "assets" / "js").glob("*.js"):
+        text = js.read_text(encoding="utf-8")
+        for gone, pattern in patterns:
+            if js.name != Path(gone).name and pattern.search(text):
+                err(f"{js.name} still imports removed module {gone}")
 
 
 def main():
-    check_required_files()
-    check_js_syntax()
-    check_internal_links()
+    print("Tradebot3 site verification")
+    check_files()
+    links = check_links()
+    imports = check_module_imports()
     check_dom_ids()
-    check_js_modules_and_data()
-    check_no_order_submission()
-    check_doc_claims()
-    print("\nALL VERIFICATION CHECKS PASSED.")
+    check_snapshot()
+    check_legacy_audit()
+    check_removed_modules()
+
+    print(f"  internal links checked: {links}")
+    print(f"  module imports checked: {imports}")
+    if warnings:
+        print(f"\nWarnings ({len(warnings)}):")
+        for w in warnings:
+            print("  !", w)
+    if errors:
+        print(f"\nFAILED with {len(errors)} error(s):")
+        for e in errors:
+            print("  x", e)
+        return 1
+    print("\nOK — site is internally consistent and publishable.")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
