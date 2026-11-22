@@ -136,3 +136,8 @@
   - **IRREG-13 (Low):** Stored volumes differ from official pages for 4 of 6 sampled markets (e.g. KXAAAGASMAX $1,836,232 stored vs $2,150,412 official). Likely a timing difference; not confirmed.
 - **Scope limits:** 6 of 29 markets sampled. Golf, Culture, and Crypto markets beyond the sample have not been re-verified. Kalshi's own pages do not show a snapshot time for each value, so historical values cannot be confirmed.
 - **Status:** T-06 done for the sampled scope. Remaining 23 markets are unverified and remain flagged.
+
+### Session arena-a8cfdaeb — PR & Deploy Record
+- **PR:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/2 (`arena/a8cfdaeb-tradebot3` -> `main`), merged with `gh pr merge 2 --merge` (merge commit on `main`).
+- **Pages deploy:** `pages build and deployment` run completed with `success`; live page https://kanlerxz87-cyber.github.io/Tradebot3/flagged-for-review.html serves the T-06 re-verification table.
+- **Flagged items:** IRREG-09 to IRREG-13 are non-blocking and published on Flagged for Review.
