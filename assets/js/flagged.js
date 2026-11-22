@@ -52,6 +52,10 @@ async function load() {
       <td class="num">${row.api_volume_contracts === null ? '—' : fmtContracts(row.api_volume_contracts)}</td>
       <td>${row.api_result ? `<span class="badge badge-${row.api_result === 'yes' ? 'yes' : 'no'}">${esc(String(row.api_result).toUpperCase())}</span>` : '—'}</td>
       <td class="num">${row.url_http_status === null ? '—' : esc(row.url_http_status)}</td>
+      <td class="tiny">
+        <a href="https://external-api.kalshi.com/trade-api/v2/markets/${encodeURIComponent(row.ticker || '')}" target="_blank" rel="noopener noreferrer">market API</a><br>
+        <a href="https://kalshi.com/events/${encodeURIComponent((row.ticker || '').split('-').slice(0, 2).join('-'))}" target="_blank" rel="noopener noreferrer">event page</a>
+      </td>
       <td class="tiny">${notes || '—'}</td>`;
     body.append(tr);
   }
@@ -62,7 +66,7 @@ async function load() {
     const demoBody = qs('#demo-body');
     const rows = snap.demo_spot_check || [];
     demoBody.innerHTML = rows.length ? rows.map((r) => `<tr>
-      <td class="ticker">${esc(r.ticker)}</td>
+      <td class="ticker"><a href="https://kalshi.com/events/${encodeURIComponent(String(r.ticker).split('-').slice(0, 2).join('-'))}" target="_blank" rel="noopener noreferrer">${esc(r.ticker)}</a></td>
       <td class="num">${price(r.prod_last_price)}</td>
       <td class="num">${price(r.demo_last_price)}</td>
       <td class="num">${fmtContracts(r.prod_volume)}</td>

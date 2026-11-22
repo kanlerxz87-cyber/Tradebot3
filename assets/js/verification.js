@@ -53,7 +53,7 @@ async function load() {
     const host = qs('#demo-spot');
     if (host) {
       host.innerHTML = snap.demo_spot_check.map((r) => `<tr>
-        <td class="ticker">${esc(r.ticker)}</td>
+        <td class="ticker"><a href="https://kalshi.com/events/${encodeURIComponent(String(r.ticker).split('-').slice(0, 2).join('-'))}" target="_blank" rel="noopener noreferrer">${esc(r.ticker)}</a></td>
         <td class="num">${r.prod_last_price === null ? '—' : fmtUsd(r.prod_last_price, 4)}</td>
         <td class="num">${r.demo_last_price === null ? '—' : fmtUsd(r.demo_last_price, 4)}</td>
         <td class="num">${fmtContracts(r.prod_volume)}</td>

@@ -482,13 +482,20 @@ def select_topics(open_markets, settled_markets, warnings):
             reverse=True,
         )[:MAX_EVENTS_PER_TOPIC]
         kept = 0
+        per_event = max(1, MAX_MARKETS_PER_TOPIC // MAX_EVENTS_PER_TOPIC)
         for event_ticker, members in ranked:
+            if kept >= MAX_MARKETS_PER_TOPIC:
+                break
             members.sort(key=lambda x: x["volume"], reverse=True)
+            added = 0
             for m in members:
-                if kept >= MAX_MARKETS_PER_TOPIC:
+                if kept >= MAX_MARKETS_PER_TOPIC or added >= per_event:
                     break
                 markets_out.append(m)
                 kept += 1
+                added += 1
+            if not added:
+                continue
             selected_events.append({
                 "event_ticker": event_ticker,
                 "topic": topic,
