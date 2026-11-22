@@ -134,8 +134,10 @@ Eleven entries: IRREG-01 through IRREG-11. T-06 added IRREG-10 (dated event-volu
 
 ### T-06
 - **Source Branch:** `arena/e9a6c584-tradebot3` -> `main`
+- **PR URL:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/15
+- **Commits:** `0a6dc10` (claim), `ab717dc` (audit implementation)
 - **Scope:** factual corrections to docs, labels, catalog volume/lifecycle reconciliation, removal of the unused order-submission client method, and expanded verification checks.
-- **Status:** committed and pushed on `arena/e9a6c584-tradebot3`; pull request into `main` recorded at the end of this turn.
+- **Status:** `done` — pushed and opened for review; merge into `main` left to the reviewer.
 
 ### T-05 (historical)
 - **Source Branch:** `arena/3716ae8d-tradebot3` -> `main`
