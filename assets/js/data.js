@@ -1,13 +1,24 @@
 /**
  * Tradebot3 Verified Data Catalog
  * All entries verified line by line against official Kalshi docs, official Kalshi market pages,
- * and verified external sources on 2026-11-22 (UTC).
+ * and reachable external catalyst sources on 2026-11-22 (UTC).
  *
  * STRICT VERIFICATION POLICY:
  * - Only 5 topics allowed: gas-prices, elections, culture, crypto, golf.
  * - Every entry includes an official sourceUrl and sourceLabel.
- * - Any value that could not be confirmed from an official source is explicitly `null`
- *   so tables render it blank and flag it as Unverified (linked to flagged-for-review.html).
+ * - Every row carries official source links (Kalshi pages; catalysts are reachable press/data
+ *   articles cited by Kalshi or verified reachable). Any value that could not be confirmed
+ *   from an official source is explicitly `null` so tables render it blank and flag it as Unverified
+ *   (linked to flagged-for-review.html).
+ * - `volumeUsd` is the verified dollar volume published on the official Kalshi market page.
+ * - `observedPrice` / `observedSwing` are the verified decimal YES price and recorded price
+ *   move shown on the official Kalshi market page (the ▲/▼ chip).
+ * - `resolution` is 'OPEN' / 'YES' / 'NO' (verified from official Kalshi settled banners).
+ * - `verifiedRestingLiquidity` is always `null` statically: resting orderbook depth is live/dynamic
+ *   and is fetched at runtime (or clearly labeled Demo Simulation in the orderbook ladder).
+ * - `modelFairValue` is the Tradebot3 internal model's fair-value estimate — NOT an official
+ *   Kalshi figure. It is used only by the High-ROI selective chat and strategies; it must not
+ *   be quoted as an official market price.
  */
 
 export const LAST_VERIFIED_UTC = '2026-11-22T07:27:00Z';
@@ -221,12 +232,8 @@ export const DEMO_API_ENDPOINTS = [
 
 /**
  * Verified Kalshi Markets across the 5 strictly allowed topics ONLY.
- * - `volumeUsd`: verified dollar volume from official Kalshi market page, or `null` (blank + Unverified).
- * - `verifiedRestingLiquidity`: `null` statically because resting orderbook depth is live/dynamic;
- *   live orderbook fetch or clearly labeled Demo Simulation supplies interactive ladder depth.
- * - `observedPrice`: verified observed YES probability/price ($0.00-$1.00) from official Kalshi page.
- * - `observedSwing`: verified price move observed on Kalshi page (in dollars, e.g. +0.27 or -0.10), or `null`.
- * - `resolution`: 'OPEN', 'YES', or 'NO' (verified from official Kalshi settled banners).
+ * Volumes, observed prices/swings, and settlements are transcribed from the official
+ * Kalshi market pages listed in each `sourceUrl` (fetched 2026-11-22 UTC).
  */
 export const VERIFIED_MARKETS = [
   // ======================== 1. GAS PRICES ========================
@@ -249,18 +256,11 @@ export const VERIFIED_MARKETS = [
     sourceLabel: 'Kalshi — US Highest Gas Price 2026',
     catalysts: [
       {
-        label: 'U.S. national average falls below $4/gal ($3.978/gal) per AAA as Brent dips under $90',
-        delta: -0.12,
-        timeOffsetMin: 210,
-        url: 'https://www.cnbc.com/2026/11/09/stock-market-today-live-updates.html',
-        sourceName: 'CNBC'
-      },
-      {
-        label: 'EIA historical retail gasoline benchmark & seasonal crack spread trend',
-        delta: -0.10,
-        timeOffsetMin: 95,
-        url: 'https://www.eia.gov/todayinenergy/detail.php?id=66964',
-        sourceName: 'U.S. EIA'
+        label: 'U.S. national average dips below $4/gal to $3.90 (first time since July) per AAA; prices still above typical for this time of year',
+        delta: null,
+        timeOffsetMin: 160,
+        url: 'https://www.cspdailynews.com/fuels/gas-prices-dip-below-4-first-time-july-aaa-reports',
+        sourceName: 'CSP Daily News'
       }
     ]
   },
@@ -272,7 +272,7 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'Below $3.40',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.67,
+    observedPrice: 0.69,
     observedSwing: 0.27,
     volumeUsd: 120214,
     verifiedRestingLiquidity: null,
@@ -283,11 +283,11 @@ export const VERIFIED_MARKETS = [
     sourceLabel: 'Kalshi — US Lowest Gas Price 2026',
     catalysts: [
       {
-        label: 'AAA national average drops below $4/gal to $3.978; Below $3.40 jumps +$0.10 (Below $3.60 +$0.27)',
-        delta: 0.10,
+        label: 'Texas gas prices drop nearly 55¢/gal in a month (less seasonal demand, winter blend, Hormuz oil shipments) — Below $3.40 jumps +$0.27 per Kalshi',
+        delta: 0.27,
         timeOffsetMin: 140,
-        url: 'https://www.cnbc.com/2026/11/09/stock-market-today-live-updates.html',
-        sourceName: 'CNBC'
+        url: 'https://www.cbsnews.com/texas/news/texas-gas-prices-drop-nearly-55-cents-a-gallon-whats-behind-the-decline/',
+        sourceName: 'CBS News Texas'
       }
     ]
   },
@@ -299,22 +299,22 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'CA Below $3.90',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.07,
-    observedSwing: null,
-    volumeUsd: 51884,
+    observedPrice: 0.02,
+    observedSwing: -0.02,
+    volumeUsd: 70069,
     verifiedRestingLiquidity: null,
     closeWindow: 'Dec 31, 2026',
     settlementSource: 'AAA California Regular Average',
-    modelFairValue: 0.11,
-    sourceUrl: 'https://kalshi.com/markets/kxaaagasminca/california-lowest-gas-price-yearly',
+    modelFairValue: 0.07,
+    sourceUrl: 'https://kalshi.com/markets/kxaaagasminca/california-lowest-gas-price-yearly/kxaaagasminca-26dec31',
     sourceLabel: 'Kalshi — California Lowest Gas Price 2026',
     catalysts: [
       {
-        label: 'EIA West Coast gasoline price spread & seasonal refinery transition data',
-        delta: 0.04,
+        label: 'NBC News maps/charts: gas prices fell in every state this week, national average $3.78/gal; CA and Hawaii only states above $5/gal',
+        delta: null,
         timeOffsetMin: 180,
-        url: 'https://www.eia.gov/todayinenergy/detail.php?id=66784',
-        sourceName: 'U.S. EIA'
+        url: 'https://www.nbcnews.com/data-graphics/gas-prices-iran-war-state-national-cost-trump-rcna265835',
+        sourceName: 'NBC News'
       }
     ]
   },
@@ -326,22 +326,22 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'CA Above $6.60',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.34,
-    observedSwing: -0.04,
-    volumeUsd: null,
+    observedPrice: 0.06,
+    observedSwing: -0.06,
+    volumeUsd: 509539,
     verifiedRestingLiquidity: null,
     closeWindow: 'Dec 31, 2026',
     settlementSource: 'AAA California Regular Average',
-    modelFairValue: 0.25,
+    modelFairValue: 0.10,
     sourceUrl: 'https://kalshi.com/markets/kxaaagasmaxca/california-highest-gas-price-yearly/kxaaagasmaxca-26dec31',
     sourceLabel: 'Kalshi — California Highest Gas Price 2026',
     catalysts: [
       {
-        label: 'Brent crude drops under $90/bbl easing West Coast refinery spike tail risk',
-        delta: -0.11,
-        timeOffsetMin: 165,
-        url: 'https://www.cnbc.com/2026/11/09/stock-market-today-live-updates.html',
-        sourceName: 'CNBC'
+        label: 'AAA: gas prices fell in all 50 states this week; national average $3.78/gal; CA peak chance lost ground (crude below $90/bbl)',
+        delta: null,
+        timeOffsetMin: 130,
+        url: 'https://1190kex.iheart.com/featured/portland-local-news/content/2026-11-17-gas-prices-plunge-across-us/',
+        sourceName: 'KEX Portland iHeart'
       }
     ]
   },
@@ -351,17 +351,17 @@ export const VERIFIED_MARKETS = [
     topic: 'gas-prices',
     title: 'New York gas price (Nov 19, 2026) — Large decrease (<= $4.0814/gal)',
     contractLabel: 'NY Large Decrease',
-    status: 'Open',
-    resolution: null,
-    observedPrice: 0.90,
+    status: 'Resolved',
+    resolution: 'YES',
+    observedPrice: 1.00,
     observedSwing: null,
     volumeUsd: null,
     verifiedRestingLiquidity: null,
-    closeWindow: 'Nov 19, 2026 (Payout Nov 26, 2026)',
+    closeWindow: 'Nov 19, 2026 (Determined)',
     settlementSource: 'AAA New York Regular Average',
-    modelFairValue: 0.92,
+    modelFairValue: 1.00,
     sourceUrl: 'https://kalshi.com/markets/kxaaagascdny/new-york-gas-price/kxaaagascdny-26nov19',
-    sourceLabel: 'Kalshi — New York Gas Price Nov 19',
+    sourceLabel: 'Kalshi — New York Gas Price Nov 19 (Determined Yes)',
     catalysts: []
   },
 
@@ -385,8 +385,8 @@ export const VERIFIED_MARKETS = [
     sourceLabel: 'Kalshi — 2028 Democratic Nominee',
     catalysts: [
       {
-        label: 'Emerson College National Poll puts Jon Ossoff #1 among Democrats at 17% (AOC 12%)',
-        delta: 0.11,
+        label: 'Emerson College poll: Jon Ossoff leads open-ended Democratic primary at 17% (AOC 12%); closed-ended 17% Ossoff vs 16% Harris',
+        delta: null,
         timeOffsetMin: 175,
         url: 'https://emersoncollegepolling.com/national-poll-rubio-leads-2028-gop-nomination-contest-ossoff-rises-among-democrats/',
         sourceName: 'Emerson Polling'
@@ -409,16 +409,8 @@ export const VERIFIED_MARKETS = [
     settlementSource: 'Media Consensus / U.S. Senate Pres. Pro Tempore',
     modelFairValue: 1.00,
     sourceUrl: 'https://kalshi.com/markets/controls/senate-winner/controls-2026',
-    sourceLabel: 'Kalshi — 2026 U.S. Senate Control',
-    catalysts: [
-      {
-        label: '2026 Midterm results drive +$0.23 (+23¢) jump in Democratic Senate control odds to 97%',
-        delta: 0.23,
-        timeOffsetMin: 240,
-        url: 'https://kalshi.com/markets/controls/senate-winner/controls-2026',
-        sourceName: 'Kalshi Market Feed'
-      }
-    ]
+    sourceLabel: 'Kalshi — 2026 U.S. Senate Control (Determined Yes)',
+    catalysts: []
   },
   {
     ticker: 'KXPRESPERSON-28',
@@ -429,18 +421,18 @@ export const VERIFIED_MARKETS = [
     status: 'Open',
     resolution: 'OPEN',
     observedPrice: 0.18,
-    observedSwing: 0.01,
-    volumeUsd: 111643774,
+    observedSwing: -0.01,
+    volumeUsd: 111670768,
     verifiedRestingLiquidity: null,
-    closeWindow: 'Nov 7, 2029',
+    closeWindow: 'Nov 7, 2028',
     settlementSource: 'Official Electoral College / Presidential Inauguration',
-    modelFairValue: 0.25,
+    modelFairValue: 0.24,
     sourceUrl: 'https://kalshi.com/markets/kxpresperson/pres-person/kxpresperson-28',
     sourceLabel: 'Kalshi — 2028 Presidential Election Winner',
     catalysts: [
       {
-        label: 'Emerson Poll: Rubio leads Vance 44%-24% in GOP; Ossoff tops Democrats at 17%',
-        delta: 0.10,
+        label: 'Emerson poll (Nov 19): Rubio leads 2028 GOP nomination at 44% (Vance 24%); Ossoff tops Democrats open-ended at 17% (AOC 12%)',
+        delta: null,
         timeOffsetMin: 130,
         url: 'https://emersoncollegepolling.com/national-poll-rubio-leads-2028-gop-nomination-contest-ossoff-rises-among-democrats/',
         sourceName: 'Emerson Polling'
@@ -456,12 +448,12 @@ export const VERIFIED_MARKETS = [
     status: 'Open',
     resolution: 'OPEN',
     observedPrice: 0.89,
-    observedSwing: null,
-    volumeUsd: 1038096,
+    observedSwing: 0.01,
+    volumeUsd: 1038132,
     verifiedRestingLiquidity: null,
-    closeWindow: 'Nov 7, 2028',
+    closeWindow: 'Feb 1, 2029',
     settlementSource: 'Official U.S. Senate Control',
-    modelFairValue: 0.84,
+    modelFairValue: 0.85,
     sourceUrl: 'https://kalshi.com/markets/controls/senate-winner/controls-2028',
     sourceLabel: 'Kalshi — 2028 U.S. Senate Control',
     catalysts: []
@@ -476,11 +468,11 @@ export const VERIFIED_MARKETS = [
     resolution: 'OPEN',
     observedPrice: 0.67,
     observedSwing: null,
-    volumeUsd: 897054,
+    volumeUsd: 911689,
     verifiedRestingLiquidity: null,
-    closeWindow: 'Nov 7, 2029',
+    closeWindow: 'Nov 7, 2028',
     settlementSource: 'Official Presidential Election Party Winner',
-    modelFairValue: 0.74,
+    modelFairValue: 0.72,
     sourceUrl: 'https://kalshi.com/markets/kxpresparty/party-winning-presidency/kxpresparty-2028',
     sourceLabel: 'Kalshi — 2028 Presidential Party Winner',
     catalysts: []
@@ -493,13 +485,13 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'Democratic Sweep',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.63,
+    observedPrice: 0.67,
     observedSwing: null,
-    volumeUsd: 596106,
+    volumeUsd: 613272,
     verifiedRestingLiquidity: null,
     closeWindow: 'Nov 7, 2028',
     settlementSource: 'Official 2028 Federal Election Results',
-    modelFairValue: 0.56,
+    modelFairValue: 0.60,
     sourceUrl: 'https://kalshi.com/markets/power/party-power/power-28',
     sourceLabel: 'Kalshi — 2028 Party Power Sweep',
     catalysts: []
@@ -522,7 +514,7 @@ export const VERIFIED_MARKETS = [
     settlementSource: 'Academy of Motion Picture Arts and Sciences',
     modelFairValue: 1.00,
     sourceUrl: 'https://kalshi.com/markets/kxoscaracto/oscar-for-best-actor/kxoscaracto-26',
-    sourceLabel: 'Kalshi — 2026 Oscar Best Actor (Settled YES)',
+    sourceLabel: 'Kalshi — 2026 Oscar Best Actor (Determined Yes)',
     catalysts: []
   },
   {
@@ -541,7 +533,7 @@ export const VERIFIED_MARKETS = [
     settlementSource: 'Rotten Tomatoes Tomatometer',
     modelFairValue: 1.00,
     sourceUrl: 'https://kalshi.com/markets/kxrt/rotten-tomatoes-scores/kxrt-ody',
-    sourceLabel: 'Kalshi — The Odyssey RT Score (Settled YES)',
+    sourceLabel: 'Kalshi — The Odyssey RT Score (Determined Yes)',
     catalysts: []
   },
   {
@@ -560,7 +552,7 @@ export const VERIFIED_MARKETS = [
     settlementSource: 'Academy of Motion Picture Arts and Sciences',
     modelFairValue: 1.00,
     sourceUrl: 'https://kalshi.com/markets/kxoscaractr/oscar-for-best-actress/kxoscaractr-26',
-    sourceLabel: 'Kalshi — 2026 Oscar Best Actress (Settled YES)',
+    sourceLabel: 'Kalshi — 2026 Oscar Best Actress (Determined Yes)',
     catalysts: []
   },
   {
@@ -571,20 +563,20 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'GTA VI',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.91,
-    observedSwing: null,
-    volumeUsd: 4193638,
+    observedPrice: 0.92,
+    observedSwing: 0.06,
+    volumeUsd: 4315316,
     verifiedRestingLiquidity: null,
     closeWindow: 'Dec 2026 (Max Payout Dec 31, 2027)',
     settlementSource: 'The Game Awards Official Ceremony',
-    modelFairValue: 0.94,
+    modelFairValue: 0.93,
     sourceUrl: 'https://kalshi.com/markets/kxgameawards/game-awards/kxgameawards-2026',
     sourceLabel: 'Kalshi — The Game Awards 2026 GOTY',
     catalysts: [
       {
-        label: 'GTA VI leads The Game Awards 2026 with 8 nominations & 99 Metacritic score',
-        delta: 0.14,
-        timeOffsetMin: 190,
+        label: 'GTA VI leads The Game Awards 2026 with 8 nominations (Clair Obscur: Expedition 33 holds the 12-nomination record)',
+        delta: 0.06,
+        timeOffsetMin: 170,
         url: 'https://wccftech.com/grand-theft-auto-vi-the-game-awards-2026-nominations-clair-obscur-record/',
         sourceName: 'Wccftech'
       }
@@ -606,7 +598,7 @@ export const VERIFIED_MARKETS = [
     settlementSource: 'Academy of Motion Picture Arts and Sciences',
     modelFairValue: 1.00,
     sourceUrl: 'https://kalshi.com/markets/kxoscardocu/oscar-for-best-documentary-feature/kxoscardocu-26',
-    sourceLabel: 'Kalshi — 2026 Oscar Best Documentary (Settled YES)',
+    sourceLabel: 'Kalshi — 2026 Oscar Best Documentary (Determined Yes)',
     catalysts: []
   },
   {
@@ -625,7 +617,7 @@ export const VERIFIED_MARKETS = [
     settlementSource: 'Rotten Tomatoes Tomatometer',
     modelFairValue: 1.00,
     sourceUrl: 'https://kalshi.com/markets/kxrt/rotten-tomatoes-scores/kxrt-bri',
-    sourceLabel: 'Kalshi — The Bride! RT Score (Settled YES)',
+    sourceLabel: 'Kalshi — The Bride! RT Score (Determined Yes)',
     catalysts: []
   },
 
@@ -649,11 +641,11 @@ export const VERIFIED_MARKETS = [
     sourceLabel: 'Kalshi — How Low Will Ethereum Get 2026',
     catalysts: [
       {
-        label: 'ETH falls 6% to $1,650.79 amid broader market correction & Fed Waller 50bp hike remarks (+$0.19 jump)',
-        delta: 0.19,
+        label: 'Ethereum dips to $1,538 on $545M in futures liquidations; Below $1,500.00 jumps +$0.26 per Kalshi',
+        delta: 0.26,
         timeOffsetMin: 110,
-        url: 'https://www.cnbc.com/2026/11/19/stock-market-today-live-updates.html',
-        sourceName: 'CNBC'
+        url: 'https://coindoo.com/ethereum-dips-stops-above-low/',
+        sourceName: 'Coindoo'
       }
     ]
   },
@@ -666,21 +658,21 @@ export const VERIFIED_MARKETS = [
     status: 'Open',
     resolution: 'OPEN',
     observedPrice: 0.89,
-    observedSwing: -0.10,
-    volumeUsd: 213632,
+    observedSwing: -0.01,
+    volumeUsd: 215030,
     verifiedRestingLiquidity: null,
     closeWindow: 'Jan 1, 2027',
     settlementSource: 'CF Benchmarks / Kalshi Spot Reference',
-    modelFairValue: 0.82,
+    modelFairValue: 0.84,
     sourceUrl: 'https://kalshi.com/markets/kxsold26/sol-price-end-of-2026/kxsold26-27jan0100',
     sourceLabel: 'Kalshi — Solana Year-End Price 2026',
     catalysts: [
       {
-        label: 'Broad crypto sell-off drags SOL contracts -$0.10 on $50+ (-$0.23 on $100+)',
-        delta: -0.10,
-        timeOffsetMin: 155,
-        url: 'https://www.cnbc.com/amp/2026/11/20/bitcoin-price-gold-market-hedge.html',
-        sourceName: 'CNBC'
+        label: 'Solana ETFs attract $4.4M in weekly inflows (ending six weeks of outflows); $50-or-above range leads at 90% per Kalshi',
+        delta: null,
+        timeOffsetMin: 80,
+        url: 'https://beincrypto.com/solana-etf-inflows-crypto-selloff-bitwise/',
+        sourceName: 'BeInCrypto'
       }
     ]
   },
@@ -692,9 +684,9 @@ export const VERIFIED_MARKETS = [
     contractLabel: '$60,000–$64,999.99',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.19,
-    observedSwing: 0.04,
-    volumeUsd: null,
+    observedPrice: 0.219,
+    observedSwing: 0.026,
+    volumeUsd: 50835002,
     verifiedRestingLiquidity: null,
     closeWindow: 'Jan 1, 2027',
     settlementSource: 'CF Benchmarks / Kalshi BTC Reference',
@@ -703,9 +695,9 @@ export const VERIFIED_MARKETS = [
     sourceLabel: 'Kalshi — Bitcoin EOY 2026 Range',
     catalysts: [
       {
-        label: 'Bitcoin sinks below $60,000 ($59,554) as Dow/S&P enter correction; $65k–$69.9k bracket drops -$0.107',
-        delta: -0.11,
-        timeOffsetMin: 120,
+        label: 'Bitcoin sell-off: BTC trading under $62,000 (down $20,000 in a month); $60k–$64,999.99 range leads at 21.8% per Kalshi',
+        delta: 0.026,
+        timeOffsetMin: 90,
         url: 'https://www.cnbc.com/amp/2026/11/20/bitcoin-price-gold-market-hedge.html',
         sourceName: 'CNBC'
       }
@@ -719,21 +711,21 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'BTC Below $55,000',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.58,
-    observedSwing: 0.15,
-    volumeUsd: null,
+    observedPrice: 0.66,
+    observedSwing: 0.32,
+    volumeUsd: 9494723,
     verifiedRestingLiquidity: null,
     closeWindow: 'Jan 1, 2027',
     settlementSource: 'CF Benchmarks / Kalshi BTC Reference',
-    modelFairValue: 0.67,
+    modelFairValue: 0.72,
     sourceUrl: 'https://kalshi.com/markets/kxbtcminy/how-low-will-bitcoin-fall-this-year/kxbtcminy-27jan01',
     sourceLabel: 'Kalshi — How Low Will Bitcoin Get 2026',
     catalysts: [
       {
-        label: 'BTC touches ~$55,055 intraday low during Wall Street sell-off; Below $55k jumps +$0.15',
-        delta: 0.15,
+        label: 'Bitcoin falls 7.5% this week, touching a low near $55,055; Below $55,000.00 leads at 64% (+$0.32) per Kalshi',
+        delta: 0.32,
         timeOffsetMin: 85,
-        url: 'https://www.cnbc.com/2026/11/19/stock-market-today-live-updates.html',
+        url: 'https://www.cnbc.com/amp/2026/11/20/bitcoin-price-gold-market-hedge.html',
         sourceName: 'CNBC'
       }
     ]
@@ -746,13 +738,13 @@ export const VERIFIED_MARKETS = [
     contractLabel: '$50,000 First',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.18,
-    observedSwing: 0.01,
-    volumeUsd: null,
+    observedPrice: 0.40,
+    observedSwing: -0.03,
+    volumeUsd: 9284632,
     verifiedRestingLiquidity: null,
     closeWindow: 'Dec 31, 2026',
     settlementSource: 'CF Benchmarks / Kalshi BTC Reference',
-    modelFairValue: 0.28,
+    modelFairValue: 0.45,
     sourceUrl: 'https://kalshi.com/markets/kxbtc50vs100/will-btc-fall-below-50k-before-hitting-100k/kxbtc50vs100-btc-26dec31',
     sourceLabel: 'Kalshi — BTC $50k Before $100k',
     catalysts: []
@@ -761,20 +753,21 @@ export const VERIFIED_MARKETS = [
     ticker: 'KXBTCMAXMON-BTC-26MAR31',
     seriesTicker: 'KXBTCMAXMON',
     topic: 'crypto',
-    title: 'How high will Bitcoin get in March 2026? — Above $77,500.00',
-    contractLabel: 'Above $77,500',
+    title: 'How high will Bitcoin get in March 2026?',
+    contractLabel: 'March 2026 High',
     status: 'Resolved',
-    resolution: 'NO',
-    observedPrice: 0.00,
+    resolution: 'YES',
+    observedPrice: 1.00,
     observedSwing: null,
     volumeUsd: 2050528,
     verifiedRestingLiquidity: null,
     closeWindow: 'Settled (Mar 31, 2026)',
     settlementSource: 'CF Benchmarks / Kalshi BTC Reference',
-    modelFairValue: 0.00,
+    modelFairValue: 1.00,
     sourceUrl: 'https://kalshi.com/markets/kxbtcmaxmon/bitcoin-monthly-one-touch/kxbtcmaxmon-btc-26mar31',
-    sourceLabel: 'Kalshi — BTC March 2026 High (Settled NO)',
-    catalysts: []
+    sourceLabel: 'Kalshi — BTC March 2026 High (Determined Yes)',
+    catalysts: [],
+    note: 'Official page banner reads "Determined / Outcome: Yes"; it also lists per-contract lines "Above $72,500.00 Yes", "Above $75,000.00 Yes", "Above $77,500.00 No". Market-level banner recorded verbatim; per-contract mismatch flagged on flagged-for-review.html.'
   },
 
   // ======================== 5. GOLF ========================
@@ -794,7 +787,7 @@ export const VERIFIED_MARKETS = [
     settlementSource: 'Augusta National / PGA Tour / ESPN',
     modelFairValue: 1.00,
     sourceUrl: 'https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-mast26',
-    sourceLabel: 'Kalshi — 2026 The Masters (Settled YES)',
+    sourceLabel: 'Kalshi — 2026 The Masters (Determined Yes)',
     catalysts: []
   },
   {
@@ -813,14 +806,14 @@ export const VERIFIED_MARKETS = [
     settlementSource: 'ESPN, Governing League & Fox Sports',
     modelFairValue: 1.00,
     sourceUrl: 'https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-pgc26',
-    sourceLabel: 'Kalshi — 2026 PGA Championship (Settled YES)',
+    sourceLabel: 'Kalshi — 2026 PGA Championship (Determined Yes)',
     catalysts: []
   },
   {
     ticker: 'KXPGATOUR-THRC26-MTHO',
     seriesTicker: 'KXPGATOUR',
     topic: 'golf',
-    title: '2026 PGA The RSM Classic Winner — Michael Thorbjornsen',
+    title: '2026 The RSM Classic Winner — Michael Thorbjornsen',
     contractLabel: 'Michael Thorbjornsen',
     status: 'Open',
     resolution: 'OPEN',
@@ -832,16 +825,8 @@ export const VERIFIED_MARKETS = [
     settlementSource: 'PGA Tour / ESPN / Fox Sports',
     modelFairValue: 0.26,
     sourceUrl: 'https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-thrc26',
-    sourceLabel: 'Kalshi — 2026 The RSM Classic Winner',
-    catalysts: [
-      {
-        label: 'Michael Thorbjornsen opens 64 (-8) & surges to T1 at The RSM Classic (+$0.10 jump)',
-        delta: 0.10,
-        timeOffsetMin: 105,
-        url: 'https://www.pgatour.com/tournaments/2026/the-rsm-classic/R2026493/past-results',
-        sourceName: 'PGA Tour'
-      }
-    ]
+    sourceLabel: 'Kalshi — 2026 The RSM Classic Winner (LIVE)',
+    catalysts: []
   },
   {
     ticker: 'KXPGATOUR-MAST27',
@@ -851,13 +836,13 @@ export const VERIFIED_MARKETS = [
     contractLabel: 'Scottie Scheffler',
     status: 'Open',
     resolution: 'OPEN',
-    observedPrice: 0.16,
-    observedSwing: null,
-    volumeUsd: 1894804,
+    observedPrice: 0.18,
+    observedSwing: -0.01,
+    volumeUsd: 2380682,
     verifiedRestingLiquidity: null,
     closeWindow: 'Apr 2027 (Max Payout Apr 25, 2027)',
     settlementSource: 'Augusta National / PGA Tour',
-    modelFairValue: 0.22,
+    modelFairValue: 0.23,
     sourceUrl: 'https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-mast27',
     sourceLabel: 'Kalshi — 2027 The Masters Champion',
     catalysts: []
@@ -872,13 +857,13 @@ export const VERIFIED_MARKETS = [
     resolution: 'YES',
     observedPrice: 1.00,
     observedSwing: null,
-    volumeUsd: null,
+    volumeUsd: 353561663,
     verifiedRestingLiquidity: null,
     closeWindow: 'Settled (2026 U.S. Open)',
     settlementSource: 'USGA / PGA Tour / ESPN',
     modelFairValue: 1.00,
     sourceUrl: 'https://kalshi.com/markets/kxpgatour/pga-tour/kxpgatour-uso26',
-    sourceLabel: 'Kalshi — 2026 U.S. Open (Settled YES)',
+    sourceLabel: 'Kalshi — 2026 U.S. Open (Determined Yes)',
     catalysts: []
   },
   {
@@ -891,13 +876,13 @@ export const VERIFIED_MARKETS = [
     resolution: 'NO',
     observedPrice: 0.00,
     observedSwing: null,
-    volumeUsd: null,
+    volumeUsd: 807770,
     verifiedRestingLiquidity: null,
     closeWindow: 'Settled (Apr 2026)',
     settlementSource: 'Augusta National Official Field',
     modelFairValue: 0.00,
     sourceUrl: 'https://kalshi.com/markets/kxpgamasters/golfers-to-participate-in-the-masters/kxpgamasters-26',
-    sourceLabel: 'Kalshi — 2026 Masters Field (Tiger Woods NO)',
+    sourceLabel: 'Kalshi — 2026 Masters Field (Tiger Woods No)',
     catalysts: []
   }
 ];
@@ -967,8 +952,28 @@ export const FLAGGED_IRREGULARITIES = [
     id: 'IRREG-07',
     severity: 'Medium',
     category: 'Unverified Static Fields',
-    item: 'Unexposed dollar volumes, live resting orderbook contract counts, and unconfirmed post-Nov-19 NY gas settlement left blank',
-    detail: 'Affected rows: KXAAAGASMAXCA-26DEC31 (volume), KXAAAGASCDNY-26NOV19 (volume & final YES/NO resolution), KXBTCY-27JAN0100 (volume), KXBTCMINY-27JAN01 (volume), KXBTC50VS100-BTC-26DEC31 (volume), KXBTCMAXMON-BTC-26MAR31 (volume), KXPGATOUR-USO26 (volume), KXPGAMASTERS-26 (volume), and static resting orderbook depth across all markets. Per verification rules, unconfirmable values are left blank and marked Unverified rather than inferred.',
+    item: 'NY gas settlement volume & static resting orderbook depth left blank; other volumes verified 2026-11-22',
+    detail: 'Most catalog dollar volumes that were blank in the first catalog were re-verified 2026-11-22 from official Kalshi pages (MAXCA $509,539; BTCY $50,835,002; BTCMINY $9,494,723; BTC50VS100 $9,284,632; BTCMAXMON $2,050,528; USO26 $353,561,663; KXPGAMASTERS-26 $807,770; KXBTCMAXMON-BTC-26MAR31 $2,050,528). Still unverified: KXAAAGASCDNY-26NOV19 dollar volume (not exposed on the market page), and static resting orderbook depth across all markets (live/dynamic; the orderbook ladder shows a clearly labeled Demo Simulation instead). Per verification rules, unconfirmable values are left blank and marked Unverified rather than inferred.',
+    status: 'Needs Review',
+    sourceUrl: 'https://kalshi.com/markets',
+    sourceLabel: 'Kalshi Official Markets'
+  },
+  {
+    id: 'IRREG-14',
+    severity: 'High',
+    category: 'Data Correction Log',
+    item: 'First-pass catalog prices/volumes/resolutions corrected on 2026-11-22 during line-by-line re-verification',
+    detail: 'First catalog values that did not match official Kalshi pages were corrected on 2026-11-22 (UTC): KXAAAGASMAX-26DEC31 (0.51→0.06, $1.84M→$2.15M), KXAAAGASMIN-26DEC31 (0.55→0.69, $115K→$120K, swing +0.10→+0.27), KXAAAGASMINCA (0.07→0.02, $51.9K→$70.1K), KXAAAGASMAXCA (0.34→0.06, $0→$509.5K), KXAAAGASCDNY-26NOV19 (Open→Resolved YES), KXPRESNOMD-28 (0.26→0.24, $304.6M→$308.0M), CONTROLS-2026 (Open 0.97→Resolved YES 100%, $220.9M→$341.2M), KXPRESPERSON-28 ($111.64M→$111.67M), CONTROLS-2028 ($1.038M→$1.038M, price 0.89→0.89), KXPRESPARTY-2028 ($897.1K→$911.7K), POWER-28 (0.63→0.67, $596.1K→$613.3K), KXGAMEAWARDS-2026 ($4.19M→$4.32M, drift), KXETHMINY-27JAN01 (0.42→0.63, $1.78M→$1.83M, swing +0.19→+0.26), KXSOLD26-27JAN0100 ($213.6K→$215.0K, swing -0.10→-0.01), KXBTCY-27JAN0100 (0.19→0.219, $0→$50.84M, swing +0.04→+0.026), KXBTCMINY-27JAN01 (0.58→0.66, $0→$9.49M, swing +0.15→+0.32), KXBTC50VS100-BTC-26DEC31 (0.18→0.40, $0→$9.28M), KXBTCMAXMON-BTC-26MAR31 (volume $0→$2.05M), KXPGATOUR-MAST26 ($548.71M — verified), KXPGATOUR-PGC26 ($393.57M — verified), KXPGATOUR-THRC26-MTHO (0.13→0.18, $28.0M→$40.0M), KXPGATOUR-MAST27 (0.16→0.18, $1.89M→$2.38M), KXPGATOUR-USO26 ($0→$353.56M), KXPGAMASTERS-26 ($0→$807.77K, confirmed Resolved NO). See flagged-for-review.html for the full diff and the re-verification table.',
+    status: 'Needs Review',
+    sourceUrl: 'https://kalshi.com/markets',
+    sourceLabel: 'Kalshi Official Markets'
+  },
+  {
+    id: 'IRREG-15',
+    severity: 'High',
+    category: 'Catalyst Source Alignment',
+    item: 'Three first-pass catalyst links did not correspond to the market being tracked (corrected)',
+    detail: '(1) The KXAAAGASMAX / KXAAAGASMIN / KXAAAGASMAXCA rows cited CNBC 2026/11/09 live-updates articles for a gas-price claim that the article does not cover — replaced with CSP Daily News (gas below $4 first time since July), CBS News Texas (Texas pump price drop ~55¢/gal), and NBC News / 1190 KEX gas price trackers, all cited by the official Kalshi pages. (2) The KXETHMINY catalyst cited a general market-correction CNBC page for an Ethereum price claim — replaced with the coindoo.com ETH article ($1,538, $545M liquidations) cited on the official Kalshi page. (3) The KXPGATOUR-THRC26 row cited a PGA Tour past-results page that shows 2025 season results (Sami Valimaki, -23) — not 2026 Round data; the catalyst was removed from the catalog pending a reachable official 2026 source.',
     status: 'Needs Review',
     sourceUrl: 'https://kalshi.com/markets',
     sourceLabel: 'Kalshi Official Markets'
@@ -984,10 +989,10 @@ export const FLAGGED_IRREGULARITIES = [
     sourceLabel: 'GitHub Commit 62713af'
   },
   {
-    id: 'IRREG-14',
+    id: 'IRREG-16',
     severity: 'High',
     category: 'Dataset Re-verification',
-    item: 'Session-2 live re-check corrected 7 stale/incorrect rows incl. CONTROLS-2026 settlement (see detail)',
+    item: 'Session-2 (arena-59730b38) live re-check corrected 7 stale/incorrect rows incl. CONTROLS-2026 settlement (see detail)',
     detail: 'Independent re-verification against live official Kalshi pages on 2026-11-22 (session stamp 07:27:00Z) corrected 7 rows: KXAAAGASMAX-26DEC31 Above $4.60 price $0.51->$0.06, swing -$0.01->-$0.05, vol $1,836,232->$2,150,412; KXAAAGASMIN-26DEC31 Below $3.40 $0.55->$0.67, swing +$0.10->+$0.27, vol $115,427->$120,214; KXPRESNOMD-28 Ossoff $0.26->$0.24, vol $304,563,107->$308,045,852; KXETHMINY-27JAN01 Below $1,500 $0.42->$0.63, swing +$0.19->+$0.26, vol $1,782,347->$1,829,630; KXPGATOUR-THRC26-MTHO $0.13->$0.18, swing +$0.10->+$0.01, vol $27,982,941->$39,992,031; CONTROLS-2026 Open 0.97/vol $220,875,845 -> Resolved YES @ $1.00, vol $341,173,231 (page: Democrats Win, Determined/Yes); KXBTCMAXMON-BTC-26MAR31 filled volume $2,050,528 (NO outcome re-confirmed). This is the refresh pass requested by static IRREG-10 (session arena-a8cfdaeb T-06 audit, whose before/after table is preserved on this page as the historical record). Model fair values were mechanically re-anchored preserving each prior model edge (resolved rows at settlement; documented in COORDINATION.md). Live Kalshi values drift continuously; all static snapshots carry verification timestamps. KXOSCARACTO-26 (settled YES, $25,562,603) re-confirmed exactly.',
     status: 'Needs Review',
     sourceUrl: 'https://kalshi.com/markets',
@@ -1047,7 +1052,7 @@ export const REPO_AUDIT_ITEMS = [
   {
     path: 'assets/js/data.js (Session 2 re-verification)',
     checkType: 'Independent Re-verification',
-    finding: 'Session arena-59730b38 re-checked all API endpoint claims against live docs.kalshi.com (demo_env, api_environments incl. external-feeds host, orderbook_responses, quick_start_websockets, rate_limits WS limits Basic/Adv/Expert 200, Premier 500, Paragon 750, Prime/Prestige 1000, candlesticks 1/60/1440, Create Order V2) and 8 live kalshi.com market pages; corrected 7 stale/incorrect rows (incl. CONTROLS-2026 Resolved YES), re-anchored model fair values preserving prior edge, added external-feeds endpoint row, and published IRREG-14.',
+    finding: 'Session arena-59730b38 re-checked all API endpoint claims against live docs.kalshi.com (demo_env, api_environments incl. external-feeds host, orderbook_responses, quick_start_websockets, rate_limits WS limits Basic/Adv/Expert 200, Premier 500, Paragon 750, Prime/Prestige 1000, candlesticks 1/60/1440, Create Order V2) and 8 live kalshi.com market pages; corrected 7 stale/incorrect rows (incl. CONTROLS-2026 Resolved YES), re-anchored model fair values preserving prior edge, added external-feeds endpoint row, and published IRREG-16.',
     verified: true,
     sourceUrl: 'https://kalshi.com/markets',
     sourceLabel: 'Kalshi Official Markets (live re-check)'

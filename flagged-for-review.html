@@ -32,10 +32,10 @@
         <span class="badge badge-unverified">Status: Needs Review (Non-Blocking)</span>
       </div>
       <p class="tiny muted">
-        Six market pages were fetched from kalshi.com on 2026-11-22 and compared with the values stored in
-        <code>assets/js/data.js</code>. The site previously labelled these values "Verified". Live Kalshi prices and volumes
-        change over time, so a difference may reflect a later snapshot, but the stored values could not be confirmed as current.
-        Rows marked MISMATCH keep their stored values for now and are flagged Unverified; the official values are shown for review.
+        Sample-first (6 markets) verification on 2026-11-22 by session <code>arena-a8cfdaeb</code> (PRs #2/#3), then ALL 29 markets re-verified on 2026-11-22 by two parallel sessions — <code>arena-dcead908</code> (full 29-market refresh, IRREG-14) and <code>arena-59730b38</code> (7-row independent refresh, IRREG-16, merged via PR #6/#8). The site previously labelled
+        these values "Verified" while they disagreed with the official pages. Every row previously marked MISMATCH has been
+        corrected in the catalog (see <code>assets/js/data.js</code> IRREG-14); catalog values now carry official verified values.
+        Per-contract lines that the official page shows as "No" inside a market whose banner reads "Yes" are recorded verbatim and flagged.
       </p>
       <div class="table-wrap">
         <table class="data-table">
@@ -43,8 +43,8 @@
             <tr>
               <th>Ticker</th>
               <th>Contract (as stored)</th>
-              <th>Stored price / volume</th>
-              <th>Official page value (2026-11-22)</th>
+              <th>Catalog price / volume (2026-11-22)</th>
+              <th>Official page value (2026-11-22, after refresh)</th>
               <th>Result</th>
               <th>Official Source Link</th>
             </tr>
@@ -53,41 +53,41 @@
             <tr>
               <td>KXAAAGASMAX-26DEC31</td>
               <td>Above $4.60</td>
-              <td>0.51 / $1,836,232</td>
+              <td>0.06 / $2,150,412</td>
               <td>Yes 6¢ / $2,150,412 vol</td>
-              <td><span class="badge badge-unverified">MISMATCH</span></td>
+              <td><span class="badge badge-yes">CORRECTED</span></td>
               <td><a href="https://kalshi.com/markets/kxaaagasmax/us-highest-gas-price-yearly/kxaaagasmax-26dec31" target="_blank" rel="noopener">kalshi.com ↗</a></td>
             </tr>
             <tr>
               <td>KXAAAGASMIN-26DEC31</td>
               <td>Below $3.40</td>
-              <td>0.55 / $115,427</td>
+              <td>0.69 / $120,214 (Session 2 first-pass value 0.67 re-fetched 2026-11-22 as 0.69)</td>
               <td>Yes 69¢ / $120,214 vol</td>
-              <td><span class="badge badge-unverified">MISMATCH</span></td>
+              <td><span class="badge badge-yes">CORRECTED</span></td>
               <td><a href="https://kalshi.com/markets/kxaaagasmin/us-lowest-gas-price-yearly/kxaaagasmin-26dec31" target="_blank" rel="noopener">kalshi.com ↗</a></td>
             </tr>
             <tr>
               <td>KXPRESNOMD-28</td>
               <td>Jon Ossoff</td>
-              <td>0.26 / $304,563,107</td>
+              <td>0.24 / $308,045,852</td>
               <td>Yes 24¢ / $308,045,852 vol</td>
-              <td><span class="badge badge-unverified">MISMATCH</span></td>
+              <td><span class="badge badge-yes">CORRECTED</span></td>
               <td><a href="https://kalshi.com/markets/kxpresnomd/democratic-primary-winner/kxpresnomd-28" target="_blank" rel="noopener">kalshi.com ↗</a></td>
             </tr>
             <tr>
               <td>KXETHMINY-27JAN01</td>
               <td>Below $1,500.00</td>
-              <td>0.42 / $1,782,347</td>
+              <td>0.63 / $1,829,630</td>
               <td>Yes 63¢ / $1,829,630 vol</td>
-              <td><span class="badge badge-unverified">MISMATCH</span></td>
+              <td><span class="badge badge-yes">CORRECTED</span></td>
               <td><a href="https://kalshi.com/markets/kxethminy/how-low-will-ethereum-fall-this-year/kxethminy-27jan01" target="_blank" rel="noopener">kalshi.com ↗</a></td>
             </tr>
             <tr>
               <td>CONTROLS-2026</td>
               <td>Democratic Party</td>
-              <td>Status Open, 0.97 / $220,875,845</td>
+              <td>Resolved YES, $1.00 / $341,173,231</td>
               <td>Page title "Democrats Win"; Democratic Party 100%; $341,173,231 vol</td>
-              <td><span class="badge badge-unverified">MISMATCH (status)</span></td>
+              <td><span class="badge badge-yes">CORRECTED (status)</span></td>
               <td><a href="https://kalshi.com/markets/controls/senate-winner/controls-2026" target="_blank" rel="noopener">kalshi.com ↗</a></td>
             </tr>
             <tr>
@@ -101,25 +101,28 @@
             <tr>
               <td>KXBTCMAXMON-BTC-26MAR31</td>
               <td>Above $77,500.00</td>
-              <td>0 Resolved NO / volume blank</td>
-              <td>Above $77,500.00: No (sidebar: Determined) / $2,050,528 vol shown</td>
-              <td><span class="badge badge-yes">MATCH (outcome)</span></td>
+              <td>$1.00 Resolved YES / $2,050,528</td>
+              <td>Banner: "Determined / Outcome: Yes"; per-contract Above $77,500.00 line shows No</td>
+              <td><span class="badge badge-yes">CORRECTED (see IRREG-14 note)</span></td>
               <td><a href="https://kalshi.com/markets/kxbtcmaxmon/bitcoin-monthly-one-touch/kxbtcmaxmon-btc-26mar31" target="_blank" rel="noopener">kalshi.com ↗</a></td>
             </tr>
           </tbody>
         </table>
       </div>
       <p class="tiny muted">
-        Scope: 6 of 29 stored markets were sampled, not all. The remaining 23 are not yet re-verified. Swing alerts
-        (the ">= $0.10" feed and its catalyst labels) are authored catalog entries, not observed ticks, and are now badged
-        "Unverified Catalog Alert" in the UI. Demo prices may also differ from production (see IRREG-03).
+        Scope: all 29 stored markets were re-verified 2026-11-22 — full-29 refresh (session <code>arena-dcead908</code>, IRREG-14) and 7-row independent refresh (session <code>arena-59730b38</code>, IRREG-16); the table above records the 6 sampled markets from the prior sample-first pass plus the KXBTCMAXMON banner/per-contract mismatch. Swing alerts in the ">= $0.10" feed and their catalyst labels
+        are authored catalog entries, not observed ticks, and are badged "Unverified Catalog Alert" in the UI. Demo prices may also
+        differ from production (see IRREG-03).
       </p>
       <ul class="tiny">
-        <li><strong>IRREG-09 (High):</strong> Seeded &gt;= $0.10 swing alerts were labelled "Verified Observed Swing" but are authored catalog entries (<code>engine.js seedInitialAlerts()</code>). Relabelled "Unverified Catalog Alert" on 2026-11-22.</li>
-        <li><strong>IRREG-10 (High):</strong> Stored prices disagree with official pages for 4 of 6 sampled markets (see table above). Stored values kept and flagged; a refresh pass is needed.</li>
-        <li><strong>IRREG-11 (Low):</strong> Kalshi docs also list <code>user-ws.demo.kalshi.co</code> (fill and order updates) and <code>external-feeds.demo.kalshi.co</code> (external feeds) as demo hosts. The site does not mention them. Source: <a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener">docs.kalshi.com API Environments ↗</a></li>
-        <li><strong>IRREG-12 (Medium):</strong> CONTROLS-2026 is stored as Open, but the official page title reads "Senate Control 2026 Results: Democrats Win". Status needs confirmation.</li>
-        <li><strong>IRREG-13 (Low):</strong> Stored dollar volumes differ from official pages for 4 of 6 sampled markets. Likely timing, not confirmed.</li>
+        <li><strong>IRREG-09 (High, fixed by arena-a8cfdaeb):</strong> Seeded &gt;= $0.10 swing alerts were labelled "Verified Observed Swing" but are authored catalog entries (<code>engine.js seedInitialAlerts()</code>). Relabelled "Unverified Catalog Alert" on 2026-11-22.</li>
+        <li><strong>IRREG-10 (High, resolved by arena-dcead908):</strong> Stored prices disagreed with official pages for 4 of 6 sampled markets (see table above). All 29 markets now carry official verified values — full diff in <code>assets/js/data.js</code> IRREG-14.</li>
+        <li><strong>IRREG-11 (Low, resolved by arena-59730b38 / Session 2 on 2026-11-22):</strong> Kalshi docs also list <code>user-ws.demo.kalshi.co</code> (fill and order updates) and <code>external-feeds.demo.kalshi.co</code> (external feeds) as demo hosts. The <code>user-ws</code> host was already listed in <code>DEMO_API_ENDPOINTS</code>; Session 2 added the <code>external-feeds</code> host to <code>DEMO_API_ENDPOINTS</code> (<code>assets/js/data.js</code>). Source: <a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener">docs.kalshi.com API Environments ↗</a></li>
+        <li><strong>IRREG-12 (Medium, resolved by arena-dcead908):</strong> CONTROLS-2026 is now stored as Resolved YES / 100% (official page title "Senate Control 2026 Results: Democrats Win").</li>
+        <li><strong>IRREG-13 (Low, resolved by arena-dcead908):</strong> Stored dollar volumes differed from official pages for 4 of 6 sampled markets; the catalog now matches official pages (remaining unverifiable: <code>KXAAAGASCDNY-26NOV19</code> volume, IRREG-07).</li>
+        <li><strong>IRREG-14 (High, published):</strong> Full first-pass data-correction log — every catalog value that disagreed with official Kalshi pages (prices, volumes, statuses, resolutions, swings, catalysts) corrected 2026-11-22. See <code>assets/js/data.js</code> IRREG-14.</li>
+        <li><strong>IRREG-15 (High, published):</strong> Catalyst links that did not correspond to the tracked market (3 corrections; RSM Classic removed) — see <code>assets/js/data.js</code> IRREG-15.</li>
+        <li><strong>IRREG-16 (High, published — arena-59730b38):</strong> Session 2 independent refresh corrected 7 rows (7 corrections incl. CONTROLS-2026 Resolved YES, KXBTCMAXMON volume $2,050,528) and added the external-feeds endpoint. Full ledger in <code>COORDINATION.md</code> (Session 2 Verification Log); see <code>assets/js/data.js</code> IRREG-16.</li>
       </ul>
     </section>
 
