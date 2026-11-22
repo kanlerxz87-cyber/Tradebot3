@@ -109,7 +109,9 @@ replaces the static catalogue with an automated pipeline (`scripts/fetch_kalshi_
   (only 3 of 29 claimed tickers exist in the live API).
 - **Nothing discarded silently:** `main`'s coordination board through PR #17 is preserved verbatim at
   `archive/coordination-main-through-pr17-2026-11-22.md`, and its executive summary at
-  `archive/executive-summary-static-site-2026-11-22.md`. Findings from those sessions that remain valid
+  `archive/executive-summary-static-site-2026-11-22.md`. `main` then advanced again via PRs #18–#19
+  (session `arena-ca98b078`, T-15…T-17, IRREG-23…IRREG-25); that board is preserved at
+  `archive/coordination-main-through-pr19-2026-11-22.md` and was merged with the same resolution. Findings from those sessions that remain valid
   (paper-only execution, no fabricated fair values/alerts, read-only demo client, illustrative — not
   validated — model filter) are all honoured by this build: simulated trades are paper-only in the
   browser, the demo panel only performs signed read-only `GET /portfolio/balance|positions|fills`, the
