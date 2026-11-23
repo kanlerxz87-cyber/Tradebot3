@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-22T22:27:03Z",
+  "generated_at": "2026-11-23T03:04:59Z",
   "api_base": "https://external-api.kalshi.com/trade-api/v2",
   "claims_checked": 29,
   "claims_found_in_api": 3,
@@ -376,10 +376,11 @@
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
-      "url_http_status": 429,
+      "url_http_status": null,
       "notes": [
         "GET /markets/KXSOLD26-27JAN0100: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXSOLD26-27JAN0100 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "URL check note: URLError: <urlopen error [Errno 104] Connection reset by peer>"
       ],
       "api_event_title": "Price of Solana by end of 2026?"
     },
@@ -433,8 +434,8 @@
       "api_found": true,
       "api_event_found": false,
       "api_status": "active",
-      "api_last_price": 0.32,
-      "api_volume_contracts": 9376239.97,
+      "api_last_price": 0.31,
+      "api_volume_contracts": 9411050.0,
       "api_result": null,
       "url_http_status": 429,
       "notes": [],
@@ -509,7 +510,7 @@
       "api_event_found": false,
       "api_status": "active",
       "api_last_price": 0.32,
-      "api_volume_contracts": 1545673.19,
+      "api_volume_contracts": 1615867.74,
       "api_result": null,
       "url_http_status": 429,
       "notes": [],
