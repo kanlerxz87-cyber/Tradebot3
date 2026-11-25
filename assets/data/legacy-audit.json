@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-25T04:06:14Z",
+  "generated_at": "2026-11-25T14:55:27Z",
   "api_base": "https://external-api.kalshi.com/trade-api/v2",
   "claims_checked": 29,
   "claims_found_in_api": 3,
@@ -396,11 +396,10 @@
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
-      "url_http_status": null,
+      "url_http_status": 429,
       "notes": [
         "GET /markets/KXBTCY-27JAN0100: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXBTCY-27JAN0100 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
-        "URL check note: URLError: <urlopen error [Errno 104] Connection reset by peer>"
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
       ],
       "api_event_title": "Bitcoin price at the end of 2026"
     },
@@ -434,8 +433,8 @@
       "api_found": true,
       "api_event_found": false,
       "api_status": "active",
-      "api_last_price": 0.26,
-      "api_volume_contracts": 9838686.3,
+      "api_last_price": 0.38,
+      "api_volume_contracts": 9913264.93,
       "api_result": null,
       "url_http_status": 429,
       "notes": [],
@@ -512,10 +511,8 @@
       "api_last_price": 0.001,
       "api_volume_contracts": 2826738.5,
       "api_result": "no",
-      "url_http_status": null,
-      "notes": [
-        "URL check note: URLError: <urlopen error [Errno 104] Connection reset by peer>"
-      ],
+      "url_http_status": 429,
+      "notes": [],
       "resolved_ticker": "KXPGATOUR-THRC26-MTHO"
     },
     {
@@ -531,11 +528,10 @@
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
-      "url_http_status": null,
+      "url_http_status": 429,
       "notes": [
         "GET /markets/KXPGATOUR-MAST27: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPGATOUR-MAST27 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
-        "URL check note: URLError: <urlopen error [Errno 104] Connection reset by peer>"
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
       ],
       "api_event_title": "2027 The Masters Champion"
     },
