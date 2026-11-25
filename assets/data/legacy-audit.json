@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-25T14:55:27Z",
+  "generated_at": "2026-11-25T23:35:20Z",
   "api_base": "https://external-api.kalshi.com/trade-api/v2",
   "claims_checked": 29,
   "claims_found_in_api": 3,
@@ -433,8 +433,8 @@
       "api_found": true,
       "api_event_found": false,
       "api_status": "active",
-      "api_last_price": 0.38,
-      "api_volume_contracts": 9913264.93,
+      "api_last_price": 0.29,
+      "api_volume_contracts": 10017446.89,
       "api_result": null,
       "url_http_status": 429,
       "notes": [],
@@ -493,9 +493,10 @@
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
-      "url_http_status": 429,
+      "url_http_status": null,
       "notes": [
-        "GET /markets/KXPGATOUR-PGC26-ARAI: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPGATOUR-PGC26-ARAI {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
+        "GET /markets/KXPGATOUR-PGC26-ARAI: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPGATOUR-PGC26-ARAI {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "URL check note: URLError: <urlopen error [Errno 104] Connection reset by peer>"
       ]
     },
     {
@@ -548,10 +549,11 @@
       "api_last_price": null,
       "api_volume_contracts": null,
       "api_result": null,
-      "url_http_status": 429,
+      "url_http_status": null,
       "notes": [
         "GET /markets/KXPGATOUR-USO26: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPGATOUR-USO26 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "URL check note: URLError: <urlopen error [Errno 104] Connection reset by peer>"
       ],
       "api_event_title": "U.S. Open Winner"
     },
