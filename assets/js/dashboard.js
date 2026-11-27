@@ -159,8 +159,20 @@ function renderStatus() {
   }[live.state] || live.state;
 
   const stats = data.snapshot?.stats || {};
+  const fresh = data.freshness();
+  const cadence = data.snapshot?.refresh_cadence?.measured;
+  const ageLabel = isNum(fresh.hours)
+    ? `<span class="badge badge-${fresh.state === 'fresh' ? 'up' : fresh.state === 'aging' ? 'warn' : 'down'}">${fresh.hours.toFixed(1)}h old</span>`
+    : '';
+  const staleNote = fresh.state === 'stale'
+    ? ` <span class="tiny">Snapshot is ${fresh.hours.toFixed(1)}h old — beyond the fresh window. Numbers below are from that snapshot until the next scheduled refresh.</span>`
+    : '';
   const parts = [
-    `<span><strong>Snapshot</strong> ${esc(fmtDateTime(data.generatedAt))} UTC (${esc(timeAgo(data.generatedAt))})</span>`,
+    `<span><strong>Snapshot</strong> ${esc(fmtDateTime(data.generatedAt))} UTC (${esc(timeAgo(data.generatedAt))}) ${ageLabel}${staleNote}</span>`,
+    '<span class="sep">|</span>',
+    cadence
+      ? `<span class="tiny">Measured refresh: median ${cadence.median_gap_hours}h, max ${cadence.max_gap_hours}h over ${cadence.runs_used} runs (cron ${esc(data.snapshot?.refresh_cadence?.requested_cron?.split(' (')[0] || '')} is best-effort)</span>`
+      : '',
     '<span class="sep">|</span>',
     `<span><strong>Source</strong> <a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener noreferrer">Kalshi public Trade API</a> (unauthenticated)</span>`,
     '<span class="sep">|</span>',
@@ -223,7 +235,7 @@ function renderEventsTable() {
   if (!body) return;
   const events = data.allEvents()
     .filter((e) => state.eventTopic === 'all' || e.topic === state.eventTopic)
-    .sort((a, b) => (b.est_dollars_traded || 0) - (a.est_dollars_traded || 0));
+    .sort((a, b) => (data.estDollarsFor(b) || 0) - (data.estDollarsFor(a) || 0));
   body.innerHTML = '';
   if (!events.length) {
     body.innerHTML = '<tr><td colspan="9" class="table-empty">No tracked events for this filter in the current snapshot.</td></tr>';
@@ -231,7 +243,8 @@ function renderEventsTable() {
   }
   for (const ev of events.slice(0, 40)) {
     const lead = ev.markets.slice().sort((a, b) => (b.volume || 0) - (a.volume || 0))[0];
-    const vol24 = ev.markets.reduce((s, m) => s + (m.volume_24h || 0), 0);
+    const vol24 = data.volume24For(ev);
+    const estUsd = data.estDollarsFor(ev);
     const resolvedYes = ev.markets.filter((m) => (m.result || '').toLowerCase() === 'yes').length;
     const resolvedNo = ev.markets.filter((m) => (m.result || '').toLowerCase() === 'no').length;
     const openCount = ev.markets.filter((m) => m.status === 'active').length;
@@ -244,7 +257,7 @@ function renderEventsTable() {
         <div class="ticker">${esc(ev.event_ticker)}</div></td>
       <td>${topicDot(ev.topic)}</td>
       <td class="num">${fmtContracts(ev.volume_total)}</td>
-      <td class="num">${fmtUsd(ev.est_dollars_traded)}<div class="tiny">estimate</div></td>
+      <td class="num">${fmtUsd(estUsd)}<div class="tiny">estimate</div></td>
       <td class="num">${fmtContracts(vol24)}</td>
       <td class="num">${lead ? fmtPrice(data.bestPrice(lead)) : '—'}<div class="tiny">${lead ? esc((lead.subtitle || '').slice(0, 26)) : ''}</div></td>
       <td>${statusBadge}${resolvedYes || resolvedNo ? `<div class="tiny">YES ${resolvedYes} · NO ${resolvedNo}</div>` : ''}</td>
@@ -340,12 +353,13 @@ function drawChart() {
   const meta = qs('#chart-meta');
   const price = data.bestPrice(market);
   const ob = market.orderbook;
+  const q = data.quoteFor(market);
   meta.innerHTML = `
     <div class="pill-row">
       <span class="badge ${market.status === 'active' ? 'badge-open' : 'badge-neutral'}">${esc(market.status || 'unknown')}</span>
       ${topicDot(market.topic)}
       <span class="badge badge-neutral">last ${fmtPrice(price)}</span>
-      <span class="badge badge-neutral">bid ${fmtPrice(ob?.best_yes_bid ?? market.yes_bid)} / ask ${fmtPrice(ob?.best_yes_ask ?? market.yes_ask)}</span>
+      <span class="badge badge-neutral" title="Quote source: ${esc(data.quoteFor(market).source)}">bid ${fmtPrice(q.bid)} / ask ${fmtPrice(q.ask)} · ${esc(data.quoteFor(market).source)}</span>
       ${market.result ? `<span class="badge badge-${String(market.result).toLowerCase()}">resolved ${esc(String(market.result).toUpperCase())}</span>` : ''}
       <span class="tiny">closes ${esc(fmtDateTime(market.close_time))}</span>
       <span class="tiny"><a href="${esc(market.kalshi_url)}" target="_blank" rel="noopener noreferrer">Kalshi page</a> · <a href="${esc(market.api_url)}" target="_blank" rel="noopener noreferrer">API record</a></span>

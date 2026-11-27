@@ -129,8 +129,8 @@ export class PaperAccount {
   settleResolved() {
     const settled = [];
     for (const pos of [...this.state.positions]) {
-      const market = this.data.byTicker.get(pos.ticker);
-      const result = market?.result;
+      const found = this.data.resultFor ? this.data.resultFor(pos.ticker) : null;
+      const result = found?.result || this.data.byTicker.get(pos.ticker)?.result;
       if (!result) continue;
       const win = String(result).toLowerCase() === pos.side.toLowerCase();
       const payout = win ? 1 : 0;
@@ -146,6 +146,7 @@ export class PaperAccount {
         pnl: round2(pnl),
         roi_pct: pos.entry > 0 ? round2((pnl / (pos.entry * pos.qty)) * 100) : 0,
         close_reason: `resolved ${String(result).toUpperCase()}`,
+        settlement_source: found?.source || 'market record',
         category: pos.strategy || 'Manual',
       });
       settled.push(pos.ticker);
@@ -170,8 +171,8 @@ export class PaperAccount {
       value,
       pnl,
       roi_pct: pos.entry > 0 ? (pnl / (pos.entry * pos.qty)) * 100 : 0,
-      status: market?.status || 'unknown',
-      result: market?.result || null,
+      status: market?.status || (this.data.resultFor?.(pos.ticker) ? 'finalized' : 'unknown'),
+      result: market?.result || this.data.resultFor?.(pos.ticker)?.result || null,
     };
   }
 

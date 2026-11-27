@@ -26,6 +26,7 @@ async function boot() {
   initChrome({ active: topicId, base: '../' });
   if (!topic) return;
   document.title = `${topic.name} — Tradebot3 Kalshi dashboard`;
+  const catLink = qs('#topic-kalshi-link');;
   qs('#topic-title').textContent = topic.name;
   qs('#topic-blurb').textContent = topic.blurb;
 
@@ -60,6 +61,13 @@ async function boot() {
   data.startLive();
 }
 
+function freshBadge() {
+  const f = data.freshness();
+  if (!isNum(f.hours)) return '';
+  const cls = f.state === 'fresh' ? 'badge-up' : f.state === 'aging' ? 'badge-warn' : 'badge-down';
+  return `<span class="badge ${cls}" title="Time since the committed snapshot was generated">${f.hours.toFixed(1)}h old</span>`;
+}
+
 function renderStatus() {
   const stats = data.topicStats(topicId);
   const live = data.live.state;
@@ -70,11 +78,19 @@ function renderStatus() {
   qs('#topic-status').innerHTML = `
     <span><strong>${stats.events}</strong> live events · <strong>${stats.markets}</strong> markets tracked</span>
     <span class="sep">|</span>
-    <span>Snapshot ${esc(fmtDateTime(data.generatedAt))} UTC (${esc(timeAgo(data.generatedAt))})</span>
+    <span>Snapshot ${esc(fmtDateTime(data.generatedAt))} UTC (${esc(timeAgo(data.generatedAt))}) ${freshBadge()}</span>
     <span class="sep">|</span>
     <span>Live API ${liveText}</span>
     <span class="sep">|</span>
     <span class="tiny">Inclusion rule: ${esc(data.snapshot?.topics?.[topicId]?.inclusion_rule || '—')}</span>`;
+  const meta = data.snapshot?.topics?.[topicId];
+  const link = qs('#topic-kalshi-link');
+  if (link && meta?.kalshi_category_url) {
+    link.href = meta.kalshi_category_url;
+    const status = meta.kalshi_category_http_status;
+    link.textContent = `Kalshi category ${status ? `(HTTP ${status})` : ''} ↗`;
+    if (meta.kalshi_category_reachable === false) link.classList.add('btn-warn');
+  }
 }
 
 function renderKpis(markets) {
@@ -239,6 +255,7 @@ function drawChart() {
     <div class="pill-row">
       <span class="badge badge-neutral">last ${fmtPrice(data.bestPrice(market))}</span>
       <span class="badge badge-neutral">spread ${isNum(market.orderbook?.spread) ? `${(market.orderbook.spread * 100).toFixed(1)}¢` : '—'}</span>
+      <span class="badge badge-neutral" title="Where this quote came from">${esc(data.quoteFor(market).source)}</span>
       ${market.result ? `<span class="badge badge-${String(market.result).toLowerCase()}">resolved ${esc(String(market.result).toUpperCase())}</span>` : ''}
       <span class="tiny">closes ${esc(fmtDateTime(market.close_time))}</span>
       <span class="tiny"><a href="${esc(market.kalshi_url)}" target="_blank" rel="noopener noreferrer">Kalshi</a> · <a href="${esc(market.api_url)}" target="_blank" rel="noopener noreferrer">API</a></span>

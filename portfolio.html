@@ -193,7 +193,7 @@
       <div class="card-body">
         <p class="small">
           Create an API key in the Kalshi <strong>demo</strong> environment (demo keys do not work in production and vice
-          versa). Paste the Key ID and the RSA private key PEM below. The browser signs
+          versa). Paste the Key ID and the private key PEM (RSA or Ed25519) below. The browser signs
           <code>GET /trade-api/v2/portfolio/balance</code> with RSA-PSS (SHA-256, salt 32) exactly as
           <a href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener noreferrer">Kalshi's API-key guide</a>
           describes, and sends it to <code>https://external-api.demo.kalshi.co/trade-api/v2</code>. The private key is never
@@ -210,8 +210,8 @@
             <input id="demo-keyid" type="text" autocomplete="off" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
           </div>
           <div>
-            <label class="field" for="demo-pem">RSA private key (PEM)</label>
-            <textarea id="demo-pem" rows="4" placeholder="-----BEGIN RSA PRIVATE KEY-----" autocomplete="off" spellcheck="false"></textarea>
+            <label class="field" for="demo-pem">Private key (PEM) — RSA or Ed25519</label>
+            <textarea id="demo-pem" rows="4" placeholder="-----BEGIN PRIVATE KEY-----" autocomplete="off" spellcheck="false"></textarea>
           </div>
         </div>
         <div class="pill-row">

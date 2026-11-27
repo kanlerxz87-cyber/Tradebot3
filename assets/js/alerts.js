@@ -102,6 +102,14 @@ export class AlertFeed {
     const descriptors = [];
     if (alert.interval === 'live tick') descriptors.push('<span class="badge badge-live"><span class="dot"></span>live tick</span>');
     else if (alert.interval) descriptors.push(`<span class="badge badge-neutral">${esc(alert.interval)} candle</span>`);
+    // Say which price the move was measured on, and whether a trade printed.
+    if (alert.price_basis) {
+      const basisNote = `${alert.price_basis}${alert.quote_only ? ' — no trade printed in either bar, so this move is quote-only' : ''}`;
+      descriptors.push(`<span class="badge badge-neutral" title="${esc(basisNote)}">${esc(alert.price_basis)}</span>`);
+    }
+    if (alert.quote_only) {
+      descriptors.push('<span class="badge badge-warn" title="Neither candle in this move contained a trade; the change comes from the quoted bid/ask only.">quote-only</span>');
+    }
 
     const links = [];
     if (alert.kalshi_url || market?.kalshi_url) {

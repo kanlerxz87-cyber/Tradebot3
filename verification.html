@@ -140,7 +140,11 @@
           <tr><td>AUD-03</td><td>Legacy rows labelled "Resolved" carried a price of $1.00 with no settlement record.</td><td><span class="verdict-warn">Partially checkable.</span> Resolution is now read directly from <code>result</code> and <code>settlement_value_dollars</code>; unresolved rows stay blank.</td><td><a href="assets/data/snapshot.json" target="_blank" rel="noopener noreferrer">snapshot resolutions</a></td></tr>
           <tr><td>AUD-04</td><td>Legacy news links (CNBC, EIA, polling, PGA articles) were attached to specific price jumps as causes.</td><td><span class="verdict-bad">Causality unproven.</span> Removed. Charts now mark the price move and list official topic sources as <em>candidate</em> context.</td><td><a href="index.html#chart-section">chart panel</a></td></tr>
           <tr><td>AUD-05</td><td>Legacy site implied second-level streaming from Kalshi WebSockets.</td><td><span class="verdict-warn">Not possible from a static page.</span> The WS handshake needs auth headers a browser cannot set; the site now says so and labels the seconds view as browser-poll ticks.</td><td><a href="https://docs.kalshi.com/getting_started/quick_start_websockets" target="_blank" rel="noopener noreferrer">WS docs</a></td></tr>
-          <tr><td>AUD-06</td><td>No automated verification existed; the coordination board marked everything done by assertion.</td><td><span class="verdict-ok">Fixed.</span> A scheduled GitHub Action rebuilds the snapshot from the API, validates it, and commits it. <code>scripts/verify_site.py</code> checks links, topic isolation and source coverage.</td><td><a href="https://github.com/kanlerxz87-cyber/Tradebot3/blob/main/.github/workflows/refresh-data.yml" target="_blank" rel="noopener noreferrer">workflow</a></td></tr>
+          <tr><td>AUD-06</td><td>No automated verification existed; the coordination board marked everything done by assertion.</td><td><span class="verdict-ok">Fixed.</span> A scheduled GitHub Action rebuilds the snapshot from the API, validates it, and commits it. <code>scripts/verify_site.py</code> checks links, topic isolation and source coverage; <code>scripts/test_modules.mjs</code> runs 96 executable assertions on the model, paper fills, settlement, backtests and demo signing.</td><td><a href="https://github.com/kanlerxz87-cyber/Tradebot3/blob/main/.github/workflows/refresh-data.yml" target="_blank" rel="noopener noreferrer">workflow</a></td></tr>
+          <tr><td>AUD-09</td><td>The refresh cadence, the sort order of the “highest-dollar” table, and the demo key type were described in ways that did not match what the code did.</td><td><span class="verdict-bad">Corrected on 2026-11-27.</span> Cadence is now measured and published (median 8.8 h, not 20 min); the dollar table is recomputed live and labelled an estimate; the demo panel accepts both Ed25519 and RSA keys. See IRREG-26…IRREG-33 on the <a href="flagged-for-review.html">Flagged for review</a> page.</td><td><a href="assets/data/refresh-history.json" target="_blank" rel="noopener noreferrer">run history</a></td></tr>
+          <tr><td>AUD-12</td><td>Alerts published a price change without saying whether it was a traded price or a midpoint of quotes, and could compare the ask of one bar with the bid of the next.</td><td><span class="verdict-bad">Fixed on 2026-11-27.</span> One documented price basis per candle, published with every alert, with quote-only moves labelled. Spot-checked against the raw candle JSON for two published rows.</td><td><a href="flagged-for-review.html">IRREG-35</a></td></tr>
+          <tr><td>AUD-11</td><td>The five topic pages shipped an empty dashboard: the data path was page-relative and 404'd from <code>categories/</code>.</td><td><span class="verdict-bad">Fixed on 2026-11-27.</span> Paths resolve from the module URL; a jsdom harness now boots every page and fails CI on an empty render. See IRREG-34.</td><td><a href="flagged-for-review.html">IRREG-34</a></td></tr>
+          <tr><td>AUD-10</td><td>Paper positions in a market that settled could never be closed, because the settled market leaves the open-market list that the snapshot carries.</td><td><span class="verdict-bad">Found by the new tests and fixed.</span> Settlement reads the market record or the resolution table and records which one answered.</td><td><a href="verification.html#paper">paper fills</a></td></tr>
           <tr><td>AUD-07</td><td>The repository had no tests and no data provenance.</td><td><span class="verdict-ok">Fixed.</span> Each market row carries <code>api_url</code> and <code>field_source</code>; the snapshot records the exact endpoints and generation time.</td><td><a href="assets/data/snapshot.json" target="_blank" rel="noopener noreferrer">snapshot</a></td></tr>
           <tr><td>AUD-08</td><td>GitHub Pages was configured but the site build had no verification step.</td><td><span class="verdict-ok">Fixed.</span> Verification script runs in CI and locally before the pull request; the deploy is confirmed against the live URL.</td><td><a href="https://kanlerxz87-cyber.github.io/Tradebot3/" target="_blank" rel="noopener noreferrer">live site</a></td></tr>
         </tbody>
@@ -149,9 +153,9 @@
 
     <h2 id="paper">5. How paper fills and settlement work</h2>
     <ul class="tight">
-      <li><strong>Entry price</strong>: the displayed YES/NO ask from the latest orderbook snapshot. If no book exists, the last trade price is used and the row says so.</li>
-      <li><strong>Mark</strong>: current best bid/ask from the same source, refreshed by the 20-second live poll.</li>
-      <li><strong>Settlement</strong>: when Kalshi publishes <code>result</code> = yes/no, an open position pays $1.00 if the side matches and $0.00 otherwise, and moves to the closed log with the reason “resolved YES/NO”.</li>
+      <li><strong>Entry price</strong>: the YES/NO ask you can actually pay — from the 20-second live quote when one has arrived, otherwise the last orderbook snapshot. If neither exists the last trade price is used and the trade records <code>price_source</code> so the fallback is visible.</li>
+      <li><strong>Mark</strong>: the bid for the side you hold (never the ask), so unrealised P&amp;L already carries the spread. The chart panel labels whether a quote is a live quote or a snapshot.</li>
+      <li><strong>Settlement</strong>: when Kalshi publishes <code>result</code> = yes/no, an open position pays $1.00 if the side matches and $0.00 otherwise, and moves to the closed log with the reason “resolved YES/NO”. The result is read from the market record <em>or</em>, once the contract leaves the open-market list, from the resolution table — both are Kalshi's own field, and the trade records which one answered (<code>settlement_source</code>). Without that fallback a position in a settled market would stay open forever.</li>
       <li><strong>Fees</strong>: excluded everywhere, and labelled as gross, because the fee schedule is not reproduced from an official source in this project.</li>
       <li><strong>Storage</strong>: the account lives in this browser's <code>localStorage</code>. Export produces a JSON file; reset restores $10,000.</li>
     </ul>
@@ -166,16 +170,39 @@
       </table>
     </div>
 
-    <h2>7. Automation — how the data stays current</h2>
-    <div class="callout callout-info">
-      <strong>Scheduled refresh.</strong> <code>.github/workflows/refresh-data.yml</code> runs every 20 minutes and on demand.
-      It executes <code>scripts/fetch_kalshi_data.py</code>, which discovers the five topics' series through
-      <code>GET /series</code>, pulls markets, orderbooks and 1-minute/1-hour candles, derives ≥ $0.10 alerts, collects
-      recent settlements, re-audits the legacy claims, and commits the result as <code>assets/data/snapshot.json</code>.
-      The page you are on reads that file and then polls the same public API for live ticks.
+    <h2 id="official-links">7. Official links — measured, not assumed</h2>
+    <p class="small">
+      Every external link this site cites is requested and its HTTP status recorded by the refresh job. A link that does
+      not answer keeps its measured status here and is listed on the Flagged for review page; it is never presented as
+      working on the strength of an assumption.
+    </p>
+    <div class="status-bar" id="links-status">Loading measured link status…</div>
+    <div class="table-wrap card">
+      <table class="data">
+        <thead><tr><th>Kind</th><th>Link</th><th>URL</th><th class="num">HTTP</th><th>Reachable</th></tr></thead>
+        <tbody id="links-body"><tr><td colspan="5" class="table-empty">Loading…</td></tr></tbody>
+      </table>
     </div>
 
-    <h2>8. Suggestions to make the dashboard more live and interactive</h2>
+    <h2>8. Automation — how the data stays current, and how often it actually runs</h2>
+    <div class="callout callout-info">
+      <strong>Scheduled refresh.</strong> <code>.github/workflows/refresh-data.yml</code> asks for a run every 30 minutes
+      (cron <code>*/30 * * * *</code>) and on demand. It executes <code>scripts/fetch_kalshi_data.py</code>, which
+      discovers the five topics' series through <code>GET /series</code>, pulls markets, orderbooks and
+      1-minute/1-hour candles, derives ≥ $0.10 alerts, collects recent settlements, re-audits the legacy claims, checks
+      every official link, and commits the result as <code>assets/data/snapshot.json</code>.
+      The page you are on reads that file and then polls the same public API for live ticks.
+    </div>
+    <div class="callout callout-warn" style="margin-top:10px">
+      <strong>Delivered cadence is slower than the cron.</strong> GitHub Actions throttles scheduled workflows, so the
+      interval that is <em>requested</em> is not the interval that <em>runs</em>. The job appends every run to
+      <code>assets/data/refresh-history.json</code> and the snapshot publishes the measured gaps
+      (<code>refresh_cadence</code>) — see the figures below. The dashboard shows the snapshot's age, so a slow refresh
+      is visible instead of being described as “live”.
+      <div id="cadence-box" class="small" style="margin-top:6px">Loading measured cadence…</div>
+    </div>
+
+    <h2>9. Suggestions to make the dashboard more live and interactive</h2>
     <ol>
       <li><strong>Server-side WebSocket relay.</strong> Deploy a small Cloudflare Worker or Node service that holds the
         authenticated <code>wss://external-api-ws.kalshi.com</code> session (it can sign the handshake) and fan out
@@ -199,7 +226,7 @@
         shortcuts (j/k to move markets, 1–6 for timeframes) and a compact mode for a second monitor.</li>
     </ol>
 
-    <h2>9. Limitations and flagged items</h2>
+    <h2>10. Limitations and flagged items</h2>
     <ul class="tight">
       <li>Demo prices and volume differ from production; the snapshot includes a measured spot check.</li>
       <li>Public API contract volume is not dollar volume; the dollar figure on the dashboard is an estimate.</li>
