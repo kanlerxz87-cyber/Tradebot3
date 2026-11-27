@@ -170,6 +170,9 @@ TOPIC_REFERENCE_LINKS = {
     ],
 }
 
+# The alert feed keeps every detected move. The table on the dashboard paginates,
+# so a cap here would have silently published only the newest slice (the 19:56Z
+# run detected 70 and the older snapshot showed 28, which read as a data loss).
 # Limits (keep the published snapshot small enough for a static page)
 MAX_MARKETS_PER_TOPIC = 40
 MAX_EVENTS_PER_TOPIC = 8

@@ -243,6 +243,11 @@ def check_snapshot():
         warn("snapshot.json has no warnings array content (fine, but unusual)")
 
     # --- promise-vs-code checks added 2026-11-27 -----------------------------
+    # The audited layer must be present, not re-created by hand each session.
+    for block in ("official_links", "refresh_cadence", "resolution_window",
+                  "warning_summary", "method_notes"):
+        if not snap.get(block):
+            err(f"snapshot.json is missing the {block} block (run scripts/enrich_snapshot.py)")
     # Every official link the site publishes must carry a measured status.
     links = snap.get("official_links") or {}
     rows = links.get("rows") or []
@@ -275,7 +280,7 @@ def check_snapshot():
         if not url or not is_official(url):
             err(f"topic {topic}: kalshi_category_url is not an official Kalshi URL")
         if meta.get("kalshi_category_http_status") is None:
-            warn(f"topic {topic}: category page status not measured")
+            err(f"topic {topic}: category page {url} is not in official_links, so its status was never measured")
 
     # Every published swing must say which price it was measured on, and a move
     # with no trade print must be labelled quote-only (see IRREG-35).

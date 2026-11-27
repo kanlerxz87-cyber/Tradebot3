@@ -49,6 +49,16 @@ jobs:
           node --version
           node scripts/test_modules.mjs
 
+      - name: Add the audited layer to the snapshot
+        run: |
+          # The fetch step writes measured data; this step adds the blocks the
+          # site promises (official link status, measured cadence, resolution
+          # window, warning summary, alert price basis). It must run AFTER the
+          # data is fetched and BEFORE the commit, otherwise the next refresh
+          # silently drops them.
+          python3 scripts/enrich_snapshot.py
+          python3 scripts/enrich_snapshot.py --check
+
       - name: Page render smoke test (jsdom, optional dependency)
         run: |
           # jsdom is installed here only; it is deliberately not a project

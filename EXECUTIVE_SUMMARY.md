@@ -56,7 +56,12 @@ top 8 events per topic (by official contract volume `volume_fp`) with up to
 - **Executable checks.** `node scripts/test_modules.mjs` runs 96 assertions on the
   pure logic — model score, spread-charged fills, settlement, backtest symmetry,
   swing detection and the demo-request signer — and runs in CI before each
-  snapshot is committed.
+  snapshot is committed. `scripts/render_pages.mjs` additionally boots all ten
+  pages in jsdom and fails the build if any page renders empty or logs an error;
+  it exists because a page-relative data path once left every topic page blank.
+- **Every swing says what it measured.** Alerts publish the price basis (last
+  trade close, bid/ask mid, or a single quote) and flag moves that came from
+  quotes with no trade behind them, so a $0.10 step can be traced to a candle.
 
 ## Key caveats
 
@@ -66,4 +71,4 @@ measured and published). A browser cannot open an authenticated Kalshi
 WebSocket, so live updates are labelled REST polling. The scheduled refresh is
 delivered far less often than its cron asks, so freshness is displayed rather
 than promised. Full irregularity list: `COORDINATION.md` (IRREG-01…IRREG-12 and
-IRREG-26…IRREG-32) and the Flagged for Review page.
+IRREG-26…IRREG-35) and the Flagged for Review page.
