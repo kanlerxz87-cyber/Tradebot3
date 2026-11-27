@@ -549,11 +549,18 @@ async function connectDemo() {
     const res = await fetch(`${SITE.demoApiBase}/portfolio/balance`, { headers });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const body = await res.json();
-    const balance = body?.balance ?? body?.portfolio_balance;
+    // GET /portfolio/balance documents `balance` in cents plus `balance_dollars`
+    // (docs.kalshi.com/api-reference/portfolio/get-balance). Prefer the dollar
+    // string Kalshi returns; fall back to cents only when it is absent.
+    const balanceDollars = body?.balance_dollars !== undefined ? Number(body.balance_dollars) : null;
+    const balanceCents = body?.balance ?? body?.portfolio_balance;
     demoSession = { keyId, pem };
     qs('#demo-positions').disabled = false;
     qs('#demo-fills').disabled = false;
-    status.innerHTML = `<span class="status-ok">Connected to Kalshi demo.</span> Balance ${isNum(balance) ? fmtUsd(balance / 100) : esc(JSON.stringify(body).slice(0, 120))}
+    const balanceText = isNum(balanceDollars)
+      ? fmtUsd(balanceDollars)
+      : isNum(balanceCents) ? `${fmtUsd(balanceCents / 100)} (from \`balance\` in cents)` : esc(JSON.stringify(body).slice(0, 120));
+    status.innerHTML = `<span class="status-ok">Connected to Kalshi demo.</span> Balance ${balanceText}
       <div class="tiny">Read-only check via GET /portfolio/balance. Signature: ${esc(keyType)}. Signing followed docs.kalshi.com/getting_started/api_keys (path without query, timestamp in ms).</div>`;
     qs('#demo-pem').value = '';
   } catch (err) {

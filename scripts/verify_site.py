@@ -54,6 +54,8 @@ REQUIRED = [
     "assets/data/legacy-audit.json",
     "scripts/fetch_kalshi_data.py",
     "scripts/verify_site.py",
+    "scripts/test_modules.mjs",
+    "assets/data/refresh-history.json",
     ".github/workflows/refresh-data.yml",
     "README.md",
     "COORDINATION.md",
@@ -239,6 +241,61 @@ def check_snapshot():
 
     if not snap.get("warnings"):
         warn("snapshot.json has no warnings array content (fine, but unusual)")
+
+    # --- promise-vs-code checks added 2026-11-27 -----------------------------
+    # Every official link the site publishes must carry a measured status.
+    links = snap.get("official_links") or {}
+    rows = links.get("rows") or []
+    if not rows:
+        err("snapshot.json has no official_links measurements")
+    for row in rows:
+        if "http_status" not in row or "reachable" not in row:
+            err(f"official link {row.get('url')}: no measured status")
+        if "http_status" in row and row["http_status"] is None:
+            warn(f"official link {row.get('url')}: no response at last check")
+    reachable = sum(1 for r in rows if r.get("reachable"))
+    if links and links.get("reachable") != reachable:
+        err("official_links.reachable does not match its rows")
+
+    # Refresh cadence must be present and must be measured, not asserted.
+    cadence = snap.get("refresh_cadence") or {}
+    if "requested_cron" not in cadence:
+        err("snapshot.json has no refresh_cadence.requested_cron")
+    measured = (cadence.get("measured") or {})
+    if measured:
+        for key in ("median_gap_hours", "max_gap_hours", "runs_used", "gap_count"):
+            if not isinstance(measured.get(key), (int, float)):
+                err(f"refresh_cadence.measured.{key} missing")
+        if measured.get("median_gap_hours", 0) < 0:
+            err("refresh_cadence median gap is negative")
+
+    # Every topic page link must be one of the verified category pages.
+    for topic, meta in (snap.get("topics") or {}).items():
+        url = meta.get("kalshi_category_url")
+        if not url or not is_official(url):
+            err(f"topic {topic}: kalshi_category_url is not an official Kalshi URL")
+        if meta.get("kalshi_category_http_status") is None:
+            warn(f"topic {topic}: category page status not measured")
+
+    # Events must report how many markets they actually publish.
+    for ev in events:
+        if ev.get("markets_published") is not None and ev.get("market_count") is not None:
+            if ev["markets_published"] != ev["market_count"]:
+                err(f"event {ev.get('event_ticker')}: markets_published != market_count")
+
+    # Resolutions must fall inside the advertised window.
+    window = snap.get("resolution_window") or {}
+    if window.get("lookback_days"):
+        import datetime as _dt
+        cutoff = _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=window["lookback_days"] + 1)
+        for r in resolutions:
+            try:
+                close = _dt.datetime.fromisoformat(str(r.get("close_time")).replace("Z", "+00:00"))
+            except ValueError:
+                continue
+            if close < cutoff:
+                err(f"resolution {r.get('ticker')}: close_time {r.get('close_time')} is outside the "
+                    f"{window['lookback_days']}-day window the page advertises")
 
     print(f"  snapshot: {len(markets)} markets, {len(events)} events, {len(alerts)} alerts, {len(resolutions)} resolutions")
 
