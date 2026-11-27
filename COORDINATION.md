@@ -215,3 +215,15 @@ runner's own checks and overwrites the block written here.
 | `KXAAAGASM-26NOV30-3.50` alert 2026-11-27T09:59:00Z, 0.66 → 0.51 (−$0.15) | 1m candles: `yes_ask.close 0.6600 → 0.5100`, `volume_fp=1672.05` in the second bar | Reproduces exactly, with real volume behind it |
 | `KXAAAGASM-26NOV30-3.50` 1h alert at 10:00Z, 0.76 → 0.65 | candles at 10:00Z show `price.previous_dollars=0.7500`, `close 0.5400` | Published from the stored 1h series; the row keeps `price_basis` so it can be re-derived |
 | All five `categories/*.html` pages | jsdom boot against the committed snapshot | Before the fix: `snapshot HTTP 404` and an empty page on all five. After: 5 KPIs + 49–60 rows each (IRREG-34) |
+
+### Merge record
+
+- PR **#23** — "Audit live build: fix blank topic pages, unsettled paper trades, alert price basis; add CI render +
+  96 module checks" — <https://github.com/kanlerxz87-cyber/Tradebot3/pull/23>
+- Merged into `main` at **2026-11-27T20:09:14Z**, merge commit `d055e66`.
+- GitHub Pages: status `building` → **`built`** (checked immediately after the merge).
+- Live verification after deploy: `https://kanlerxz87-cyber.github.io/Tradebot3/categories/golf.html` renders the
+  snapshot (8 events, 29 markets, 1 ≥$0.10 move, orderbook ladder, 28-row market table), which is the page that was
+  blank before IRREG-34.
+- Follow-up commit on the same branch: CI step order corrected (the enricher must add the audited blocks before the
+  gate that requires them); verified locally by removing the blocks and confirming the gate fails.
