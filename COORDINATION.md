@@ -2,9 +2,9 @@
 
 > **Repository:** `kanlerxz87-cyber/Tradebot3`
 > **Live site (GitHub Pages):** https://kanlerxz87-cyber.github.io/Tradebot3/
-> **Active session ID:** `arena-cd42444b`
-> **Working branch:** `arena/cd42444b-tradebot3` (Arena session branch, branched from `08ad596` on `main`)
-> **Last updated:** 2026-11-22 (UTC)
+> **Active session ID:** `arena-a42a7383` (previous: `arena-cd42444b`, merged as PR #20–#22)
+> **Working branch:** `arena/a42a7383-tradebot3` (Arena session branch, branched from `0560402` on `main`)
+> **Last updated:** 2026-11-27 (UTC)
 
 ## Protocol notes
 
@@ -129,3 +129,18 @@ replaces the static catalogue with an automated pipeline (`scripts/fetch_kalshi_
 - **PR:** https://github.com/kanlerxz87-cyber/Tradebot3/pull/20
 - **Merge:** MERGED 2026-11-22T08:08:36Z, merge commit `244502da0f33de3fcba881c637ae1c8f2bc9baaa` (`gh pr merge 20 --merge`, no approval wait per instructions)
 - **Pages deploy:** CONFIRMED — Pages build for `244502d` reported `built` at 2026-11-22T08:08:37Z; https://kanlerxz87-cyber.github.io/Tradebot3/ serves the live-data dashboard (40 events, 171 markets, 30 alerts from snapshot 2026-11-22T08:04Z). A follow-up fix (PR #21, UTC time rendering) merged 2026-11-22T08:09:47Z as `55209ee8f803294db70d84dccbe052b3a93850d0`; Pages build for that commit reported `built`. This line is carried by PR #22, a docs-only record update.
+
+---
+
+# Session `arena-a42a7383` — 2026-11-27
+
+**Claimed at:** 2026-11-27 (UTC). Board read before any edit: no other live claim (every earlier task is
+`done`/`needs review`, PRs #20–#22 merged). File scopes below do not overlap each other.
+
+| Task | Description | Status | Owner | Branch | File scope |
+| --- | --- | --- | --- | --- | --- |
+| T-20 | Re-audit of the merged live build: cadence claims vs measured GitHub Actions history, freshness handling, ranking ("highest dollar amount"), demo spot-check sampling | `in progress` | `arena-a42a7383` | `arena/a42a7383-tradebot3` | `scripts/fetch_kalshi_data.py`, `assets/js/*` |
+| T-21 | Official link checker — HTTP status of every docs URL and every Kalshi category/topic URL, published instead of assumed | `in progress` | `arena-a42a7383` | `arena/a42a7383-tradebot3` | `scripts/fetch_kalshi_data.py`, `verification.html`, `assets/js/verification.js` |
+| T-22 | Node module tests for pure logic (model score, backtester, formatting, alert threshold) | `in progress` | `arena-a42a7383` | `arena/a42a7383-tradebot3` | `scripts/test_modules.mjs`, `.github/workflows/refresh-data.yml` |
+| T-23 | Docs/summary reconciliation (15- vs 20- vs 30-minute cadence, measured refresh gaps) + new flagged items | `in progress` | `arena-a42a7383` | `arena/a42a7383-tradebot3` | `README.md`, `EXECUTIVE_SUMMARY.md`, `executive-summary.html`, `flagged-for-review.html`, `COORDINATION.md` |
+| T-24 | PR to `main`, merge, confirm Pages deploy | `unclaimed` | — | — | `COORDINATION.md` |
