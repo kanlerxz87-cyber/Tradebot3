@@ -1,9 +1,13 @@
 {
-  "generated_at": "2026-11-27T19:56:08Z",
+  "generated_at": "2026-11-27T20:31:38Z",
   "api_base": "https://external-api.kalshi.com/trade-api/v2",
   "claims_checked": 29,
   "claims_found_in_api": 3,
+  "claims_found_as_market": 3,
+  "claims_found_as_event_only": 25,
+  "claims_absent_from_api": 1,
   "claims_not_found_in_api": 26,
+  "note": "Three outcomes are reported separately because they mean different things: 'market' = GET /markets/{ticker} returned a market record (the claim can be checked as a market); 'event-only' = the ticker is a Kalshi EVENT ticker, so it exists on Kalshi but the claimed market-level price/volume cannot be true; 'absent' = neither a market nor an event answered.",
   "method": "For each previous-dataset claim, GET /markets/{ticker} was requested on the official production Trade API. 'api_found' is false when Kalshi returned 404 (no such market). Claimed volumes are NOT re-used anywhere on the current site.",
   "rows": [
     {
@@ -22,7 +26,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXAAAGASMAX-26DEC31: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXAAAGASMAX-26DEC31 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "How high will US gas prices get in 2026?"
     },
@@ -42,7 +47,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXAAAGASMIN-26DEC31: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXAAAGASMIN-26DEC31 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "How low will US gas prices get in 2026?"
     },
@@ -60,7 +66,9 @@
       "api_volume_contracts": 7646.53,
       "api_result": null,
       "url_http_status": 429,
-      "notes": [],
+      "notes": [
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
+      ],
       "resolved_ticker": "KXAAAGASMINCA-26DEC31-3.90"
     },
     {
@@ -79,7 +87,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXAAAGASMAXCA-26DEC31: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXAAAGASMAXCA-26DEC31 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "How high will gas prices in California get this year?"
     },
@@ -99,7 +108,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXAAAGASCDNY-26NOV19: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXAAAGASCDNY-26NOV19 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "New York gas price today"
     },
@@ -119,7 +129,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXPRESNOMD-28: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPRESNOMD-28 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "2028 Democratic presidential nominee"
     },
@@ -139,7 +150,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/CONTROLS-2026: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/CONTROLS-2026 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "Who will control the Senate?"
     },
@@ -159,7 +171,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXPRESPERSON-28: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPRESPERSON-28 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "2028 U.S. Presidential Election winner?"
     },
@@ -179,7 +192,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/CONTROLS-2028: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/CONTROLS-2028 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "2028 U.S. Senate winner?"
     },
@@ -199,7 +213,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXPRESPARTY-2028: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPRESPARTY-2028 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "2028 Presidential Election winner? (Party)"
     },
@@ -219,7 +234,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/POWER-28: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/POWER-28 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "2028: Who will win the Presidency, House, and Senate?"
     },
@@ -239,7 +255,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXOSCARACTO-26: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXOSCARACTO-26 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "Oscar for Best Actor?"
     },
@@ -259,7 +276,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXRT-ODY: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXRT-ODY {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "The Odyssey: Rotten Tomatoes score"
     },
@@ -279,7 +297,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXOSCARACTR-26: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXOSCARACTR-26 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "Oscar for Best Actress?"
     },
@@ -299,7 +318,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXGAMEAWARDS-2026: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXGAMEAWARDS-2026 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "The Game Awards: Game of the Year"
     },
@@ -319,7 +339,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXOSCARDOCU-26: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXOSCARDOCU-26 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "2026 Oscar for Best Documentary Feature Film?"
     },
@@ -339,7 +360,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXRT-BRI: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXRT-BRI {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "\"The Bride!\" Rotten Tomatoes score?"
     },
@@ -359,7 +381,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXETHMINY-27JAN01: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXETHMINY-27JAN01 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "How low will Ethereum get in 2026?"
     },
@@ -379,7 +402,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXSOLD26-27JAN0100: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXSOLD26-27JAN0100 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "Price of Solana by end of 2026?"
     },
@@ -399,7 +423,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXBTCY-27JAN0100: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXBTCY-27JAN0100 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "Bitcoin price at the end of 2026"
     },
@@ -419,7 +444,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXBTCMINY-27JAN01: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXBTCMINY-27JAN01 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "How low will Bitcoin get in 2026?"
     },
@@ -433,11 +459,13 @@
       "api_found": true,
       "api_event_found": false,
       "api_status": "active",
-      "api_last_price": 0.32,
-      "api_volume_contracts": 10254896.86,
+      "api_last_price": 0.31,
+      "api_volume_contracts": 10256424.65,
       "api_result": null,
       "url_http_status": 429,
-      "notes": [],
+      "notes": [
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
+      ],
       "resolved_ticker": "KXBTC50VS100-BTC-26DEC31"
     },
     {
@@ -456,7 +484,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXBTCMAXMON-BTC-26MAR31: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXBTCMAXMON-BTC-26MAR31 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "How high will Bitcoin get in March?"
     },
@@ -476,7 +505,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXPGATOUR-MAST26: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPGATOUR-MAST26 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "The Masters Champion"
     },
@@ -495,7 +525,8 @@
       "api_result": null,
       "url_http_status": 429,
       "notes": [
-        "GET /markets/KXPGATOUR-PGC26-ARAI: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPGATOUR-PGC26-ARAI {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}"
+        "GET /markets/KXPGATOUR-PGC26-ARAI: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPGATOUR-PGC26-ARAI {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ]
     },
     {
@@ -512,7 +543,9 @@
       "api_volume_contracts": 2826738.5,
       "api_result": "no",
       "url_http_status": 429,
-      "notes": [],
+      "notes": [
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
+      ],
       "resolved_ticker": "KXPGATOUR-THRC26-MTHO"
     },
     {
@@ -531,7 +564,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXPGATOUR-MAST27: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPGATOUR-MAST27 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "2027 The Masters Champion"
     },
@@ -551,7 +585,8 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXPGATOUR-USO26: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPGATOUR-USO26 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "U.S. Open Winner"
     },
@@ -571,14 +606,10 @@
       "url_http_status": 429,
       "notes": [
         "GET /markets/KXPGAMASTERS-26: HTTP 404 https://external-api.kalshi.com/trade-api/v2/markets/KXPGAMASTERS-26 {\"error\":{\"code\":\"not_found\",\"message\":\"not found\"}}",
-        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value."
+        "Ticker resolves as a Kalshi EVENT, not a market; the claim's price/volume therefore cannot be a market-level value.",
+        "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is unmeasured this run \u2014 not broken."
       ],
       "api_event_title": "Golfers to compete in The Masters in 2026"
     }
-  ],
-  "claims_found_as_market": 3,
-  "claims_found_as_event_only": 25,
-  "claims_absent_from_api": 1,
-  "note": "Three outcomes are reported separately because they mean different things: 'market' = GET /markets/{ticker} returned a market record; 'event-only' = the ticker is a Kalshi EVENT ticker, so it exists on Kalshi but the claimed market-level price/volume cannot be true; 'absent' = neither a market nor an event answered. Counts here are tallied from the measured rows above.",
-  "url_check_note": "kalshi.com returned HTTP 429 for every claimed URL in the 10:45Z run, so that column measures throttling, not link health. The pipeline now retries link checks separately and labels 429s as throttled rather than broken."
+  ]
 }
