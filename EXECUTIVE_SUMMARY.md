@@ -53,7 +53,7 @@ top 8 events per topic (by official contract volume `volume_fp`) with up to
   Kalshi category page and a sample of event pages it publishes, and records the
   status codes (`official_links` in the snapshot, `verification.html` §7) instead
   of assuming the links work.
-- **Executable checks.** `node scripts/test_modules.mjs` runs 86 assertions on the
+- **Executable checks.** `node scripts/test_modules.mjs` runs 96 assertions on the
   pure logic — model score, spread-charged fills, settlement, backtest symmetry,
   swing detection and the demo-request signer — and runs in CI before each
   snapshot is committed.

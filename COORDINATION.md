@@ -178,7 +178,7 @@ replaces the static catalogue with an automated pipeline (`scripts/fetch_kalshi_
 
 ### Executable verification
 
-`node scripts/test_modules.mjs` — **92/92 assertions pass**, covering: model score components summing to the total and
+`node scripts/test_modules.mjs` — **96/96 assertions pass**, covering: model score components summing to the total and
 the published threshold; paper fills lifting the ask and hitting the bid (spread charged); settlement via the market
 record *and* via the resolution table; backtester fade/momentum symmetry; live-swing detection (fires once at
 ≥ $0.10, never below); orderbook ladder rendering and its empty state; model-feed filtering and auto-trade guards;
@@ -197,7 +197,8 @@ IRREG-26 (cadence claim, High) · IRREG-27 (sort key vs stated method, Medium) �
 never fire, High) · IRREG-29 (live quote vs stale book, Medium) · IRREG-30 (429 data loss + misleading link column,
 Medium) · IRREG-31 (RSA-only demo signing, Medium) · IRREG-32 (gas-price category link, Low) · IRREG-33 (legacy audit
 wording, Low) · **IRREG-34 (all five topic pages rendered an empty dashboard because the snapshot path was
-page-relative, High)**.
+page-relative, High)** · **IRREG-35 (alerts did not state their price basis; ask-to-bid comparisons could fake a move,
+Medium)**.
 
 ### Environment limitation (flagged, not hidden)
 
@@ -205,3 +206,12 @@ This sandbox has no direct TLS egress to `*.kalshi.com` (the proxy returns `SSL_
 API and kalshi.com responses were read through the documentation/UI page fetcher, which reached both hosts. The
 GitHub Actions runner has normal egress; from the next scheduled run onward, `official_links` is produced by the
 runner's own checks and overwrites the block written here.
+
+### Spot-checks performed against raw API responses (not against our own snapshot)
+
+| Published row | Raw official response | Verdict |
+| --- | --- | --- |
+| `KXAAAGASM-26NOV30-3.50` alert 2026-11-27T10:16:00Z, 0.55 → 0.68 (+$0.13) | 1m candles, `end_period_ts=1795774560`: `price.close_dollars=0.6800`, previous bar `0.5500`; `volume_fp=0.00` in both bars | Numbers correct, but **no trade printed** — the move is quote-only. Now labelled `quote_only` (IRREG-35) |
+| `KXAAAGASM-26NOV30-3.50` alert 2026-11-27T09:59:00Z, 0.66 → 0.51 (−$0.15) | 1m candles: `yes_ask.close 0.6600 → 0.5100`, `volume_fp=1672.05` in the second bar | Reproduces exactly, with real volume behind it |
+| `KXAAAGASM-26NOV30-3.50` 1h alert at 10:00Z, 0.76 → 0.65 | candles at 10:00Z show `price.previous_dollars=0.7500`, `close 0.5400` | Published from the stored 1h series; the row keeps `price_basis` so it can be re-derived |
+| All five `categories/*.html` pages | jsdom boot against the committed snapshot | Before the fix: `snapshot HTTP 404` and an empty page on all five. After: 5 KPIs + 49–60 rows each (IRREG-34) |

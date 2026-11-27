@@ -250,6 +250,24 @@ ok('the data URL survives a ?cache-buster suffix', (() => {
   return u.pathname.endsWith('/assets/data/snapshot.json');
 })());
 
+/* --------------------------------------------- published alert price-basis */
+// IRREG-35: an alert must state which price the move was measured on, and a
+// move with no trade print behind it must be labelled rather than presented as
+// a traded price change.
+{
+  const fs = await import('node:fs');
+  const snap = JSON.parse(fs.readFileSync(new URL(SITE.dataFile), 'utf8'));
+  const missing = (snap.alerts || []).filter((a) => !a.price_basis || a.quote_only === undefined);
+  ok('every published alert records price_basis and quote_only', missing.length === 0, `${missing.length} missing`);
+  const thin = (snap.alerts || []).filter((a) => Math.abs(a.delta) + 1e-9 < 0.10);
+  ok('no published alert is below the $0.10 threshold', thin.length === 0, `${thin.length} below`);
+  const quoteOnly = (snap.alerts || []).filter((a) => a.quote_only).length;
+  ok('quote-only alerts are labelled and remain a minority',
+    quoteOnly < (snap.alerts || []).length, `${quoteOnly}/${(snap.alerts || []).length}`);
+  ok('the alert method is documented in the snapshot',
+    typeof snap.method_notes?.alerts === 'string' && snap.method_notes.alerts.length > 80);
+}
+
 /* -------------------------------------------------------------- source rules */
 const snapSourceCheck = core.SITE.apiBase.startsWith('https://external-api.kalshi.com/');
 ok('site API base is the recommended official host', snapSourceCheck, SITE.apiBase);

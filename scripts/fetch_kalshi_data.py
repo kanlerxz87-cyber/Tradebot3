@@ -728,6 +728,27 @@ def fetch_candles(markets, warnings):
         time.sleep(0.1)
 
 
+def mark_price(bar):
+    """Pick the price that labels a candle, and say which price it is.
+
+    The published feeds must be reproducible from the candle data with one rule.
+    The rule is: last trade close if the bar traded, otherwise the mid of the
+    closing bid and ask, otherwise whichever of the two exists. Mixing the ask of
+    one bar with the bid of the next would fabricate $0.10 moves out of a spread
+    that never changed, so a single basis is chosen per bar and recorded.
+    """
+    _, bid, ask, trade, _ = (list(bar) + [None] * 5)[:5]
+    if trade is not None:
+        return trade, "trade close"
+    if bid is not None and ask is not None:
+        return round((bid + ask) / 2, 4), "bid/ask mid close"
+    if ask is not None:
+        return ask, "ask close (no bid)"
+    if bid is not None:
+        return bid, "bid close (no ask)"
+    return None, None
+
+
 def detect_swings(markets, events_by_ticker):
     """Detect real >= $0.10 close-to-close moves from Kalshi candle data.
 
@@ -745,12 +766,15 @@ def detect_swings(markets, events_by_ticker):
             prev = None
             for bar in series:
                 ts, bid, ask, price, vol = (bar + [None] * 5)[:5]
-                mark = ask if ask is not None else bid
+                mark, basis = mark_price(bar)
                 if mark is None:
                     continue
                 if prev is not None:
                     delta = round(mark - prev[1], 4)
                     gap_min = max(0, round((ts - prev[0]) / 60)) if ts and prev[0] else 0
+                    # A move carried only by quotes, with no trade print behind it,
+                    # is real but less trustworthy; label it rather than hide it.
+                    quote_only = price is None and prev[2] is None
                     if abs(delta) > largest["abs"]:
                         largest = {
                             "abs": abs(delta),
@@ -761,6 +785,8 @@ def detect_swings(markets, events_by_ticker):
                             "iso_time": datetime.fromtimestamp(ts, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                             "from_price": prev[1],
                             "to_price": mark,
+                            "price_basis": basis,
+                            "quote_only": quote_only,
                             "interval": label,
                         }
                     if abs(delta) + 1e-9 >= SWING_THRESHOLD:
@@ -776,6 +802,8 @@ def detect_swings(markets, events_by_ticker):
                             "event_title": ev.get("title"),
                             "from_price": prev[1],
                             "to_price": mark,
+                            "price_basis": basis,
+                            "quote_only": quote_only,
                             "delta": delta,
                             "direction": "up" if delta > 0 else "down",
                             "interval": f"{label} close-to-close" + (f" (gap {gap_min}m)" if gap_min > 2 * step // 60 else ""),
@@ -784,7 +812,7 @@ def detect_swings(markets, events_by_ticker):
                             "kalshi_url": m["kalshi_url"],
                             "candles_url": candles["source_url"],
                         })
-                prev = (ts, mark)
+                prev = (ts, mark, price)
     alerts.sort(key=lambda a: (a["ts"] or 0), reverse=True)
     # de-duplicate the same ticker/timestamp/direction seen in both windows
     seen = set()

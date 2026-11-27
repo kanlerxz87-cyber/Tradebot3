@@ -277,6 +277,16 @@ def check_snapshot():
         if meta.get("kalshi_category_http_status") is None:
             warn(f"topic {topic}: category page status not measured")
 
+    # Every published swing must say which price it was measured on, and a move
+    # with no trade print must be labelled quote-only (see IRREG-35).
+    for a in alerts:
+        if not a.get("price_basis"):
+            err(f"alert {a.get('ticker')} @ {a.get('iso_time')}: no price_basis")
+        if "quote_only" not in a:
+            err(f"alert {a.get('ticker')} @ {a.get('iso_time')}: quote_only missing")
+        if abs(a.get("delta") or 0) + 1e-9 < 0.10:
+            err(f"alert {a.get('ticker')} @ {a.get('iso_time')}: delta {a.get('delta')} is below the $0.10 threshold")
+
     # Events must report how many markets they actually publish.
     for ev in events:
         if ev.get("markets_published") is not None and ev.get("market_count") is not None:
