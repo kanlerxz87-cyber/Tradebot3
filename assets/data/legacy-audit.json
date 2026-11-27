@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-27T10:45:40Z",
+  "generated_at": "2026-11-27T19:56:08Z",
   "api_base": "https://external-api.kalshi.com/trade-api/v2",
   "claims_checked": 29,
   "claims_found_in_api": 3,
@@ -433,8 +433,8 @@
       "api_found": true,
       "api_event_found": false,
       "api_status": "active",
-      "api_last_price": 0.28,
-      "api_volume_contracts": 10199509.25,
+      "api_last_price": 0.32,
+      "api_volume_contracts": 10254896.86,
       "api_result": null,
       "url_http_status": 429,
       "notes": [],
