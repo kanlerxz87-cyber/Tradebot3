@@ -43,12 +43,6 @@ jobs:
           set -o pipefail
           python3 scripts/fetch_kalshi_data.py --demo-check --audit-legacy 2>&1 | tee /tmp/fetch.log
 
-      - name: Site + module checks (no network)
-        run: |
-          python3 scripts/verify_site.py
-          node --version
-          node scripts/test_modules.mjs
-
       - name: Add the audited layer to the snapshot
         run: |
           # The fetch step writes measured data; this step adds the blocks the
@@ -58,6 +52,14 @@ jobs:
           # silently drops them.
           python3 scripts/enrich_snapshot.py
           python3 scripts/enrich_snapshot.py --check
+
+      # Order matters: the enricher adds the audited blocks that verify_site.py
+      # requires, so it must run before the gate that checks them.
+      - name: Site + module checks (no network)
+        run: |
+          python3 scripts/verify_site.py
+          node --version
+          node scripts/test_modules.mjs
 
       - name: Page render smoke test (jsdom, optional dependency)
         run: |
