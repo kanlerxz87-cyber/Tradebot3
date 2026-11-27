@@ -178,12 +178,16 @@ replaces the static catalogue with an automated pipeline (`scripts/fetch_kalshi_
 
 ### Executable verification
 
-`node scripts/test_modules.mjs` — **86/86 assertions pass**, covering: model score components summing to the total and
+`node scripts/test_modules.mjs` — **92/92 assertions pass**, covering: model score components summing to the total and
 the published threshold; paper fills lifting the ask and hitting the bid (spread charged); settlement via the market
 record *and* via the resolution table; backtester fade/momentum symmetry; live-swing detection (fires once at
 ≥ $0.10, never below); orderbook ladder rendering and its empty state; model-feed filtering and auto-trade guards;
-`estDollarsFor`/`volume24For`; freshness thresholds; and the demo signer against real openssl-generated Ed25519,
-PKCS#8-RSA and PKCS#1-RSA keys. `python3 scripts/verify_site.py` additionally now fails the build if official links
+`estDollarsFor`/`volume24For`; freshness thresholds; the module-relative data URLs (the IRREG-34 regression pin); and
+the demo signer against real openssl-generated Ed25519, PKCS#8-RSA and PKCS#1-RSA keys.
+
+`node scripts/render_pages.mjs` — boots all **10 pages** in jsdom against the committed snapshot: every page renders its
+navigation, footer and snapshot-derived numbers, leaves no loading placeholder, and logs no error. It caught IRREG-34
+and is now part of CI. `python3 scripts/verify_site.py` additionally now fails the build if official links
 lack measured status, if the refresh cadence block is missing, if a topic link is not an official URL, if
 `markets_published != market_count`, or if a resolution falls outside the advertised window.
 
@@ -192,7 +196,8 @@ lack measured status, if the refresh cadence block is missing, if a topic link i
 IRREG-26 (cadence claim, High) · IRREG-27 (sort key vs stated method, Medium) · IRREG-28 (paper settlement could
 never fire, High) · IRREG-29 (live quote vs stale book, Medium) · IRREG-30 (429 data loss + misleading link column,
 Medium) · IRREG-31 (RSA-only demo signing, Medium) · IRREG-32 (gas-price category link, Low) · IRREG-33 (legacy audit
-wording, Low).
+wording, Low) · **IRREG-34 (all five topic pages rendered an empty dashboard because the snapshot path was
+page-relative, High)**.
 
 ### Environment limitation (flagged, not hidden)
 

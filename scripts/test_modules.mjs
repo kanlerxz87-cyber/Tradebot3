@@ -231,6 +231,25 @@ const mdC = fakeData([mkMarket({ ticker: 'C1', candles: { m1: [[t0, 0.4, 0.42, 0
 eq('1-minute candles yield two points', mdC.candlesFor('C1', '1m').length, 2);
 ok('timeframes are 1m..1d as labelled', TIMEFRAMES.length === 6 && TIMEFRAMES[0].id === '1m');
 
+/* -------------------------------------------------- data-file URL resolution */
+// Regression pin: a page-relative data path silently broke all five topic pages
+// (they resolved to categories/assets/data/snapshot.json -> 404).
+ok('SITE.dataFile is an absolute URL, not a page-relative path',
+  /^https?:\/\//.test(SITE.dataFile) || SITE.dataFile.startsWith('file:'), SITE.dataFile);
+ok('SITE.dataFile resolves to a file that exists on disk (module-relative resolution works)',
+  (await import('node:fs')).existsSync(new URL(SITE.dataFile)), SITE.dataFile);
+ok('SITE.legacyAuditFile resolves to a file that exists on disk',
+  (await import('node:fs')).existsSync(new URL(SITE.legacyAuditFile)), SITE.legacyAuditFile);
+ok('SITE.dataFile points at assets/data/snapshot.json',
+  /\/assets\/data\/snapshot\.json$/.test(SITE.dataFile), SITE.dataFile);
+ok('SITE.legacyAuditFile points at assets/data/legacy-audit.json',
+  /\/assets\/data\/legacy-audit\.json$/.test(SITE.legacyAuditFile), SITE.legacyAuditFile);
+ok('the data URL survives a ?cache-buster suffix', (() => {
+  const u = new URL(SITE.dataFile);
+  u.searchParams.set('v', '123');
+  return u.pathname.endsWith('/assets/data/snapshot.json');
+})());
+
 /* -------------------------------------------------------------- source rules */
 const snapSourceCheck = core.SITE.apiBase.startsWith('https://external-api.kalshi.com/');
 ok('site API base is the recommended official host', snapSourceCheck, SITE.apiBase);

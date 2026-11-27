@@ -73,7 +73,8 @@ otherwise stale).
 
 ```bash
 python3 scripts/verify_site.py     # links, imports, DOM ids, snapshot schema, source coverage
-node scripts/test_modules.mjs      # 86 executable checks on the pure logic (no dependencies)
+node scripts/test_modules.mjs      # 92 executable checks on the pure logic (no dependencies)
+npm install --no-save jsdom && node scripts/render_pages.mjs   # boots all 10 pages, fails on any error
 python3 -m http.server 8080        # then open http://localhost:8080
 ```
 
@@ -82,6 +83,10 @@ numbers depend on: the model score sums to the displayed total, the paper accoun
 (spread is charged), settlement through the resolution table, the backtester's fade/momentum symmetry, live-swing
 detection, and the demo-request signer (Ed25519 vs RSA-PSS, including Kalshi's PKCS#1 PEM form). Both scripts run in
 CI before the snapshot is committed.
+
+`scripts/render_pages.mjs` boots every page in jsdom against the committed snapshot and fails if a page renders nothing,
+leaves a loading placeholder, or logs an error. It exists because a page-relative data path silently 404'd on all five
+topic pages (`categories/assets/data/snapshot.json`) while every static check still passed. All three scripts run in CI.
 
 `scripts/verify_site.py` fails the build if any table row lacks an official Kalshi source URL, if any market falls
 outside the five topics, if an alert is below the $0.10 threshold, or if an internal link is broken.

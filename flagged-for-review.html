@@ -148,6 +148,12 @@
             <td><a href="https://kalshi.com/category/economics" target="_blank" rel="noopener noreferrer">Kalshi Economics</a> · <a href="https://external-api.kalshi.com/trade-api/v2/series/KXAAAGASM" target="_blank" rel="noopener noreferrer">series record (category: Economics)</a></td>
           </tr>
           <tr>
+            <td>IRREG-34</td><td><span class="badge badge-down">High</span></td>
+            <td><strong>All five topic pages rendered an empty dashboard.</strong> The snapshot path was page-relative (<code>assets/data/snapshot.json</code>), so from <code>categories/*.html</code> the browser requested <code>categories/assets/data/snapshot.json</code> and got a 404. The static checks all passed because they only verified that the file named in the HTML exists, not where a fetch from a nested page points.</td>
+            <td>Data paths are now resolved from the JavaScript module's own URL (<code>new URL('../data/snapshot.json', import.meta.url)</code>), which is depth-independent, and a regression test asserts the URL resolves to an existing file. A new offline render harness boots all 10 pages in jsdom and fails on an empty render or any logged error; it is part of CI.</td>
+            <td><a href="scripts/render_pages.mjs" target="_blank" rel="noopener noreferrer">render_pages.mjs</a> · <a href="assets/js/core.js" target="_blank" rel="noopener noreferrer">core.js</a></td>
+          </tr>
+          <tr>
             <td>IRREG-33</td><td><span class="badge badge-neutral">Low</span></td>
             <td>Legacy audit summary said “problem: only 3 of 29 resolve”, but most of the “missing” tickers are Kalshi <em>event</em> tickers (for example <code>KXAAAGASMAX-26DEC31</code> is a real event whose markets do exist). Reporting them as absent overstated the problem.</td>
             <td>The audit now reports three outcomes separately — market found, event-only, absent — and says which one applies per row. The claimed market-level prices/volumes are still not reusable for event-only rows.</td>

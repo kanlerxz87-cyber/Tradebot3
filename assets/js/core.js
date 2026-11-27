@@ -3,13 +3,25 @@
  * Pure browser ES module, no bundler, no external dependencies.
  */
 
+/**
+ * Data files are resolved from THIS module's own URL, not from the page's.
+ *
+ * A page-relative path such as 'assets/data/snapshot.json' works on the root
+ * pages but resolves to 'categories/assets/data/snapshot.json' on every topic
+ * page, which 404s — the five topic pages then rendered an empty dashboard. The
+ * module URL is the same wherever the page lives, so this is depth-independent
+ * and is asserted by scripts/test_modules.mjs.
+ */
+const DATA_FILE_URL = new URL('../data/snapshot.json', import.meta.url).href;
+const LEGACY_AUDIT_URL = new URL('../data/legacy-audit.json', import.meta.url).href;
+
 export const SITE = {
   name: 'Tradebot3',
   tagline: 'Kalshi live-event dashboard & paper trading lab',
   repo: 'https://github.com/kanlerxz87-cyber/Tradebot3',
   pages: 'https://kanlerxz87-cyber.github.io/Tradebot3/',
-  dataFile: 'assets/data/snapshot.json',
-  legacyAuditFile: 'assets/data/legacy-audit.json',
+  dataFile: DATA_FILE_URL,
+  legacyAuditFile: LEGACY_AUDIT_URL,
   // Official Kalshi public production API (recommended host, per docs.kalshi.com)
   apiBase: 'https://external-api.kalshi.com/trade-api/v2',
   demoApiBase: 'https://external-api.demo.kalshi.co/trade-api/v2',

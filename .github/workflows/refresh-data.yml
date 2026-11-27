@@ -49,6 +49,13 @@ jobs:
           node --version
           node scripts/test_modules.mjs
 
+      - name: Page render smoke test (jsdom, optional dependency)
+        run: |
+          # jsdom is installed here only; it is deliberately not a project
+          # dependency, so the published site stays dependency-free.
+          npm install --no-save --no-audit --no-fund jsdom
+          node scripts/render_pages.mjs
+
       - name: Validate generated JSON
         run: |
           python3 - <<'PY'
