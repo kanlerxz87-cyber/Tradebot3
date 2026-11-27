@@ -36,7 +36,7 @@ Source: [API environments](https://docs.kalshi.com/getting_started/api_environme
 ## How the data stays current
 
 ```
-.github/workflows/refresh-data.yml   (every 20 min + manual)
+.github/workflows/refresh-data.yml   (cron */30 * * * * — best effort, see below)
         └── scripts/fetch_kalshi_data.py
                 ├── GET /series?category=…        discover the five topics' series
                 ├── GET /markets?series_ticker=…  open + settled markets
@@ -48,16 +48,40 @@ Source: [API environments](https://docs.kalshi.com/getting_started/api_environme
         └── commits assets/data/snapshot.json + assets/data/legacy-audit.json
 ```
 
-The browser reads `assets/data/snapshot.json` and then polls
-`GET /markets?tickers=…` every 20 seconds. If the browser is blocked (CORS/offline), the header says so and the
-timestamped snapshot remains in use. **No price is ever simulated.**
+The job also HTTP-checks every official link it publishes, appends each run to
+`assets/data/refresh-history.json`, and writes the measured refresh gaps into the snapshot. The browser reads
+`assets/data/snapshot.json` and then polls `GET /markets?tickers=…` every 20 seconds. If the browser is blocked
+(CORS/offline), the header says so and the timestamped snapshot remains in use. **No price is ever simulated.**
+
+### Refresh cadence — measured, not claimed
+
+GitHub Actions throttles scheduled workflows. The cron asks for every 30 minutes; the delivered interval is far
+longer and is therefore published rather than described as "live":
+
+| Measurement | Value (2026-11-27) |
+| --- | --- |
+| Runs recorded | 14 (2026-11-22T16:34Z → 2026-11-27T10:40Z) |
+| Median gap between runs | **8.8 h** |
+| Mean / max gap | 8.8 h / 12.0 h |
+| Runs closer together than 1 h | 0 of 13 |
+
+Source: [`assets/data/refresh-history.json`](assets/data/refresh-history.json), written by the workflow itself;
+rendered on `verification.html` §8 and surfaced on the dashboard as a snapshot-age badge (fresh < 2 h, aging < 8 h,
+otherwise stale).
 
 ## Verification
 
 ```bash
 python3 scripts/verify_site.py     # links, imports, DOM ids, snapshot schema, source coverage
+node scripts/test_modules.mjs      # 86 executable checks on the pure logic (no dependencies)
 python3 -m http.server 8080        # then open http://localhost:8080
 ```
+
+`scripts/test_modules.mjs` imports the same ES modules the browser loads and asserts the arithmetic the published
+numbers depend on: the model score sums to the displayed total, the paper account lifts the ask and hits the bid
+(spread is charged), settlement through the resolution table, the backtester's fade/momentum symmetry, live-swing
+detection, and the demo-request signer (Ed25519 vs RSA-PSS, including Kalshi's PKCS#1 PEM form). Both scripts run in
+CI before the snapshot is committed.
 
 `scripts/verify_site.py` fails the build if any table row lacks an official Kalshi source URL, if any market falls
 outside the five topics, if an alert is below the $0.10 threshold, or if an internal link is broken.

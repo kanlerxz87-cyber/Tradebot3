@@ -575,5 +575,10 @@
       ],
       "api_event_title": "Golfers to compete in The Masters in 2026"
     }
-  ]
+  ],
+  "claims_found_as_market": 3,
+  "claims_found_as_event_only": 25,
+  "claims_absent_from_api": 1,
+  "note": "Three outcomes are reported separately because they mean different things: 'market' = GET /markets/{ticker} returned a market record; 'event-only' = the ticker is a Kalshi EVENT ticker, so it exists on Kalshi but the claimed market-level price/volume cannot be true; 'absent' = neither a market nor an event answered. Counts here are tallied from the measured rows above.",
+  "url_check_note": "kalshi.com returned HTTP 429 for every claimed URL in the 10:45Z run, so that column measures throttling, not link health. The pipeline now retries link checks separately and labels 429s as throttled rather than broken."
 }

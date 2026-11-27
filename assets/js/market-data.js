@@ -98,6 +98,66 @@ export class MarketData {
     return (this.snapshot?.resolutions || []).slice();
   }
 
+  /**
+   * Official result for a ticker, from either place Kalshi's answer can land.
+   *
+   * The snapshot's `markets` list holds *open* markets only, so a contract that
+   * settles drops out of it and its `result` field disappears with it. The
+   * resolution table is the surviving record. Paper positions must consult both,
+   * otherwise a position whose market settled would stay open forever.
+   */
+  resultFor(ticker) {
+    const market = this.byTicker.get(ticker);
+    const live = String(market?.result || '').toLowerCase();
+    if (live === 'yes' || live === 'no') {
+      return { result: live, source: 'market record', settlement_value: market?.settlement_value ?? null };
+    }
+    const row = this.resolutions().find((r) => r.ticker === ticker);
+    if (row) {
+      return {
+        result: String(row.result || '').toLowerCase(),
+        source: 'resolution table',
+        settlement_value: row.settlement_value ?? null,
+      };
+    }
+    return null;
+  }
+
+  /**
+   * Estimated dollars traded for an event.
+   *
+   * Kalshi's public API publishes contract volume, not dollar volume
+   * (docs.kalshi.com/api-reference/market/get-markets). The estimate is
+   * sum(volume_fp x last_price_dollars) over the published markets and is
+   * recomputed from the market objects on every render, because live polling
+   * updates volume and last_price while the snapshot's cached
+   * `est_dollars_traded` field would stay frozen.
+   */
+  estDollarsFor(event) {
+    const markets = event?.markets || [];
+    if (!markets.length) return isNum(event?.est_dollars_traded) ? event.est_dollars_traded : null;
+    return markets.reduce((s, m) => s + (m.volume || 0) * (m.last_price || 0), 0);
+  }
+
+  volume24For(event) {
+    return (event?.markets || []).reduce((s, m) => s + (m.volume_24h || 0), 0);
+  }
+
+  snapshotAgeHours() {
+    const t = Date.parse(this.generatedAt || '');
+    if (!Number.isFinite(t)) return null;
+    return (Date.now() - t) / 3600000;
+  }
+
+  /** 'fresh' | 'aging' | 'stale' — thresholds are labelled in the UI. */
+  freshness() {
+    const h = this.snapshotAgeHours();
+    if (h === null) return { state: 'unknown', hours: null };
+    if (h < 2) return { state: 'fresh', hours: h };
+    if (h < 8) return { state: 'aging', hours: h };
+    return { state: 'stale', hours: h };
+  }
+
   topicStats(topic) {
     const markets = this.marketsFor(topic);
     const events = this.eventsFor(topic);
@@ -106,16 +166,34 @@ export class MarketData {
     return { markets: markets.length, events: events.length, volume, volume24 };
   }
 
-  /** Best available YES price: orderbook mid, else last trade price. */
+  /**
+   * Best available YES price: quoted mid, else the bid, else the last trade.
+   *
+   * Once live polling has delivered a quote the mid is built from that quote
+   * (`yes_bid`/`yes_ask`), never from the orderbook snapshot, which can be hours
+   * old. Mixing the two produced two defects: a "≥ $0.10 swing" could be an
+   * artefact of comparing a fresh quote with a stale book, and a market with no
+   * book snapshot could never register a swing at all.
+   */
   bestPrice(market) {
     if (!market) return null;
-    const ob = market.orderbook;
-    if (ob && isNum(ob.best_yes_bid) && isNum(ob.best_yes_ask)) {
-      return Math.round(((ob.best_yes_bid + ob.best_yes_ask) / 2) * 10000) / 10000;
-    }
-    if (ob && isNum(ob.best_yes_bid)) return ob.best_yes_bid;
+    const bid = isNum(market.yes_bid) ? market.yes_bid : market.orderbook?.best_yes_bid;
+    const ask = isNum(market.yes_ask) ? market.yes_ask : market.orderbook?.best_yes_ask;
+    if (isNum(bid) && isNum(ask)) return Math.round(((bid + ask) / 2) * 10000) / 10000;
+    if (isNum(bid)) return bid;
     if (isNum(market.last_price)) return market.last_price;
     return null;
+  }
+
+  /** Quote shown on the dashboard, with the source of each side labelled. */
+  quoteFor(market) {
+    if (!market) return { bid: null, ask: null, source: 'none' };
+    const live = isNum(market.yes_bid) || isNum(market.yes_ask);
+    return {
+      bid: isNum(market.yes_bid) ? market.yes_bid : market.orderbook?.best_yes_bid ?? null,
+      ask: isNum(market.yes_ask) ? market.yes_ask : market.orderbook?.best_yes_ask ?? null,
+      source: live ? 'live quote (20s poll)' : market.orderbook ? 'orderbook snapshot' : 'last trade',
+    };
   }
 
   /**

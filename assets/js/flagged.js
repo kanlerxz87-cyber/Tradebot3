@@ -26,12 +26,17 @@ async function load() {
 
   const found = audit.claims_found_in_api;
   const total = audit.claims_checked;
+  const eventOnly = audit.claims_found_as_event_only
+    ?? (audit.rows || []).filter((r) => r.api_event_found && !r.api_found).length;
+  const absent = audit.claims_absent_from_api ?? (total - found - eventOnly);
   status.innerHTML = `
     <span><strong>Audit run</strong> ${esc(fmtDateTime(audit.generated_at))} UTC (${esc(timeAgo(audit.generated_at))})</span>
     <span class="sep">|</span>
-    <span><strong>${fmtNum(found)}</strong> of <strong>${fmtNum(total)}</strong> claimed tickers exist in the live API</span>
+    <span><strong>${fmtNum(found)}</strong> of <strong>${fmtNum(total)}</strong> claims are real Kalshi <em>markets</em></span>
     <span class="sep">|</span>
-    <span class="status-err">${fmtNum(total - found)} claims could not be matched to any Kalshi market</span>
+    <span><strong>${fmtNum(eventOnly)}</strong> are Kalshi <em>event</em> tickers (they exist, but the claimed market-level price/volume cannot be a market value)</span>
+    <span class="sep">|</span>
+    <span class="status-err">${fmtNum(absent)} match no Kalshi record at all</span>
     <span class="sep">|</span>
     <a href="${esc(audit.api_base)}" target="_blank" rel="noopener noreferrer">API used</a>`;
 
@@ -47,7 +52,11 @@ async function load() {
       <td>${esc(row.topic || '—')}</td>
       <td class="num">${isNum(row.claimed_volume_usd) ? fmtContracts(row.claimed_volume_usd) : '<span class="tiny">blank</span>'}</td>
       <td class="num">${price(row.claimed_price)}</td>
-      <td>${row.api_found ? '<span class="badge badge-up">yes</span>' : '<span class="badge badge-down">not found</span>'}</td>
+      <td>${row.api_found
+        ? '<span class="badge badge-up">market</span>'
+        : row.api_event_found
+          ? '<span class="badge badge-warn">event only</span>'
+          : '<span class="badge badge-down">absent</span>'}</td>
       <td class="num">${price(row.api_last_price)}</td>
       <td class="num">${row.api_volume_contracts === null ? '—' : fmtContracts(row.api_volume_contracts)}</td>
       <td>${row.api_result ? `<span class="badge badge-${row.api_result === 'yes' ? 'yes' : 'no'}">${esc(String(row.api_result).toUpperCase())}</span>` : '—'}</td>

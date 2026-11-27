@@ -49,6 +49,40 @@ async function load() {
     summary.innerHTML = '<span class="status-warn">Legacy audit JSON not present yet</span> — it is written by the scheduled data job.';
   }
 
+  if (snap?.official_links) {
+    const ol = snap.official_links;
+    const st = qs('#links-status');
+    if (st) {
+      st.innerHTML = `
+        <span><strong>${fmtNum(ol.reachable)}</strong> of <strong>${fmtNum(ol.total)}</strong> official links answered when last measured</span>
+        <span class="sep">|</span>
+        <span class="tiny">checked ${esc(fmtDateTime(ol.checked_at))} UTC (${esc(timeAgo(ol.checked_at))})</span>
+        ${ol.unreachable ? `<span class="sep">|</span><span class="status-err">${fmtNum(ol.unreachable)} unreachable — listed on Flagged for review</span>` : ''}`;
+    }
+    const body = qs('#links-body');
+    if (body) {
+      body.innerHTML = (ol.rows || []).map((r) => `<tr>
+        <td class="tiny">${esc(r.kind)}</td>
+        <td>${esc(r.label || '')}</td>
+        <td class="tiny"><a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">${esc(r.url)}</a></td>
+        <td class="num">${r.http_status === null ? '<span class="tiny">no response</span>' : esc(r.http_status)}</td>
+        <td>${r.reachable ? '<span class="badge badge-up">yes</span>' : '<span class="badge badge-down">no</span>'}</td>
+      </tr>`).join('');
+    }
+  }
+
+  const cadence = snap?.refresh_cadence;
+  const cbox = qs('#cadence-box');
+  if (cbox) {
+    const m = cadence?.measured;
+    cbox.innerHTML = m
+      ? `Measured over <strong>${fmtNum(m.runs_used)}</strong> runs (${esc(fmtDateTime(m.first_run))} → ${esc(fmtDateTime(m.last_run))} UTC):
+         median gap <strong>${m.median_gap_hours}h</strong>, mean ${m.mean_gap_hours}h, max ${m.max_gap_hours}h,
+         min ${m.min_gap_hours}h; runs closer together than one hour: ${fmtNum(m.gaps_under_one_hour)} of ${fmtNum(m.gap_count)}.
+         <div class="tiny" style="margin-top:4px">Source: <a href="assets/data/refresh-history.json" target="_blank" rel="noopener noreferrer">refresh-history.json</a> — written by the workflow itself.</div>`
+      : `No measured cadence yet${cadence?.note ? ` — ${esc(cadence.note)}` : ''}.`;
+  }
+
   if (snap?.demo_spot_check?.length) {
     const host = qs('#demo-spot');
     if (host) {

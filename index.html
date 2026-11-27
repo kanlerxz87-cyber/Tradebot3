@@ -29,6 +29,17 @@
 
     <div id="data-status" class="status-bar">Loading the official Kalshi snapshot…</div>
 
+    <div id="verified-strip" class="status-bar" style="margin-top:8px">
+      <span><strong>What is verified</strong></span>
+      <span class="sep">|</span>
+      <span class="tiny">Every price, volume, orderbook level and settlement on this page is read from Kalshi's public
+        Trade API (<a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener noreferrer">endpoint docs</a>);
+        nothing is simulated. Dollar figures are labelled estimates and documented as such.</span>
+      <span class="sep">|</span>
+      <span class="tiny"><a href="verification.html#official-links">Measured link status</a> ·
+        <a href="flagged-for-review.html">Flagged for review</a></span>
+    </div>
+
     <section id="kpi-strip" class="kpi-grid" style="margin-top:14px" aria-label="Key metrics"></section>
 
     <section class="grid" style="margin-top:14px">
@@ -201,9 +212,11 @@
       </div>
       <div class="card-body" style="padding-top:8px">
         <div class="card-note">
-          Ranked by estimated dollars traded (official contract volume × last price). Kalshi's public API publishes
-          contract volume (<code>volume_fp</code>), not dollar volume, so the dollar column is an estimate — never an
-          official figure. Each topic page can also be sorted by raw contract volume.
+          Sorted highest-dollar first, using the estimate <code>Σ volume_fp × last_price_dollars</code> over the
+          published markets of each event. Kalshi's public API publishes contract volume, not dollar volume, so this
+          column is <strong>our arithmetic, not an official Kalshi figure</strong> — the “Volume (ct)” column is the
+          official one, and topic pages are ordered by it. The estimate is recomputed on every live tick, so it moves
+          with the market instead of freezing at snapshot time.
           <a href="verification.html#metrics">Metric definitions →</a>
         </div>
       </div>

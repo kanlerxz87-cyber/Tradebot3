@@ -447,26 +447,90 @@ function pemToArrayBuffer(pem) {
   const binary = atob(b64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-  return bytes.buffer;
+  return bytes;
 }
 
+/**
+ * Web Crypto only imports PKCS#8 (`BEGIN PRIVATE KEY`), while Kalshi's RSA keys
+ * are handed out as PKCS#1 (`BEGIN RSA PRIVATE KEY`) — docs.kalshi.com/
+ * getting_started/api_keys lists exactly that PEM header for RSA keys. Both
+ * carry the same RSA key, so PKCS#1 is wrapped in the standard PKCS#8 envelope
+ * (RSA AlgorithmIdentifier + OCTET STRING) rather than rejected. Verified in
+ * this repository's tests against a real openssl-generated PKCS#1 key.
+ */
+const RSA_ALGORITHM_ID = [0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, 0x05, 0x00];
+
+function derLength(n) {
+  if (n < 0x80) return [n];
+  const bytes = [];
+  let v = n;
+  while (v > 0) { bytes.unshift(v & 0xff); v >>= 8; }
+  return [0x80 | bytes.length, ...bytes];
+}
+
+function wrapPkcs1AsPkcs8(pkcs1) {
+  const body = [
+    0x02, 0x01, 0x00,                                  // version 0
+    ...RSA_ALGORITHM_ID,                               // AlgorithmIdentifier
+    0x04, ...derLength(pkcs1.length), ...pkcs1,        // OCTET STRING with the key
+  ];
+  return new Uint8Array([0x30, ...derLength(body.length), ...body]);
+}
+
+/**
+ * Sign one Kalshi request with Web Crypto.
+ *
+ * Kalshi supports two key types and verifies with the algorithm of the
+ * registered public key: Ed25519 (the documented default) signs the message
+ * directly; RSA keys use RSA-PSS with SHA-256 and a salt length equal to the
+ * digest. Both are documented at
+ * https://docs.kalshi.com/getting_started/api_keys ("Headers, pre-sign text,
+ * permissions and errors are identical for both types"). The type is detected
+ * from the parsed key, because the PEM header alone does not identify it.
+ */
 async function signDemoRequest(keyId, pem, method, path) {
-  const key = await crypto.subtle.importKey(
-    'pkcs8',
-    pemToArrayBuffer(pem),
-    { name: 'RSASSA-PSS', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
+  const der = pemToArrayBuffer(pem);
+  const isPkcs1 = /BEGIN RSA PRIVATE KEY-----/.test(pem);
+  const keyDer = isPkcs1 ? wrapPkcs1AsPkcs8(der) : der;
   const ts = String(Date.now());
   const message = new TextEncoder().encode(`${ts}${method}${path}`);
-  const signature = await crypto.subtle.sign({ name: 'RSASSA-PSS', saltLength: 32 }, key, message);
+  let signature;
+  let keyType;
+  if (ed25519Pkcs8(keyDer)) {
+    const key = await crypto.subtle.importKey('pkcs8', keyDer, { name: 'Ed25519' }, false, ['sign']);
+    signature = await crypto.subtle.sign('Ed25519', key, message);
+    keyType = 'Ed25519';
+  } else {
+    // 'RSASSA-PSS' is the Web Crypto spec name browsers use; 'RSA-PSS' is the
+    // alias some bindings (Node's WebCrypto) require. Try the spec name first.
+    let key;
+    try {
+      key = await crypto.subtle.importKey('pkcs8', keyDer, { name: 'RSASSA-PSS', hash: 'SHA-256' }, false, ['sign']);
+      signature = await crypto.subtle.sign({ name: 'RSASSA-PSS', saltLength: 32 }, key, message);
+    } catch (err) {
+      key = await crypto.subtle.importKey('pkcs8', keyDer, { name: 'RSA-PSS', hash: 'SHA-256' }, false, ['sign']);
+      signature = await crypto.subtle.sign({ name: 'RSA-PSS', saltLength: 32 }, key, message);
+    }
+    keyType = `RSA-PSS (SHA-256, salt 32${isPkcs1 ? ', PKCS#1 key wrapped as PKCS#8' : ''})`;
+  }
   const b64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
   return {
-    'KALSHI-ACCESS-KEY': keyId,
-    'KALSHI-ACCESS-TIMESTAMP': ts,
-    'KALSHI-ACCESS-SIGNATURE': b64,
+    keyType,
+    headers: {
+      'KALSHI-ACCESS-KEY': keyId,
+      'KALSHI-ACCESS-TIMESTAMP': ts,
+      'KALSHI-ACCESS-SIGNATURE': b64,
+    },
   };
+}
+
+/**
+ * An Ed25519 PKCS#8 key is 48 bytes (16-byte DER header + 32-byte seed); RSA
+ * PKCS#8 keys are hundreds of bytes. Length is a safe discriminator between the
+ * two types Kalshi issues.
+ */
+function ed25519Pkcs8(der) {
+  return der.byteLength === 48;
 }
 
 async function connectDemo() {
@@ -474,13 +538,13 @@ async function connectDemo() {
   const pem = qs('#demo-pem').value.trim();
   const status = qs('#demo-status');
   if (!keyId || !pem) {
-    status.innerHTML = '<span class="status-err">Enter both the demo Key ID and the RSA private key PEM.</span>';
+    status.innerHTML = '<span class="status-err">Enter both the demo Key ID and the private key PEM (RSA or Ed25519).</span>';
     return;
   }
-  status.innerHTML = 'Signing a test request with RSA-PSS (SHA-256, salt 32)…';
+  status.innerHTML = 'Detecting the key type and signing a test request…';
   try {
     const path = '/trade-api/v2/portfolio/balance';
-    const headers = await signDemoRequest(keyId, pem, 'GET', path);
+    const { headers, keyType } = await signDemoRequest(keyId, pem, 'GET', path);
     localStorage.setItem(DEMO_KEY, keyId);
     const res = await fetch(`${SITE.demoApiBase}/portfolio/balance`, { headers });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -490,7 +554,7 @@ async function connectDemo() {
     qs('#demo-positions').disabled = false;
     qs('#demo-fills').disabled = false;
     status.innerHTML = `<span class="status-ok">Connected to Kalshi demo.</span> Balance ${isNum(balance) ? fmtUsd(balance / 100) : esc(JSON.stringify(body).slice(0, 120))}
-      <div class="tiny">Read-only check via GET /portfolio/balance (cents in the API response). Signing followed docs.kalshi.com/getting_started/api_keys (path without query).</div>`;
+      <div class="tiny">Read-only check via GET /portfolio/balance. Signature: ${esc(keyType)}. Signing followed docs.kalshi.com/getting_started/api_keys (path without query, timestamp in ms).</div>`;
     qs('#demo-pem').value = '';
   } catch (err) {
     const hint = /Failed to fetch|NetworkError|load failed/i.test(err.message)
@@ -509,7 +573,7 @@ async function loadDemoResource(pathWithQuery) {
   }
   const [pathOnly] = pathWithQuery.split('?');
   try {
-    const headers = await signDemoRequest(demoSession.keyId, demoSession.pem, 'GET', pathOnly);
+    const { headers } = await signDemoRequest(demoSession.keyId, demoSession.pem, 'GET', pathOnly);
     const res = await fetch(`${SITE.demoApiBase}${pathWithQuery}`, { headers });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const body = await res.json();

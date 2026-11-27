@@ -105,6 +105,54 @@
             <td>Paper P&amp;L is gross and labelled as such. The demo connection is read-only; no unverified order schema is shipped.</td>
             <td><a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create order</a></td>
           </tr>
+          <tr>
+            <td>IRREG-26</td><td><span class="badge badge-down">High</span></td>
+            <td>The site said the data job “runs every 20 minutes” (README, verification page, executive summary) and “every 30 minutes” in another place. GitHub Actions actually delivered runs a median <strong>8.8 hours</strong> apart (max 12.0 h; none under 1 h) between 2026-11-22 and 2026-11-27.</td>
+            <td>Corrected everywhere to the requested cron (<code>*/30 * * * *</code>, best effort) plus the <strong>measured</strong> interval. The workflow now appends every run to <code>refresh-history.json</code>, the snapshot publishes the gaps, and the dashboard shows a snapshot-age badge (there is no page that calls an 8-hour-old snapshot “live”).</td>
+            <td><a href="assets/data/refresh-history.json" target="_blank" rel="noopener noreferrer">refresh-history.json</a> · <a href="https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule" target="_blank" rel="noopener noreferrer">GitHub: schedule is best-effort</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-27</td><td><span class="badge badge-warn">Medium</span></td>
+            <td>The “Highest-dollar live events” table was sorted by a dollar estimate that the 20-second live poll never updated — it was computed once per snapshot — while the note above it said ranking used contract volume. The sort key and the stated method disagreed.</td>
+            <td>The estimate is now recomputed from the live <code>volume_fp</code> × <code>last_price_dollars</code> on every render, and the note states exactly what is sorted and that the dollar column is our arithmetic, not a Kalshi field.</td>
+            <td><a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get markets schema</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-28</td><td><span class="badge badge-down">High</span></td>
+            <td>Paper positions in a settled market could never settle: the snapshot only carries <em>open</em> markets, so once a contract settled it disappeared together with its <code>result</code> field, and the auto-settlement only read that field.</td>
+            <td>Found by the new executable test. Settlement now reads the market record <em>or</em> the resolution table, records which one answered (<code>settlement_source</code>), and is covered by a test that reproduces exactly this sequence. Both fields are Kalshi's own.</td>
+            <td><a href="https://docs.kalshi.com/getting_started/historical_data" target="_blank" rel="noopener noreferrer">Historical data (markets move out of live endpoints)</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-29</td><td><span class="badge badge-warn">Medium</span></td>
+            <td>The live poll compared a fresh 20-second quote against a possibly hours-old orderbook mid. That could fabricate a “≥ $0.10 swing”, and a market without a book snapshot could never raise one at all.</td>
+            <td>One quote source per price now: live quote when a poll has delivered one, otherwise the snapshot. The chart header labels which source a quote came from, and a test asserts a +0.13 live move fires exactly one alert while a +0.04 follow-up fires none.</td>
+            <td><a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get markets</a> · <a href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Orderbook</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-30</td><td><span class="badge badge-warn">Medium</span></td>
+            <td>The snapshot job lost whole series to HTTP 429 (128 rate-limit warnings in a single refresh) — every market, candle and alert for those series silently vanished — and every Kalshi page check in the legacy audit was also recorded as 429, so the column looked like broken links.</td>
+            <td>The job now paces all requests process-wide, honours <code>Retry-After</code>, runs one paced retry pass and reports how many series recovered, and retries link checks separately. 429s are labelled as throttling, not as dead links.</td>
+            <td><a href="https://docs.kalshi.com/getting_started/rate_limits" target="_blank" rel="noopener noreferrer">Rate limits (&ldquo;back off on 429&rdquo;)</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-31</td><td><span class="badge badge-warn">Medium</span></td>
+            <td>The demo-connection panel stated it required an “RSA private key”, but Kalshi's default and recommended key type is <strong>Ed25519</strong>, which Web Crypto imports under a different algorithm. It also would have rejected Kalshi's PKCS#1 RSA PEM (<code>BEGIN RSA PRIVATE KEY</code>), which Web Crypto cannot import directly.</td>
+            <td>Both key types are now detected from the parsed key and signed correctly: Ed25519 directly, RSA with PSS-SHA256 salt 32, and PKCS#1 RSA is wrapped into the standard PKCS#8 envelope. Verified against real openssl-generated keys in the test suite.</td>
+            <td><a href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener noreferrer">API keys: key types &amp; signatures</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-32</td><td><span class="badge badge-neutral">Low</span></td>
+            <td>Topic links were built as <code>kalshi.com/category/&lt;topic&gt;</code>. Gas prices has no such page: Kalshi files AAA gasoline contracts under <strong>Economics → Oil and energy</strong> (the series record itself returns category <code>Economics</code>). The demo/production spot check also sampled only the first eight rows, which were all gas contracts.</td>
+            <td>Category links now come from a verified table (gas → Economics) and every one is HTTP-checked on each refresh with the status shown next to the link. The spot check samples two markets per topic. <code>kalshi.com/category/gas-prices</code> could not be loaded at all when checked, so it is not used.</td>
+            <td><a href="https://kalshi.com/category/economics" target="_blank" rel="noopener noreferrer">Kalshi Economics</a> · <a href="https://external-api.kalshi.com/trade-api/v2/series/KXAAAGASM" target="_blank" rel="noopener noreferrer">series record (category: Economics)</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-33</td><td><span class="badge badge-neutral">Low</span></td>
+            <td>Legacy audit summary said “problem: only 3 of 29 resolve”, but most of the “missing” tickers are Kalshi <em>event</em> tickers (for example <code>KXAAAGASMAX-26DEC31</code> is a real event whose markets do exist). Reporting them as absent overstated the problem.</td>
+            <td>The audit now reports three outcomes separately — market found, event-only, absent — and says which one applies per row. The claimed market-level prices/volumes are still not reusable for event-only rows.</td>
+            <td><a href="https://external-api.kalshi.com/trade-api/v2/events/KXAAAGASMAX-26DEC31" target="_blank" rel="noopener noreferrer">event record</a></td>
+          </tr>
         </tbody>
       </table>
     </div>

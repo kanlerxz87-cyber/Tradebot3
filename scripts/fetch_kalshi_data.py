@@ -33,6 +33,7 @@ import os
 import re
 import ssl
 import sys
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -53,6 +54,7 @@ DATA_DIR = ROOT / "assets" / "data"
 SNAPSHOT_PATH = DATA_DIR / "snapshot.json"
 LEGACY_AUDIT_PATH = DATA_DIR / "legacy-audit.json"
 LEGACY_CLAIMS_PATH = ROOT / "scripts" / "legacy_claims.json"
+REFRESH_HISTORY_PATH = DATA_DIR / "refresh-history.json"
 
 UA = "Tradebot3-research-bot/2.0 (+https://github.com/kanlerxz87-cyber/Tradebot3)"
 HTTP_TIMEOUT = 30
@@ -124,6 +126,19 @@ TOPIC_RULES = {
 
 TOPIC_ORDER = ["gas-prices", "elections", "culture", "crypto", "golf"]
 
+# Human-facing Kalshi page for each topic. Gas-price contracts are filed under
+# Kalshi's "Economics" category (GET /series/KXAAAGASM returns category
+# "Economics"), so there is no /category/gas-prices page; golf is a sports
+# sub-category. Both were resolved by fetching kalshi.com — see
+# assets/data/snapshot.json -> official_links.
+KALSHI_TOPIC_PAGE = {
+    "gas-prices": "https://kalshi.com/category/economics",
+    "elections": "https://kalshi.com/category/elections",
+    "culture": "https://kalshi.com/category/culture",
+    "crypto": "https://kalshi.com/category/crypto",
+    "golf": "https://kalshi.com/category/sports/golf",
+}
+
 # Topic reference pages that the dashboard links to as *possible* catalyst /
 # primary-source pages. Their HTTP status is checked at build time and only
 # reachable ones are published; none is asserted to have caused any price move.
@@ -170,12 +185,29 @@ SETTLED_LOOKBACK_DAYS = 21
 
 _SSL_CTX = ssl.create_default_context()
 
+# Global, process-wide pacing for the unauthenticated public API. Kalshi documents
+# that unauthenticated requests "are subject to separate limits" and tells clients
+# to back off on 429 (docs.kalshi.com/getting_started/rate_limits); the numeric
+# limit is not published, so the pipeline paces itself conservatively instead of
+# hammering the API and losing whole series to 429s.
+MIN_REQUEST_INTERVAL = 0.10  # seconds between request starts, process-wide
+_rate_lock = threading.Lock()
+_last_request_at = [0.0]
+
+
+def _pace():
+    with _rate_lock:
+        wait = _last_request_at[0] + MIN_REQUEST_INTERVAL - time.monotonic()
+        if wait > 0:
+            time.sleep(wait)
+        _last_request_at[0] = time.monotonic()
+
 
 class ApiError(RuntimeError):
     pass
 
 
-def http_json(url: str, retries: int = 3, timeout: int = HTTP_TIMEOUT):
+def http_json(url: str, retries: int = 5, timeout: int = HTTP_TIMEOUT):
     """GET a URL and parse JSON. Retries 429/5xx with exponential backoff."""
     last_err = None
     for attempt in range(retries):
@@ -183,6 +215,7 @@ def http_json(url: str, retries: int = 3, timeout: int = HTTP_TIMEOUT):
             "User-Agent": UA,
             "Accept": "application/json",
         })
+        _pace()
         try:
             with urllib.request.urlopen(req, timeout=timeout, context=_SSL_CTX) as resp:
                 raw = resp.read().decode("utf-8")
@@ -195,7 +228,18 @@ def http_json(url: str, retries: int = 3, timeout: int = HTTP_TIMEOUT):
                 pass
             last_err = f"HTTP {exc.code} {url} {body}"
             if exc.code in (429, 500, 502, 503, 504):
-                time.sleep(1.5 * (attempt + 1))
+                retry_after = None
+                try:
+                    retry_after = exc.headers.get("Retry-After")
+                except Exception:  # pragma: no cover
+                    retry_after = None
+                delay = 1.5 * (2 ** attempt)
+                if retry_after:
+                    try:
+                        delay = max(delay, float(retry_after))
+                    except ValueError:
+                        pass
+                time.sleep(min(delay, 30))
                 continue
             raise ApiError(last_err)
         except Exception as exc:  # noqa: BLE001 - network flake
@@ -204,19 +248,33 @@ def http_json(url: str, retries: int = 3, timeout: int = HTTP_TIMEOUT):
     raise ApiError(last_err or f"failed: {url}")
 
 
-def http_status(url: str, timeout: int = 20):
-    """Return (status_code, note) without failing the build."""
+def http_status(url: str, timeout: int = 20, retries: int = 3):
+    """Return (status_code, note) without failing the build.
+
+    Retries a 429 a few times (paced) so a rate-limited check is reported as a
+    measurement, not mistaken for a dead link.
+    """
     req = urllib.request.Request(url, headers={
         "User-Agent": "Mozilla/5.0 (compatible; Tradebot3-link-check/2.0)",
         "Accept": "text/html,application/json;q=0.9,*/*;q=0.8",
     })
-    try:
-        with urllib.request.urlopen(req, timeout=timeout, context=_SSL_CTX) as resp:
-            return resp.status, ""
-    except urllib.error.HTTPError as exc:
-        return exc.code, ""
-    except Exception as exc:  # noqa: BLE001
-        return None, f"{type(exc).__name__}: {exc}"
+    last = (None, "")
+    for attempt in range(retries):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout, context=_SSL_CTX) as resp:
+                return resp.status, ""
+        except urllib.error.HTTPError as exc:
+            last = (exc.code, "")
+            if exc.code == 429 and attempt < retries - 1:
+                time.sleep(3 * (attempt + 1))
+                continue
+            return last
+        except Exception as exc:  # noqa: BLE001
+            last = (None, f"{type(exc).__name__}: {exc}")
+            if attempt < retries - 1:
+                time.sleep(2 * (attempt + 1))
+                continue
+    return last
 
 
 # --------------------------------------------------------------------------- #
@@ -392,7 +450,7 @@ def discover_series(warnings):
     return found
 
 
-def markets_for_series(series_map, status, warnings, max_series_per_topic=250):
+def markets_for_series(series_map, status, warnings, max_series_per_topic=250, retry_failed=True):
     """Fetch markets for the discovered series of each topic, concurrently.
 
     Series are prioritised by Kalshi's own `last_updated_ts` so the most active
@@ -412,23 +470,47 @@ def markets_for_series(series_map, status, warnings, max_series_per_topic=250):
         ticker, meta = job
         url = f"{PROD_BASE}/markets?series_ticker={urllib.parse.quote(ticker)}&status={status}&limit=1000"
         try:
-            data = http_json(url, retries=3)
+            data = http_json(url, retries=5)
         except ApiError as exc:
             return ticker, meta, [], str(exc)
         return ticker, meta, data.get("markets") or [], None
 
     out = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as pool:
-        futures = [pool.submit(fetch_one, job) for job in jobs]
-        for fut in concurrent.futures.as_completed(futures):
-            ticker, meta, rows, error = fut.result()
-            if error:
-                warnings.append(f"Markets failed for series {ticker} ({status}): {error}")
-                continue
-            for row in rows:
-                row["series_ticker"] = ticker
-                row["_series_meta"] = meta
-                out.append(row)
+    failed = []
+
+    def drain(batch):
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+            futures = [pool.submit(fetch_one, job) for job in batch]
+            for fut in concurrent.futures.as_completed(futures):
+                ticker, meta, rows, error = fut.result()
+                if error:
+                    failed.append((ticker, meta, error))
+                    continue
+                for row in rows:
+                    row["series_ticker"] = ticker
+                    row["_series_meta"] = meta
+                    out.append(row)
+
+    attempted = len(jobs)
+    drain(jobs)
+    # One paced retry pass: a transient 429 must not silently delete a whole
+    # series (and with it every market, candle and alert for that series).
+    if failed and retry_failed:
+        retry_jobs = [(t, m) for t, m, _ in failed]
+        print(f"  [retry] {len(retry_jobs)} series failed ({status}); retrying once, paced")
+        failed.clear()
+        time.sleep(5)
+        drain(retry_jobs)
+        for ticker, _meta, error in failed:
+            warnings.append(f"Markets failed for series {ticker} ({status}): {error}")
+        still_failing = len(failed)
+        warnings.append(
+            f"Rate limit: {attempted - still_failing} of {attempted} {status} series returned data after "
+            f"the paced retry pass; {still_failing} still failed and are excluded from this snapshot."
+        )
+    elif failed:
+        for ticker, _meta, error in failed:
+            warnings.append(f"Markets failed for series {ticker} ({status}): {error}")
     return out
 
 
@@ -500,7 +582,9 @@ def select_topics(open_markets, settled_markets, warnings):
                 "event_ticker": event_ticker,
                 "topic": topic,
                 "volume_total": round(sum(x["volume"] for x in members), 2),
-                "market_count_tracked": len(members),
+                # Number of markets published for this event (not the number that exist):
+                # only `per_event` markets per event are published, so this is not "all markets".
+                "market_count_tracked": added,
             })
     return markets_out, selected_events, by_topic
 
@@ -775,10 +859,23 @@ def build_resolutions(settled_by_topic, events_by_ticker, limit_per_topic=12, wa
     return rows
 
 
-def demo_spot_check(markets, warnings):
-    """Compare a few demo last prices with production to document divergence."""
+def demo_spot_check(markets, warnings, per_topic=2):
+    """Compare demo last prices with production to document divergence.
+
+    Sampled per topic (most-active market first) instead of taking the first N
+    rows of the whole list, which in practice were all gas-price contracts and
+    made the published comparison look like a single-topic check.
+    """
     rows = []
-    for m in markets[:8]:
+    sample = []
+    for topic in TOPIC_ORDER:
+        pool = sorted(
+            (m for m in markets if m.get("topic") == topic and m.get("status") == "active"),
+            key=lambda m: (m.get("volume_24h") or 0, m.get("volume") or 0),
+            reverse=True,
+        )
+        sample.extend(pool[:per_topic])
+    for m in sample:
         ticker = m["ticker"]
         try:
             data = http_json(f"{DEMO_BASE}/markets/{urllib.parse.quote(ticker)}")
@@ -796,6 +893,105 @@ def demo_spot_check(markets, warnings):
             warnings.append(f"Demo spot-check failed for {ticker}: {exc}")
         time.sleep(0.1)
     return rows
+
+
+def check_official_links(topics_meta, sample_events, warnings):
+    """HTTP-check every official link the site publishes.
+
+    Nothing here is assumed: the docs URLs the site cites, the Kalshi category
+    pages the topic cards link to, and a sample of the event pages behind the
+    published rows are all requested and their status codes recorded. A link
+    that does not answer is kept in the output with its measured status and
+    flagged, never silently presented as working.
+    """
+    rows = []
+
+    def add(kind, label, url):
+        status, note = http_status(url, timeout=20)
+        ok = status is not None and 200 <= status < 400
+        if not ok:
+            warnings.append(f"Official link not reachable ({status}): {url} {note}".strip())
+        rows.append({"kind": kind, "label": label, "url": url, "http_status": status, "reachable": ok})
+        time.sleep(0.05)
+
+    for key, url in SOURCES.items():
+        add("kalshi-docs", f"docs.{key}", url)
+    for topic in TOPIC_ORDER:
+        meta = topics_meta.get(topic) or {}
+        add("kalshi-category", f"{topic} category page", meta["kalshi_category_url"])
+    for ev in sample_events[:6]:
+        add("kalshi-event", ev.get("event_ticker") or "", ev.get("kalshi_url") or "")
+
+    reachable = sum(1 for r in rows if r["reachable"])
+    return {
+        "checked_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "total": len(rows),
+        "reachable": reachable,
+        "unreachable": len(rows) - reachable,
+        "note": "HTTP status codes measured by the snapshot job at build time. A non-200/3xx status is reported here rather than assumed working; the GitHub-hosted runner may see different blocking than your browser.",
+        "rows": rows,
+    }
+
+
+def refresh_cadence(warnings):
+    """Measure the real refresh cadence from the committed run history.
+
+    The cron in .github/workflows/refresh-data.yml asks for every 30 minutes, but
+    GitHub only guarantees best-effort scheduling and this repository's runs have
+    been much further apart. Rather than claim a cadence the site does not
+    deliver, the measured gaps are computed here and published.
+    """
+    out = {
+        "source": "assets/data/refresh-history.json (appended by the GitHub Actions refresh job)",
+        "requested_cron": "*/30 * * * * (every 30 minutes, best effort on GitHub-hosted runners)",
+        "runs_recorded": 0,
+    }
+    if not REFRESH_HISTORY_PATH.exists():
+        out["measured"] = None
+        out["note"] = "No run history yet; the first refresh after this change starts it."
+        return out
+    try:
+        history = json.loads(REFRESH_HISTORY_PATH.read_text())
+    except Exception as exc:  # noqa: BLE001
+        warnings.append(f"refresh-history.json unreadable: {exc}")
+        out["measured"] = None
+        return out
+    stamps = []
+    for item in history if isinstance(history, list) else history.get("runs", []):
+        raw = item.get("at") if isinstance(item, dict) else item
+        if not raw:
+            continue
+        try:
+            stamps.append(datetime.fromisoformat(str(raw).replace("Z", "+00:00")))
+        except ValueError:
+            continue
+    stamps.sort()
+    out["runs_recorded"] = len(stamps)
+    if len(stamps) >= 2:
+        gaps = [
+            (stamps[i + 1] - stamps[i]).total_seconds() / 3600
+            for i in range(len(stamps) - 1)
+            if 0 < (stamps[i + 1] - stamps[i]).total_seconds() < 7 * 86400
+        ]
+        if gaps:
+            gaps_sorted = sorted(gaps)
+            out["measured"] = {
+                "runs_used": len(gaps) + 1,
+                "first_run": stamps[0].strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "last_run": stamps[-1].strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "median_gap_hours": round(gaps_sorted[len(gaps_sorted) // 2], 2),
+                "mean_gap_hours": round(sum(gaps) / len(gaps), 2),
+                "max_gap_hours": round(max(gaps), 2),
+                "min_gap_hours": round(min(gaps), 2),
+                "gaps_under_one_hour": sum(1 for g in gaps if g < 1),
+                "gap_count": len(gaps),
+            }
+            out["note"] = (
+                "Measured from this repository's own commit history. GitHub Actions cron is best-effort, "
+                "so the delivered cadence is slower than the requested cron; the dashboard shows the "
+                "snapshot age so a stale snapshot is visible."
+            )
+    return out
 
 
 # --------------------------------------------------------------------------- #
@@ -855,20 +1051,37 @@ def audit_legacy(warnings):
             except ApiError:
                 row["api_event_found"] = False
         if claim.get("url"):
-            status, note = http_status(claim["url"], timeout=15)
+            status, note = http_status(claim["url"], timeout=20)
             row["url_http_status"] = status
-            if note:
+            if status == 429:
+                row["notes"].append(
+                    "kalshi.com rate-limited the audit runner (HTTP 429), so this page's status is "
+                    "unmeasured this run — not broken."
+                )
+            elif note:
                 row["notes"].append(f"URL check note: {note}")
+            time.sleep(0.3)
         rows.append(row)
         time.sleep(0.15)
 
     found = sum(1 for r in rows if r["api_found"])
+    event_only = sum(1 for r in rows if r["api_event_found"] and not r["api_found"])
+    absent = len(rows) - found - event_only
     summary = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "api_base": PROD_BASE,
         "claims_checked": len(rows),
         "claims_found_in_api": found,
+        "claims_found_as_market": found,
+        "claims_found_as_event_only": event_only,
+        "claims_absent_from_api": absent,
         "claims_not_found_in_api": len(rows) - found,
+        "note": (
+            "Three outcomes are reported separately because they mean different things: "
+            "'market' = GET /markets/{ticker} returned a market record (the claim can be checked as a market); "
+            "'event-only' = the ticker is a Kalshi EVENT ticker, so it exists on Kalshi but the claimed market-level "
+            "price/volume cannot be true; 'absent' = neither a market nor an event answered."
+        ),
         "method": "For each previous-dataset claim, GET /markets/{ticker} was requested on the official production Trade API. 'api_found' is false when Kalshi returned 404 (no such market). Claimed volumes are NOT re-used anywhere on the current site.",
         "rows": rows,
     }
@@ -970,14 +1183,18 @@ def main():
             ), 2
         )
         ev["kalshi_url"] = f"https://kalshi.com/events/{ev['event_ticker']}"
+        # Resolution counters are counted over *settled* markets of this event, not over
+        # the (still open) markets above, which by definition have no result yet.
         ev["resolved_yes"] = sum(
-            1 for m in markets
+            1 for m in settled_markets
             if m["event_ticker"] == ev["event_ticker"] and (m.get("result") or "").lower() == "yes"
         )
         ev["resolved_no"] = sum(
-            1 for m in markets
+            1 for m in settled_markets
             if m["event_ticker"] == ev["event_ticker"] and (m.get("result") or "").lower() == "no"
         )
+        ev["markets_published"] = ev["market_count"]
+        ev["est_dollars_method"] = "sum over published markets of volume_fp x last_price_dollars (estimate; Kalshi publishes contract volume, not dollar volume)"
 
     topics_meta = {}
     for topic in TOPIC_ORDER:
@@ -988,11 +1205,21 @@ def main():
             "inclusion_rule": rule["why"],
             "prefixes": rule["prefixes"],
             "keywords": rule["keywords"],
-            "kalshi_category_url": f"https://kalshi.com/category/{'sports/golf' if topic == 'golf' else topic}",
+            "kalshi_category_url": KALSHI_TOPIC_PAGE[topic],
             "reference_links": reference_links.get(topic, []),
             "market_count": sum(1 for m in markets if m["topic"] == topic),
             "event_count": sum(1 for e in events if e["topic"] == topic),
         }
+
+    # Measured (not assumed) official-link status and refresh cadence.
+    by_volume = sorted(events_by_ticker.values(), key=lambda e: e.get("volume_total") or 0, reverse=True)
+    official_links = check_official_links(topics_meta, by_volume, warnings)
+    for topic in TOPIC_ORDER:
+        page_url = topics_meta[topic]["kalshi_category_url"]
+        match = next((r for r in official_links["rows"] if r["url"] == page_url), None)
+        topics_meta[topic]["kalshi_category_http_status"] = match["http_status"] if match else None
+        topics_meta[topic]["kalshi_category_reachable"] = bool(match and match["reachable"])
+    cadence = refresh_cadence(warnings)
 
     deduped_warnings = []
     for w in warnings:
@@ -1034,6 +1261,14 @@ def main():
         "alerts": alerts,
         "resolutions": resolutions,
         "demo_spot_check": demo_rows,
+        "official_links": official_links,
+        "refresh_cadence": cadence,
+        "warning_summary": {
+            "total": len(warnings),
+            "rate_limited_series": sum(1 for w in warnings if "429" in w or "too_many_requests" in w),
+            "unreachable_official_links": official_links["unreachable"],
+            "note": "429 entries mean the public API throttled the refresh for that series; the retry pass above records what recovered. Nothing is filled in for a failed request.",
+        },
         "warnings": warnings,
     }
 
