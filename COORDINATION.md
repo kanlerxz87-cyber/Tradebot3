@@ -2,9 +2,9 @@
 
 > **Repository:** `kanlerxz87-cyber/Tradebot3`
 > **Live site (GitHub Pages):** https://kanlerxz87-cyber.github.io/Tradebot3/
-> **Active session ID:** `arena-a42a7383` (previous: `arena-cd42444b`, merged as PR #20–#22)
-> **Working branch:** `arena/a42a7383-tradebot3` (Arena session branch, branched from `0560402` on `main`)
-> **Last updated:** 2026-11-27 (UTC)
+> **Active session ID:** `arena-fefb55e4` (previous: `arena-a42a7383` PR #23–#24; `arena-cd42444b` PR #20–#22)
+> **Working branch:** `arena/fefb55e4-tradebot3` (Arena session branch, branched from `aae723dac5b8145adffe0316dbcda175c32bfce7` on `main`)
+> **Last updated:** 2026-11-28 (UTC)
 
 ## Protocol notes
 
@@ -227,3 +227,22 @@ runner's own checks and overwrites the block written here.
   blank before IRREG-34.
 - Follow-up commit on the same branch: CI step order corrected (the enricher must add the audited blocks before the
   gate that requires them); verified locally by removing the blocks and confirming the gate fails.
+
+---
+
+# Session `arena-fefb55e4` — 2026-11-28
+
+**Claimed at:** 2026-11-28 (UTC). Read `COORDINATION.md` and checked `origin` branches/PRs before editing: no active
+parallel session claim (`main` is at `aae723dac5b8145adffe0316dbcda175c32bfce7`, scheduled snapshot refresh
+2026-11-28T02:52Z). All work in this session stays strictly on `arena/fefb55e4-tradebot3` with non-overlapping task
+scopes claimed below prior to editing any target file.
+
+| Task | Description | Status | Owner | Branch | File scope |
+| --- | --- | --- | --- | --- | --- |
+| T-30 | Full-catalog Kalshi event discovery (`GET /events?status=open&limit=200&with_nested_markets=true`) so multi-100M-contract events (`KXPRESNOMD-28`, `KXPRESPERSON-28`, `KXPRESNOMR-28`, etc.) are never dropped by the 250-series `last_updated_ts` cap; tighten 5-topic rules; fix 24h 1m swing scan truncation, `event_title: null` wipe, `est_dollars` method note, `gaps_under_one_hour` key mismatch, 429 link-check pacing, and workflow step order | `in_progress` | `arena-fefb55e4` | `arena/fefb55e4-tradebot3` | `scripts/fetch_kalshi_data.py`, `scripts/enrich_snapshot.py`, `.github/workflows/refresh-data.yml`, `assets/data/snapshot.json` |
+| T-31 | Fix broken footer links on all 5 `categories/*.html` pages (`core.js`), unify candle mark-price (`candleMark`) across chart/swings/backtest, add live `20s` (seconds) X-axis timeframe + Y-axis contract liquidity depth overlay, strip raw Markdown `**` in displayed titles, and make `PaperAccount` honour live/top-of-book quotes | `in_progress` | `arena-fefb55e4` | `arena/fefb55e4-tradebot3` | `assets/js/{core,market-data,chart,paper,strategy,alerts,orderbook}.js`, `assets/css/styles.css` |
+| T-32 | Fix Demo API request signing path bug (`/trade-api/v2/portfolio/positions` & `/fills`), add verified Create Order V2 (`POST /trade-api/v2/portfolio/events/orders`) demo execution & structured demo balance/positions/fills rendering, fix `1h` vs `1m` alert source labels, and render official source links on every dynamic table row | `in_progress` | `arena-fefb55e4` | `arena/fefb55e4-tradebot3` | `assets/js/{portfolio,dashboard,category,verification,flagged}.js` |
+| T-33 | Line-by-line HTML & docs verification: ensure every static/dynamic table row links to an official source, remove contradictory RSA-only warning, reconcile candle window & mark-price docs, update Executive Summary, and publish IRREG-36…IRREG-42 on `flagged-for-review.html` | `in_progress` | `arena-fefb55e4` | `arena/fefb55e4-tradebot3` | `index.html`, `portfolio.html`, `verification.html`, `flagged-for-review.html`, `executive-summary.html`, `categories/*.html`, `README.md`, `EXECUTIVE_SUMMARY.md` |
+| T-34 | Expand automated gates (`verify_site.py`, `test_modules.mjs`, `render_pages.mjs`) to verify rendered-DOM links across all 10 pages, source links on every rendered table row, `candleMark`, `20s` timeframe, live top-of-book paper fills, and `/trade-api/v2/...` demo signing paths | `in_progress` | `arena-fefb55e4` | `arena/fefb55e4-tradebot3` | `scripts/{verify_site.py,test_modules.mjs,render_pages.mjs}` |
+| T-35 | Open PR to `main`, merge immediately, verify GitHub Actions live Kalshi snapshot refresh + GitHub Pages deployment, and record PR/merge result in `COORDINATION.md` | `planned` | `arena-fefb55e4` | `arena/fefb55e4-tradebot3` | `COORDINATION.md` |
+
