@@ -29,6 +29,7 @@ import datetime as dt
 import json
 import statistics
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -53,7 +54,9 @@ OFFICIAL_LINKS = [
     ('kalshi-docs', 'Get market candlesticks', 'https://docs.kalshi.com/api-reference/market/get-market-candlesticks'),
     ('kalshi-docs', 'Historical data', 'https://docs.kalshi.com/getting_started/historical_data'),
     ('kalshi-docs', 'Get balance', 'https://docs.kalshi.com/api-reference/portfolio/get-balance'),
+    ('kalshi-docs', 'Create order V2', 'https://docs.kalshi.com/api-reference/orders/create-order-v2'),
     ('kalshi-category', 'Gas prices -> Economics category (gas contracts are filed there)', 'https://kalshi.com/category/economics'),
+    ('kalshi-category', 'Gas prices -> Oil & Energy subcategory', 'https://kalshi.com/category/economics/oil-and-energy'),
     ('kalshi-category', 'Elections category', 'https://kalshi.com/category/elections'),
     ('kalshi-category', 'Culture category', 'https://kalshi.com/category/culture'),
     ('kalshi-category', 'Crypto category', 'https://kalshi.com/category/crypto'),
@@ -69,31 +72,64 @@ def now_iso() -> str:
 
 
 def check_url(url: str) -> dict:
-    """Return a measurement, not a verdict: status 0 means no response at all."""
-    req = urllib.request.Request(url, headers={"User-Agent": "Tradebot3-link-check/1.0"})
-    try:
-        with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as resp:
-            return {"http_status": resp.status, "reachable": 200 <= resp.status < 400}
-    except urllib.error.HTTPError as exc:
-        return {"http_status": exc.code, "reachable": False}
-    except Exception as exc:  # DNS, TLS, timeout — all are "no answer"
-        return {"http_status": None, "reachable": False, "error": type(exc).__name__}
+    """Return a measurement, not a verdict: status None means no response at all."""
+    if "kalshi.com/" in url:
+        time.sleep(0.65)
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (compatible; Tradebot3-link-check/2.0)",
+        "Accept": "text/html,application/json;q=0.9,*/*;q=0.8",
+    })
+    for attempt in range(2):
+        try:
+            with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as resp:
+                return {"http_status": resp.status, "reachable": 200 <= resp.status < 400}
+        except urllib.error.HTTPError as exc:
+            if exc.code == 429 and attempt == 0:
+                time.sleep(3.0)
+                continue
+            out = {"http_status": exc.code, "reachable": False}
+            if exc.code == 429:
+                out["throttled"] = True
+                out["note"] = "HTTP 429 rate-limited by host during unauthenticated batch check"
+            return out
+        except Exception as exc:  # DNS, TLS, timeout — all are "no answer"
+            if attempt == 0:
+                time.sleep(1.0)
+                continue
+            return {"http_status": None, "reachable": False, "error": type(exc).__name__}
+    return {"http_status": None, "reachable": False}
 
 
 def build_official_links(previous: dict | None = None) -> dict:
-    """Measure every link. If the network is unavailable here, keep the last real
-    measurement and say so rather than publishing a fake failure."""
+    """Measure every link. Reuse fresh 2xx measurements taken minutes earlier by
+    fetch_kalshi_data.py so back-to-back checks do not self-throttle kalshi.com."""
     previous_rows = {r["url"]: r for r in (previous or {}).get("rows", [])}
+    prev_checked_at = (previous or {}).get("checked_at")
+    fresh_prev = False
+    if prev_checked_at:
+        try:
+            prev_dt = dt.datetime.fromisoformat(str(prev_checked_at).replace("Z", "+00:00"))
+            fresh_prev = (dt.datetime.now(dt.timezone.utc) - prev_dt).total_seconds() < 900
+        except ValueError:
+            fresh_prev = False
+
     rows = []
     for kind, label, url in OFFICIAL_LINKS:
-        measured = check_url(url)
         prev_row = previous_rows.get(url)
+        if fresh_prev and prev_row and prev_row.get("reachable") and prev_row.get("http_status"):
+            rows.append({
+                "kind": kind, "label": label, "url": url,
+                "http_status": prev_row["http_status"],
+                "reachable": True,
+            })
+            continue
+        measured = check_url(url)
         if measured.get("http_status") is None and prev_row and prev_row.get("http_status"):
             carried = {
                 "kind": kind, "label": label, "url": url,
                 "http_status": prev_row["http_status"],
                 "reachable": prev_row["reachable"],
-                "carried_from": (previous or {}).get("checked_at"),
+                "carried_from": prev_checked_at,
                 "note": "no response from this runner; last real measurement retained",
             }
             rows.append(carried)
@@ -103,14 +139,15 @@ def build_official_links(previous: dict | None = None) -> dict:
     return {
         "checked_at": now_iso(),
         "method": (
-            "Each URL was requested by this checker. HTTP 200 = answered at check time; "
-            "http_status null means no response was received and is recorded as such, "
-            "never as success."
+            "Each URL was requested by this checker (paced to avoid unauthenticated 429 bursts). "
+            "HTTP 200 = answered at check time; HTTP 429 = rate-limited by host; "
+            "http_status null means no response was received and is recorded as such, never as success."
         ),
         "total": len(rows),
         "carried_forward": carried,
         "measured_now": len(rows) - carried,
         "reachable": sum(1 for r in rows if r["reachable"]),
+        "throttled": sum(1 for r in rows if r.get("http_status") == 429),
         "unreachable": sum(1 for r in rows if not r["reachable"]),
         "rows": rows,
     }
@@ -137,6 +174,7 @@ def build_cadence() -> dict:
             "mean_gap_hours": round(statistics.fmean(gaps), 2),
             "min_gap_hours": min(gaps),
             "max_gap_hours": max(gaps),
+            "gaps_under_one_hour": sum(1 for g in gaps if g < 1),
             "gaps_under_1h": sum(1 for g in gaps if g < 1),
         }
     return {
@@ -165,19 +203,36 @@ def mark_price(bar: list) -> tuple[float | None, str | None]:
 
 
 def reclassify_alerts(snap: dict) -> int:
-    """Rebuild alerts from the stored candles with the documented price rule.
+    """Rebuild alerts from the stored candles with the documented price rule,
+    preserving official event_title and any pre-publish-window 24h 1m alerts.
 
     Returns the number of alerts changed. If the snapshot carries no candle
     series, existing alerts keep their labels but are never left unlabelled.
     """
     changed = 0
-    markets = {m["ticker"]: m for m in snap.get("markets", [])}
+    events_by_ticker = {
+        e["event_ticker"]: e
+        for e in snap.get("events", [])
+        if e.get("event_ticker")
+    }
+    markets = {}
+    for m in snap.get("markets", []):
+        ev_title = m.get("event_title") or events_by_ticker.get(m.get("event_ticker"), {}).get("title")
+        if ev_title:
+            m["event_title"] = ev_title
+        markets[m["ticker"]] = m
+
     rebuilt = []
     largest = {"abs": 0.0}
+    publish_cutoffs = {}
     for m in snap.get("markets", []):
         candles = m.get("candles")
         if not candles:
             continue
+        m1_bars = candles.get("m1") or []
+        if m1_bars:
+            publish_cutoffs[m["ticker"]] = candles.get("publish_m1_start_ts") or m1_bars[0][0]
+        ev_title = m.get("event_title") or events_by_ticker.get(m.get("event_ticker"), {}).get("title")
         for label, key, step in (("1m", "m1", 60), ("1h", "h1", 3600)):
             prev = None
             for bar in candles.get(key) or []:
@@ -201,7 +256,7 @@ def reclassify_alerts(snap: dict) -> int:
                             "detected_from": f"Kalshi candlestick close-to-close ({label})",
                             "ts": ts, "iso_time": stamp, "ticker": m["ticker"],
                             "event_ticker": m.get("event_ticker"), "topic": m["topic"],
-                            "title": m.get("title"), "event_title": m.get("event_title"),
+                            "title": m.get("title"), "event_title": ev_title,
                             "from_price": prev[1], "to_price": mark,
                             "price_basis": basis, "quote_only": quote_only, "delta": delta,
                             "direction": "up" if delta > 0 else "down",
@@ -210,6 +265,30 @@ def reclassify_alerts(snap: dict) -> int:
                             "kalshi_url": m.get("kalshi_url"), "candles_url": candles.get("source_url"),
                         })
                 prev = (ts, mark, price)
+
+    # Preserve 1m alerts detected in the 6h..24h lookback window before m1 was trimmed to 6h
+    for existing in snap.get("alerts", []):
+        if "(1m)" not in str(existing.get("detected_from") or ""):
+            continue
+        cutoff_ts = publish_cutoffs.get(existing.get("ticker"))
+        if cutoff_ts and (existing.get("ts") or 0) <= cutoff_ts and existing.get("price_basis"):
+            ev_title = existing.get("event_title") or events_by_ticker.get(existing.get("event_ticker"), {}).get("title")
+            kept_row = {**existing, "event_title": ev_title}
+            rebuilt.append(kept_row)
+            if abs(existing.get("delta") or 0) > largest["abs"]:
+                largest = {
+                    "abs": abs(existing["delta"]),
+                    "delta": existing["delta"],
+                    "ticker": existing["ticker"],
+                    "topic": existing["topic"],
+                    "ts": existing["ts"],
+                    "iso_time": existing.get("iso_time"),
+                    "from_price": existing.get("from_price"),
+                    "to_price": existing.get("to_price"),
+                    "price_basis": existing.get("price_basis"),
+                    "quote_only": bool(existing.get("quote_only")),
+                    "interval": "1m",
+                }
 
     if rebuilt:
         rebuilt.sort(key=lambda a: (a["ts"] or 0), reverse=True)
@@ -227,8 +306,10 @@ def reclassify_alerts(snap: dict) -> int:
             snap.setdefault("stats", {})["alerts_published"] = len(out)
             snap["stats"]["largest_move"] = largest
 
-    # Never leave an alert without its basis label.
+    # Never leave an alert without its basis label or event_title when known.
     for a in snap.get("alerts", []):
+        if not a.get("event_title"):
+            a["event_title"] = events_by_ticker.get(a.get("event_ticker"), {}).get("title")
         if not a.get("price_basis"):
             a["price_basis"] = "trade close" if a.get("detected_from", "").startswith("Kalshi") else "unknown"
         a.setdefault("quote_only", False)
@@ -290,18 +371,21 @@ def build_warning_summary(snap: dict) -> dict:
 def build_method_notes() -> dict:
     return {
         "alerts": (
-            "A move is flagged when two consecutive candle closes differ by at least $0.10 either way. A candle is "
-            "priced at its last trade close when the bar traded, otherwise the mid of its closing bid and ask, "
-            "otherwise whichever quote exists — one basis per bar, published as price_basis. quote_only marks a move "
-            "where neither bar contained a trade, i.e. the change comes from quotes alone."
+            "A move is flagged when two consecutive candle marks differ by at least $0.10 either way "
+            "(24h 1-minute candles and 72h 1-hour candles). A candle is priced at its last trade close when "
+            "the bar traded, otherwise the mid of its closing bid and ask, otherwise whichever quote exists "
+            "— one basis per bar, published as price_basis. quote_only marks a move where neither bar contained "
+            "a trade, i.e. the change comes from quotes alone."
         ),
         "est_dollars": (
-            "The 'highest dollar amount' column is 24h volume multiplied by the current contract price and is labelled "
-            "an estimate; Kalshi's public API does not expose a dollar value traded per market, so no such figure is "
-            "published as if it were official."
+            "Events are ranked by official contract volume (sum of volume_fp across the event's markets) or "
+            "by estimated dollar notional (sum of volume_fp x last_price_dollars across published markets), "
+            "clearly labelled an estimate because Kalshi's public API exposes contract volume rather than "
+            "cumulative dollar turnover."
         ),
         "paper": (
-            "Paper entries fill at the ask, marks and exits use the bid, and settlement pays $1.00 or $0.00 from the "
+            "Paper entries fill at the actionable ask (live 20s quote when present, else orderbook snapshot, "
+            "else last trade), marks and exits use the bid, and settlement pays $1.00 or $0.00 from the "
             "official result or the resolution table — the source used is recorded on the position."
         ),
     }
@@ -329,7 +413,19 @@ def main() -> int:
     if not args.offline or not previous_links.get("rows"):
         snap["official_links"] = build_official_links(previous_links)
     else:
+        for r in previous_links.get("rows", []):
+            if r.get("http_status") == 429 and not r.get("note"):
+                r["throttled"] = True
+                r["note"] = "HTTP 429 rate-limited by host during unauthenticated batch check"
+        previous_links["throttled"] = sum(
+            1 for r in previous_links.get("rows", []) if r.get("http_status") == 429
+        )
         snap["official_links"] = previous_links
+    snap.setdefault("metrics", {})["swing_definition"] = (
+        "Absolute change between consecutive candle marks (last trade close when the bar traded, "
+        "else closing bid/ask mid, else closing ask or bid; quote_only=true when neither bar traded) "
+        "of at least $0.10 per contract."
+    )
     snap["refresh_cadence"] = build_cadence()
     changed = reclassify_alerts(snap)
     # Copy the measured status of each topic's category page onto the topic, so a

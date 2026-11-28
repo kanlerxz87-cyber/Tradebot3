@@ -16,7 +16,22 @@ export function renderOrderbook(container, market, { onLevelClick } = {}) {
   }
   const ob = market.orderbook;
   if (!ob) {
-    container.append(el('div', { class: 'table-empty', text: 'No orderbook snapshot in this data refresh for this market.' }));
+    const hasQuote = isNum(market.yes_bid) || isNum(market.yes_ask);
+    container.append(
+      el('div', { class: 'table-empty' },
+        'No 10-level orderbook snapshot in this data refresh for this contract.',
+        hasQuote
+          ? el('div', { class: 'small', style: 'margin-top:6px' },
+            `Top-of-book (GET /markets): bid ${fmtPrice(market.yes_bid)}${isNum(market.yes_bid_size) ? ` (${fmtContracts(market.yes_bid_size)} ct)` : ''} · ask ${fmtPrice(market.yes_ask)}${isNum(market.yes_ask_size) ? ` (${fmtContracts(market.yes_ask_size)} ct)` : ''}`,
+          )
+          : null,
+        market.api_url
+          ? el('div', { class: 'tiny', style: 'margin-top:6px' },
+            el('a', { href: market.api_url, target: '_blank', rel: 'noopener noreferrer', text: 'Inspect official GET /markets record ↗' }),
+          )
+          : null,
+      ),
+    );
     return;
   }
 

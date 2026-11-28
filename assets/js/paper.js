@@ -7,10 +7,14 @@
  * is flagged with `price_source: 'last trade (no book)'`.
  */
 
-import { isNum, loadJson, saveJson } from './core.js';
+import { SITE, isNum, loadJson, saveJson } from './core.js';
 
 const KEY = 'tradebot3.paper.v2';
 export const STARTING_CASH = 10000;
+
+function validBookQuote(v) {
+  return isNum(v) && v > 0 && v < 1;
+}
 
 export class PaperAccount {
   constructor(data) {
@@ -44,25 +48,42 @@ export class PaperAccount {
 
   /**
    * Quote for an action: buying lifts the ask, selling hits the bid.
-   * Using the bid for marks/exits keeps P&L honest about the spread.
+   * Priority:
+   *   1. Fresh 20s live-polled quote (`market._liveQuoteAt`) when actionable (0 < p < 1)
+   *   2. Orderbook snapshot (`market.orderbook`)
+   *   3. Snapshot `GET /markets` top-of-book quote when actionable (0 < p < 1)
+   *   4. Last trade price fallback (`last_price`)
    */
   priceFor(ticker, side, action = 'buy') {
     const market = this.data.byTicker.get(ticker);
     if (!market) return null;
     const ob = market.orderbook;
     const buying = action === 'buy';
+    const hasLive = Boolean(market._liveQuoteAt);
     if (side === 'YES') {
+      if (hasLive && buying && validBookQuote(market.yes_ask)) return { price: market.yes_ask, source: 'live quote ask' };
+      if (hasLive && !buying && validBookQuote(market.yes_bid)) return { price: market.yes_bid, source: 'live quote bid' };
       if (buying && isNum(ob?.best_yes_ask)) return { price: ob.best_yes_ask, source: 'orderbook ask' };
       if (!buying && isNum(ob?.best_yes_bid)) return { price: ob.best_yes_bid, source: 'orderbook bid' };
+      if (buying && validBookQuote(market.yes_ask)) return { price: market.yes_ask, source: 'market ask' };
+      if (!buying && validBookQuote(market.yes_bid)) return { price: market.yes_bid, source: 'market bid' };
       if (isNum(ob?.best_yes_ask)) return { price: ob.best_yes_ask, source: 'orderbook ask' };
       if (isNum(ob?.best_yes_bid)) return { price: ob.best_yes_bid, source: 'orderbook bid' };
+      if (validBookQuote(market.yes_ask)) return { price: market.yes_ask, source: 'market ask' };
+      if (validBookQuote(market.yes_bid)) return { price: market.yes_bid, source: 'market bid' };
       if (isNum(market.last_price)) return { price: market.last_price, source: 'last trade (no book)' };
       return null;
     }
+    if (hasLive && buying && validBookQuote(market.no_ask)) return { price: market.no_ask, source: 'live quote ask' };
+    if (hasLive && !buying && validBookQuote(market.no_bid)) return { price: market.no_bid, source: 'live quote bid' };
     if (buying && isNum(ob?.best_no_ask)) return { price: ob.best_no_ask, source: 'orderbook ask' };
     if (!buying && isNum(ob?.best_no_bid)) return { price: ob.best_no_bid, source: 'orderbook bid' };
+    if (buying && validBookQuote(market.no_ask)) return { price: market.no_ask, source: 'market ask' };
+    if (!buying && validBookQuote(market.no_bid)) return { price: market.no_bid, source: 'market bid' };
     if (isNum(ob?.best_no_ask)) return { price: ob.best_no_ask, source: 'orderbook ask' };
     if (isNum(ob?.best_no_bid)) return { price: ob.best_no_bid, source: 'orderbook bid' };
+    if (validBookQuote(market.no_ask)) return { price: market.no_ask, source: 'market ask' };
+    if (validBookQuote(market.no_bid)) return { price: market.no_bid, source: 'market bid' };
     if (isNum(market.last_price)) return { price: 1 - market.last_price, source: 'implied from last trade' };
     return null;
   }
@@ -94,6 +115,7 @@ export class PaperAccount {
       strategy,
       note,
       market_url: market.kalshi_url,
+      api_url: market.api_url || `${SITE.apiBase}/markets/${encodeURIComponent(ticker)}`,
     });
     this.save();
     this.recordEquity();

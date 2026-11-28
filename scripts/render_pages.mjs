@@ -141,6 +141,27 @@ for (const rel of PAGES) {
     }
   }
 
+  // Every rendered internal link (including JS-injected header/footer/table links)
+  // must resolve to an existing file on disk (IRREG-36 regression pin).
+  for (const a of doc.querySelectorAll('a[href]')) {
+    const href = a.getAttribute('href') || '';
+    if (!href || /^(https?:|mailto:|data:|#|javascript:)/.test(href)) continue;
+    const resolved = new URL(href, `https://kanlerxz87-cyber.github.io/Tradebot3/${rel}`);
+    const targetRel = decodeURIComponent(resolved.pathname).replace(/^\/Tradebot3\//, '').replace(/^\//, '');
+    const targetPath = path.join(ROOT, targetRel || 'index.html');
+    if (!fs.existsSync(targetPath) || fs.statSync(targetPath).isDirectory()) {
+      problems.push(`broken rendered link "${href}" -> ${targetRel}`);
+    }
+  }
+
+  // Every non-empty rendered table row must include at least one clickable source link.
+  for (const tr of doc.querySelectorAll('table.data tbody tr')) {
+    if (tr.querySelector('.table-empty')) continue;
+    if (!tr.querySelector('a[href]')) {
+      problems.push(`table row missing source link: "${(tr.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 70)}"`);
+    }
+  }
+
   const label = rel.padEnd(34);
   if (problems.length) {
     failures.push(`${rel}: ${problems.join(' | ')}`);

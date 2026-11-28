@@ -13,6 +13,7 @@ on:
     branches: ["main"]
     paths:
       - "scripts/fetch_kalshi_data.py"
+      - "scripts/enrich_snapshot.py"
       - "scripts/legacy_claims.json"
       - ".github/workflows/refresh-data.yml"
 
@@ -43,13 +44,38 @@ jobs:
           set -o pipefail
           python3 scripts/fetch_kalshi_data.py --demo-check --audit-legacy 2>&1 | tee /tmp/fetch.log
 
+      - name: Record this run in the refresh history
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+          from datetime import datetime, timezone
+          path = pathlib.Path("assets/data/refresh-history.json")
+          runs = []
+          if path.exists():
+              try:
+                  runs = json.loads(path.read_text())
+              except Exception:
+                  runs = []
+          if not isinstance(runs, list):
+              runs = runs.get("runs", [])
+          run = {
+              "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "event": "${{ github.event_name }}",
+              "sha": "${{ github.sha }}"[:12],
+              "run_id": "${{ github.run_id }}",
+          }
+          runs.append(run)
+          path.parent.mkdir(parents=True, exist_ok=True)
+          path.write_text(json.dumps(runs[-500:], indent=0))
+          print("recorded", run)
+          PY
+
       - name: Add the audited layer to the snapshot
         run: |
           # The fetch step writes measured data; this step adds the blocks the
           # site promises (official link status, measured cadence, resolution
-          # window, warning summary, alert price basis). It must run AFTER the
-          # data is fetched and BEFORE the commit, otherwise the next refresh
-          # silently drops them.
+          # window, warning summary, alert price basis). It runs AFTER
+          # refresh-history.json is appended so refresh_cadence is never 1 run stale.
           python3 scripts/enrich_snapshot.py
           python3 scripts/enrich_snapshot.py --check
 
@@ -101,33 +127,6 @@ jobs:
           git add -f assets/data/build-error.log
           git commit -m "ci: capture data build error" || true
           git push origin "HEAD:${GITHUB_REF_NAME}" || true
-
-      - name: Record this run in the refresh history
-        if: always()
-        run: |
-          python3 - <<'PY'
-          import json, pathlib
-          from datetime import datetime, timezone
-          path = pathlib.Path("assets/data/refresh-history.json")
-          runs = []
-          if path.exists():
-              try:
-                  runs = json.loads(path.read_text())
-              except Exception:
-                  runs = []
-          if not isinstance(runs, list):
-              runs = runs.get("runs", [])
-          run = {
-              "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-              "event": "${{ github.event_name }}",
-              "sha": "${{ github.sha }}"[:12],
-              "run_id": "${{ github.run_id }}",
-          }
-          runs.append(run)
-          path.parent.mkdir(parents=True, exist_ok=True)
-          path.write_text(json.dumps(runs[-500:], indent=0))
-          print("recorded", run)
-          PY
 
       - name: Commit refreshed snapshot
         if: success()

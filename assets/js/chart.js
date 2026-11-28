@@ -4,7 +4,7 @@
  * Renders >= $0.10 jump markers with clickable catalyst popovers.
  */
 
-import { fmtClock, fmtDate, fmtDelta, fmtPrice, esc } from './core.js';
+import { fmtClock, fmtClockHm, fmtDate, fmtDateTime, fmtDelta, fmtPrice, fmtContracts, cleanTitle, isNum, esc } from './core.js';
 
 const PAD = { left: 46, right: 14, top: 12, bottom: 26 };
 
@@ -14,7 +14,7 @@ export class PriceChart {
     this.ctx = canvas.getContext('2d');
     this.tooltipEl = tooltipEl;
     this.popoverEl = popoverEl;
-    this.data = { series: [], markers: [], label: '', priceLabel: 'YES price' };
+    this.data = { series: [], markers: [], orderbook: null, unit: 'minutes', label: '', priceLabel: 'YES price' };
     this.hover = null;
     this.markerHits = [];
     this._bind();
@@ -47,16 +47,17 @@ export class PriceChart {
     if (!this.popoverEl) return;
     const links = [];
     if (marker.kalshi_url) links.push(`<a href="${esc(marker.kalshi_url)}" target="_blank" rel="noopener noreferrer">Kalshi event page</a>`);
+    if (marker.candles_url) links.push(`<a href="${esc(marker.candles_url)}" target="_blank" rel="noopener noreferrer">Kalshi candlesticks API</a>`);
     for (const link of marker.catalyst_links || []) {
       links.push(`<a href="${esc(link.url)}" target="_blank" rel="noopener noreferrer">${esc(link.label)}</a>`);
     }
     this.popoverEl.innerHTML = `
       <h4>${marker.direction === 'up' ? '▲' : '▼'} ${fmtDelta(marker.delta)} move</h4>
-      <div class="tiny">${esc(marker.title || marker.ticker)}</div>
+      <div class="tiny">${esc(cleanTitle(marker.title || marker.ticker))}</div>
       <div class="tiny" style="margin-top:4px">
         ${fmtPrice(marker.from_price)} → ${fmtPrice(marker.to_price)} ·
-        ${new Date(marker.ts).toLocaleString('en-US', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
-        · ${esc(marker.interval || '')}
+        ${esc(fmtDateTime(marker.ts))} UTC
+        · ${esc(marker.interval || '')}${marker.price_basis ? ` · ${esc(marker.price_basis)}` : ''}
       </div>
       <ul>${links.map((l) => `<li>${l}</li>`).join('')}</ul>
       <div class="tiny" style="margin-top:6px">
@@ -107,12 +108,18 @@ export class PriceChart {
     }
 
     const t0 = series[0].t;
-    const t1 = Math.max(series[series.length - 1].t, t0 + 60000);
+    const minSpan = this.data.unit === 'seconds' ? 20000 : 60000;
+    const t1 = Math.max(series[series.length - 1].t, t0 + minSpan);
     const xOf = (t) => PAD.left + ((t - t0) / (t1 - t0)) * plotW;
 
-    // Y domain: pad around observed prices but stay within 0..1
+    // Y domain: pad around observed prices (plus nearby top-of-book) within 0..1
     let min = Math.min(...series.map((p) => p.price));
     let max = Math.max(...series.map((p) => p.price));
+    const ob = this.data.orderbook;
+    if (ob) {
+      if (isNum(ob.best_yes_bid) && Math.abs(ob.best_yes_bid - min) <= 0.15) min = Math.min(min, ob.best_yes_bid);
+      if (isNum(ob.best_yes_ask) && Math.abs(ob.best_yes_ask - max) <= 0.15) max = Math.max(max, ob.best_yes_ask);
+    }
     const pad = Math.max((max - min) * 0.15, 0.02);
     min = Math.max(0, min - pad);
     max = Math.min(1, max + pad);
@@ -136,9 +143,10 @@ export class PriceChart {
       ctx.fillText(`$${v.toFixed(2)}`, PAD.left - 6, y + 3);
     }
 
-    // x labels
+    // x labels (all UTC, with :SS resolution when viewing seconds / short spans)
     ctx.textAlign = 'center';
     const spanMs = t1 - t0;
+    const showSeconds = this.data.unit === 'seconds' || spanMs <= 10 * 60000;
     const ticks = 5;
     for (let i = 0; i <= ticks; i += 1) {
       const t = t0 + (spanMs * i) / ticks;
@@ -150,9 +158,30 @@ export class PriceChart {
       ctx.stroke();
       const label = spanMs > 2 * 86400000
         ? fmtDate(t)
-        : new Date(t).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        : showSeconds ? fmtClock(t) : fmtClockHm(t);
       ctx.fillStyle = '#94a3b8';
       ctx.fillText(label, x, h - 8);
+    }
+
+    // resting contract liquidity depth bars along the right Y-axis price levels
+    if (ob) {
+      const bidLevels = (ob.yes_bids || []).filter(([p, q]) => isNum(p) && isNum(q) && p >= min && p <= max);
+      const askLevels = (ob.no_bids || [])
+        .map(([p, q]) => [Math.round((1 - p) * 10000) / 10000, q])
+        .filter(([p, q]) => isNum(p) && isNum(q) && p >= min && p <= max);
+      const maxQty = Math.max(1, ...bidLevels.map(([, q]) => q), ...askLevels.map(([, q]) => q));
+      const maxBarW = Math.min(72, plotW * 0.2);
+      const rightEdge = w - PAD.right;
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.22)';
+      for (const [p, q] of bidLevels) {
+        const bw = Math.max(3, (q / maxQty) * maxBarW);
+        ctx.fillRect(rightEdge - bw, yOf(p) - 2.5, bw, 5);
+      }
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.20)';
+      for (const [p, q] of askLevels) {
+        const bw = Math.max(3, (q / maxQty) * maxBarW);
+        ctx.fillRect(rightEdge - bw, yOf(p) - 2.5, bw, 5);
+      }
     }
 
     // area + line
@@ -238,7 +267,15 @@ export class PriceChart {
         ctx.arc(nx, ny, 3, 0, Math.PI * 2);
         ctx.fill();
         if (this.tooltipEl) {
-          this.tooltipEl.innerHTML = `${fmtPrice(nearest.price)} · ${this.data.priceLabel}<br>${fmtClock(nearest.t)}`;
+          let depthLine = '';
+          if (ob) {
+            const hoverPrice = min + ((PAD.top + plotH - y) / plotH) * (max - min);
+            const bidMatch = (ob.yes_bids || []).find(([p]) => Math.abs(p - hoverPrice) <= 0.015);
+            const askMatch = (ob.no_bids || []).find(([p]) => Math.abs((1 - p) - hoverPrice) <= 0.015);
+            if (bidMatch) depthLine = `<br>YES bid depth @ ${fmtPrice(bidMatch[0])}: ${fmtContracts(bidMatch[1])} ct`;
+            else if (askMatch) depthLine = `<br>YES ask depth @ ${fmtPrice(1 - askMatch[0])}: ${fmtContracts(askMatch[1])} ct`;
+          }
+          this.tooltipEl.innerHTML = `${fmtPrice(nearest.price)} · ${esc(this.data.priceLabel)}<br>${fmtClock(nearest.t)} UTC${depthLine}`;
           this.tooltipEl.style.left = `${nx}px`;
           this.tooltipEl.style.top = `${Math.max(ny, 24)}px`;
           this.tooltipEl.classList.add('visible');

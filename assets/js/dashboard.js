@@ -5,7 +5,7 @@
 import {
   SITE, TOPICS, TOPIC_ORDER, initChrome, el, qs, qsa, toast,
   fmtUsd, fmtContracts, fmtPrice, fmtDelta, fmtNum, fmtDateTime, fmtDate, fmtClock, timeAgo,
-  esc, isNum, scoreMarket,
+  esc, cleanTitle, isNum, scoreMarket,
 } from './core.js';
 import { MarketData, TIMEFRAMES } from './market-data.js';
 import { PriceChart } from './chart.js';
@@ -84,7 +84,7 @@ function snapshotAlerts() {
   return data.alerts().map((a) => ({
     ...a,
     ts: typeof a.ts === 'number' ? a.ts * 1000 : Date.parse(a.iso_time),
-    source_note: 'from official 1m candles',
+    source_note: String(a.detected_from || '').includes('(1h)') ? 'from official 1h candles' : 'from official 1m candles',
     catalyst_links: (refsByTopic[a.topic]?.reference_links || []).filter((r) => r.reachable),
   }));
 }
@@ -96,7 +96,7 @@ function buildChrome() {
     const group = el('optgroup', { label: TOPICS[topic].name });
     const markets = data.marketsFor(topic).slice().sort((a, b) => (b.volume || 0) - (a.volume || 0));
     for (const m of markets) {
-      const label = `${(m.event_title || m.title || m.ticker).slice(0, 70)} · ${m.subtitle || ''} (${m.ticker})`;
+      const label = `${cleanTitle(m.event_title || m.title || m.ticker).slice(0, 70)} · ${m.subtitle || ''} (${m.ticker})`;
       group.append(el('option', { value: m.ticker, text: label }));
     }
     if (markets.length) select.append(group);
@@ -104,7 +104,7 @@ function buildChrome() {
 
   const tf = qs('#chart-tf');
   tf.innerHTML = '';
-  const frames = [{ id: 'live', label: 'Live · sec' }, ...TIMEFRAMES.map((t) => ({ id: t.id, label: t.label }))];
+  const frames = [{ id: 'live', label: '20s · sec' }, ...TIMEFRAMES.map((t) => ({ id: t.id, label: t.label }))];
   for (const frame of frames) {
     const btn = el('button', { type: 'button', text: frame.label, 'aria-pressed': String(frame.id === state.timeframe) });
     btn.addEventListener('click', () => {
@@ -253,7 +253,7 @@ function renderEventsTable() {
       : `<span class="badge badge-neutral">closed</span>`;
     const tr = el('tr');
     tr.innerHTML = `
-      <td class="title"><a class="row-link" href="${esc(ev.kalshi_url)}" target="_blank" rel="noopener noreferrer">${esc(ev.title || ev.event_ticker)}</a>
+      <td class="title"><a class="row-link" href="${esc(ev.kalshi_url)}" target="_blank" rel="noopener noreferrer">${esc(cleanTitle(ev.title || ev.event_ticker))}</a>
         <div class="ticker">${esc(ev.event_ticker)}</div></td>
       <td>${topicDot(ev.topic)}</td>
       <td class="num">${fmtContracts(ev.volume_total)}</td>
@@ -278,19 +278,20 @@ function renderResolutions() {
   const rows = data.resolutions().slice(0, 20);
   body.innerHTML = '';
   if (!rows.length) {
-    body.innerHTML = '<tr><td colspan="6" class="table-empty">No settlements captured in this refresh window.</td></tr>';
+    body.innerHTML = '<tr><td colspan="7" class="table-empty">No settlements captured in this refresh window.</td></tr>';
     return;
   }
   for (const r of rows) {
     const tr = el('tr');
     tr.innerHTML = `
       <td>${esc(fmtDate(r.close_time))}</td>
-      <td class="title"><a class="row-link" href="${esc(r.kalshi_url)}" target="_blank" rel="noopener noreferrer">${esc(r.event_title || r.title)}</a>
-        <div class="ticker">${esc(r.ticker)}</div></td>
+      <td class="title"><a class="row-link" href="${esc(r.kalshi_url)}" target="_blank" rel="noopener noreferrer">${esc(cleanTitle(r.event_title || r.title))}</a>
+        <div class="ticker">${esc(cleanTitle(r.title || ''))} · ${esc(r.ticker)}</div></td>
       <td>${topicDot(r.topic)}</td>
       <td><span class="badge badge-${String(r.result).toLowerCase() === 'yes' ? 'yes' : 'no'}">${esc(r.result)}</span></td>
       <td class="num">${isNum(r.settlement_value) ? `$${r.settlement_value.toFixed(2)}` : '—'}</td>
-      <td class="num">${fmtContracts(r.volume)}</td>`;
+      <td class="num">${fmtContracts(r.volume)}</td>
+      <td class="tiny"><a href="${esc(r.kalshi_url)}" target="_blank" rel="noopener noreferrer">Kalshi</a> · <a href="${esc(r.source_url || `${SITE.apiBase}/markets/${encodeURIComponent(r.ticker)}`)}" target="_blank" rel="noopener noreferrer">API</a></td>`;
     body.append(tr);
   }
 }
@@ -348,23 +349,32 @@ function drawChart() {
       catalyst_links: catalystLinks,
     }));
 
-  chart.setData({ series, markers, label: tfLabel, priceLabel: `${market.ticker} · ${tfLabel}` });
+  const unit = state.timeframe === 'live'
+    ? 'seconds'
+    : (state.timeframe === '1h' || state.timeframe === '6h' || state.timeframe === '1d') ? 'hours' : 'minutes';
+  chart.setData({
+    series,
+    markers,
+    orderbook: market.orderbook || null,
+    unit,
+    label: tfLabel,
+    priceLabel: `${market.ticker} · ${tfLabel}`,
+  });
 
   const meta = qs('#chart-meta');
   const price = data.bestPrice(market);
-  const ob = market.orderbook;
   const q = data.quoteFor(market);
   meta.innerHTML = `
     <div class="pill-row">
       <span class="badge ${market.status === 'active' ? 'badge-open' : 'badge-neutral'}">${esc(market.status || 'unknown')}</span>
       ${topicDot(market.topic)}
       <span class="badge badge-neutral">last ${fmtPrice(price)}</span>
-      <span class="badge badge-neutral" title="Quote source: ${esc(data.quoteFor(market).source)}">bid ${fmtPrice(q.bid)} / ask ${fmtPrice(q.ask)} · ${esc(data.quoteFor(market).source)}</span>
+      <span class="badge badge-neutral" title="Quote source: ${esc(q.source)}">bid ${fmtPrice(q.bid)} / ask ${fmtPrice(q.ask)} · ${esc(q.source)}</span>
       ${market.result ? `<span class="badge badge-${String(market.result).toLowerCase()}">resolved ${esc(String(market.result).toUpperCase())}</span>` : ''}
       <span class="tiny">closes ${esc(fmtDateTime(market.close_time))}</span>
       <span class="tiny"><a href="${esc(market.kalshi_url)}" target="_blank" rel="noopener noreferrer">Kalshi page</a> · <a href="${esc(market.api_url)}" target="_blank" rel="noopener noreferrer">API record</a></span>
     </div>
-    <div class="small" style="margin-top:4px">${esc(market.event_title || '')} — ${esc(market.title || '')}</div>`;
+    <div class="small" style="margin-top:4px">${esc(cleanTitle(market.event_title || ''))}${market.event_title && market.title ? ' — ' : ''}${esc(cleanTitle(market.title || ''))}</div>`;
 
   renderCatalysts(market, catalystLinks);
   renderOrderbook(qs('#orderbook-panel'), market, {

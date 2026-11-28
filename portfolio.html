@@ -93,7 +93,7 @@
         <div class="table-wrap">
           <table class="data">
             <thead>
-              <tr><th>Market</th><th>Topic</th><th>Side</th><th class="num">Qty</th><th class="num">Entry</th><th class="num">Mark</th><th class="num">P&amp;L</th><th class="num">ROI</th><th></th></tr>
+              <tr><th>Market</th><th>Topic</th><th>Side</th><th class="num">Qty</th><th class="num">Entry</th><th class="num">Mark</th><th class="num">P&amp;L</th><th class="num">ROI</th><th>Source</th><th></th></tr>
             </thead>
             <tbody id="positions-body"></tbody>
           </table>
@@ -113,7 +113,7 @@
         <div class="table-wrap">
           <table class="data">
             <thead>
-              <tr><th>Closed</th><th>Market</th><th>Topic</th><th>Category</th><th>Side</th><th class="num">Qty</th><th class="num">Entry → exit</th><th class="num">P&amp;L</th><th class="num">ROI</th><th>Reason</th></tr>
+              <tr><th>Closed</th><th>Market</th><th>Topic</th><th>Category</th><th>Side</th><th class="num">Qty</th><th class="num">Entry → exit</th><th class="num">P&amp;L</th><th class="num">ROI</th><th>Reason</th><th>Source</th></tr>
             </thead>
             <tbody id="trades-body"></tbody>
           </table>
@@ -152,8 +152,9 @@
       </div>
       <div class="card-body">
         <div class="callout callout-warn" style="margin-bottom:12px">
-          <strong>Read this first.</strong> The snapshot holds roughly two hours of 1-minute candles per tracked market, so
-          these are small-sample simulations, not evidence of a durable edge. Results are shown gross of fees.
+          <strong>Read this first.</strong> The snapshot publishes the most recent 6 hours of 1-minute candles per tracked market
+          (priced on a single mark basis: trade close, else closing bid/ask mid), so these are small-sample simulations, not
+          evidence of a durable edge. Results are shown gross of fees.
         </div>
         <div id="lab-grid" class="grid grid-2"></div>
         <div class="hr"></div>
@@ -171,15 +172,69 @@
             </div>
           </div>
           <div>
-            <h3>Build a strategy from a category</h3>
+            <h3>Create strategy by trade category</h3>
             <p class="small">
-              Once the trade log has data, sort the category table above by P&amp;L, then enable auto-trade with the
-              matching category. Because every fill is tagged with its category, you can compare the same market across
-              momentum, fade and model-filtered entries.
+              Define a custom strategy tied to a trade category and topic scope; it is immediately backtested on official
+              1-minute candles and added to the live auto-trade picker.
             </p>
-            <div class="callout callout-muted small">
-              Categories: Swing Mean-Reversion · Momentum Breakout · High-ROI Model · News Catalyst · Spread Capture · Manual
-            </div>
+            <form id="custom-strat-form">
+              <div class="form-row">
+                <div>
+                  <label class="field" for="cs-name">Strategy name</label>
+                  <input id="cs-name" type="text" placeholder="e.g. Crypto 12¢ Fade" required />
+                </div>
+                <div>
+                  <label class="field" for="cs-category">Trade category</label>
+                  <select id="cs-category">
+                    <option value="Swing Mean-Reversion">Swing Mean-Reversion</option>
+                    <option value="Momentum Breakout">Momentum Breakout</option>
+                    <option value="High-ROI Model">High-ROI Model</option>
+                    <option value="News Catalyst">News Catalyst</option>
+                    <option value="Longshot Value">Longshot Value</option>
+                    <option value="Spread Capture">Spread Capture</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row-3">
+                <div>
+                  <label class="field" for="cs-rule">Rule</label>
+                  <select id="cs-rule">
+                    <option value="fade">Fade move</option>
+                    <option value="follow">Follow move</option>
+                    <option value="model">Model 60+ follow</option>
+                    <option value="longshot">Longshot ≤15¢</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="field" for="cs-topic">Topic</label>
+                  <select id="cs-topic">
+                    <option value="all">All 5 topics</option>
+                    <option value="gas-prices">Gas Prices</option>
+                    <option value="elections">Elections</option>
+                    <option value="culture">Culture</option>
+                    <option value="crypto">Crypto</option>
+                    <option value="golf">Golf</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="field" for="cs-swing">Min swing ($)</label>
+                  <input id="cs-swing" type="number" min="0.05" max="0.90" step="0.01" value="0.10" />
+                </div>
+              </div>
+              <div class="form-row-3">
+                <div>
+                  <label class="field" for="cs-hold">Hold (1m bars)</label>
+                  <input id="cs-hold" type="number" min="1" max="120" step="1" value="5" />
+                </div>
+                <div>
+                  <label class="field" for="cs-stake">Stake ($)</label>
+                  <input id="cs-stake" type="number" min="10" max="2000" step="10" value="100" />
+                </div>
+                <div style="display:flex;align-items:flex-end">
+                  <button class="btn btn-primary" type="submit" style="width:100%">Save &amp; backtest</button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       </div>
@@ -187,22 +242,23 @@
 
     <section class="card" style="margin-top:14px" id="demo">
       <div class="card-head">
-        <h2>Kalshi demo account (optional, read-only)</h2>
+        <h2>Kalshi demo account (optional — mock funds only)</h2>
         <span class="badge badge-info">keys stay in browser memory</span>
       </div>
       <div class="card-body">
         <p class="small">
-          Create an API key in the Kalshi <strong>demo</strong> environment (demo keys do not work in production and vice
-          versa). Paste the Key ID and the private key PEM (RSA or Ed25519) below. The browser signs
-          <code>GET /trade-api/v2/portfolio/balance</code> with RSA-PSS (SHA-256, salt 32) exactly as
-          <a href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener noreferrer">Kalshi's API-key guide</a>
-          describes, and sends it to <code>https://external-api.demo.kalshi.co/trade-api/v2</code>. The private key is never
-          stored, logged or committed.
+          Create an API key in the Kalshi <strong>demo</strong> environment at
+          <a href="https://demo.kalshi.co/" target="_blank" rel="noopener noreferrer">demo.kalshi.co</a> (demo keys do not work
+          in production and vice versa). Paste the Key ID and private key PEM below — both <strong>Ed25519</strong>
+          (Kalshi's default PKCS#8 key) and <strong>RSA-PSS</strong> (2048-bit PKCS#8 or PKCS#1 wrapped automatically) are
+          detected and signed in browser memory over <code>timestamp + METHOD + /trade-api/v2/...</code> per
+          <a href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener noreferrer">Kalshi's API-key specification</a>,
+          targeting <code>https://external-api.demo.kalshi.co/trade-api/v2</code>. Your private key is never persisted or logged.
         </p>
         <div class="callout callout-warn small" style="margin-bottom:12px">
-          Two limits are worth knowing before you try: browsers cannot use Ed25519 keys through Web Crypto (RSA only), and
-          Kalshi's demo API may not send CORS headers, in which case the request is blocked by the browser. If that happens
-          the paper account still works normally — the message below will say so.
+          <strong>Browser CORS notice:</strong> Kalshi does not document cross-origin browser headers on
+          <code>external-api.demo.kalshi.co</code>. If your browser blocks direct authenticated calls due to CORS, the local
+          $10,000 paper account above continues to work with zero credentials required.
         </div>
         <div class="form-row">
           <div>
@@ -210,7 +266,7 @@
             <input id="demo-keyid" type="text" autocomplete="off" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
           </div>
           <div>
-            <label class="field" for="demo-pem">Private key (PEM) — RSA or Ed25519</label>
+            <label class="field" for="demo-pem">Private key (PEM) — Ed25519 or RSA</label>
             <textarea id="demo-pem" rows="4" placeholder="-----BEGIN PRIVATE KEY-----" autocomplete="off" spellcheck="false"></textarea>
           </div>
         </div>
@@ -221,14 +277,46 @@
           <button id="demo-clear" class="btn" type="button">Clear</button>
         </div>
         <div id="demo-status" class="hint" style="margin-top:10px">Not connected.</div>
+        <div id="demo-structured"></div>
         <pre id="demo-data" class="tiny" style="display:none;background:#0f172a;color:#e2e8f0;padding:10px;border-radius:8px;max-height:260px;overflow:auto;margin-top:10px"></pre>
         <div class="hr"></div>
-        <div class="callout callout-muted small">
-          <strong>Why execution stays simulated.</strong> Order placement on the demo account is deliberately not wired up
-          here. It would require posting to <code>POST /portfolio/orders</code>, which cannot be exercised from this
-          environment, and this project does not ship an unverified order schema. All strategy testing therefore runs
-          against the paper account at real market prices.
-        </div>
+        <h3 style="margin-bottom:6px">Optional demo limit order (Create Order V2 — mock funds)</h3>
+        <p class="small">
+          Submits a signed <code>POST /trade-api/v2/portfolio/events/orders</code> order to
+          <code>external-api.demo.kalshi.co</code> using the verified single-book V2 schema
+          (<code>side: "bid"</code> buys YES; <code>side: "ask"</code> sells YES / buys NO at <code>1 − price</code>, fixed-point
+          dollar string <code>price</code> and contract string <code>count</code>) documented at
+          <a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create Order (V2)</a>.
+        </p>
+        <form id="demo-order-form">
+          <div class="form-row-3">
+            <div>
+              <label class="field" for="demo-order-ticker">Market ticker</label>
+              <select id="demo-order-ticker"></select>
+            </div>
+            <div>
+              <label class="field" for="demo-order-side">Exposure</label>
+              <select id="demo-order-side">
+                <option value="YES">Long YES (book side: bid)</option>
+                <option value="NO">Long NO (book side: ask)</option>
+              </select>
+            </div>
+            <div>
+              <label class="field" for="demo-order-qty">Contracts</label>
+              <input id="demo-order-qty" type="number" min="1" step="1" value="1" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div>
+              <label class="field" for="demo-order-price">YES limit price ($0.01–$0.99)</label>
+              <input id="demo-order-price" type="number" min="0.01" max="0.99" step="0.01" value="0.01" />
+            </div>
+            <div style="display:flex;align-items:flex-end">
+              <button id="demo-order-submit" class="btn" type="submit" style="width:100%" disabled>Submit demo V2 limit order</button>
+            </div>
+          </div>
+          <div id="demo-order-status" class="hint">Connect a Kalshi demo key above to enable mock-funds demo orders, or use the local paper ticket at the top of the page.</div>
+        </form>
       </div>
     </section>
   </main>

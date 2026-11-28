@@ -53,15 +53,21 @@
         <tbody>
           <tr>
             <td><strong>Authentication</strong></td>
-            <td>Three headers: <code>KALSHI-ACCESS-KEY</code>, <code>KALSHI-ACCESS-TIMESTAMP</code> (milliseconds), <code>KALSHI-ACCESS-SIGNATURE</code>. The signature is base64 over <code>timestamp + METHOD + path</code>, with query parameters stripped. Ed25519 keys sign directly; RSA keys use RSA-PSS with SHA-256 and salt length equal to the digest length. Timestamps must be within 30 seconds.</td>
-            <td>Portfolio page signs <code>GET /portfolio/balance</code> with Web Crypto RSA-PSS (salt 32) from a key you paste in; nothing is stored.</td>
+            <td>Three headers: <code>KALSHI-ACCESS-KEY</code>, <code>KALSHI-ACCESS-TIMESTAMP</code> (milliseconds), <code>KALSHI-ACCESS-SIGNATURE</code>. The signature is base64 over <code>timestamp + METHOD + path</code> (full <code>/trade-api/v2/...</code> path from root, query parameters stripped). Ed25519 keys sign directly; RSA keys use RSA-PSS with SHA-256 and salt length equal to the digest length (32). Timestamps must be within 30 seconds.</td>
+            <td>Portfolio page detects Ed25519 (48-byte PKCS#8) vs RSA-PSS (PKCS#8 or PKCS#1 wrapped in memory) and signs <code>/trade-api/v2/portfolio/...</code>; keys are never persisted.</td>
             <td><a href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener noreferrer">API Keys</a></td>
           </tr>
           <tr>
+            <td><strong>Create Order (V2)</strong></td>
+            <td><code>POST /trade-api/v2/portfolio/events/orders</code> uses single-book YES-leg pricing: <code>side: "bid"</code> buys YES, <code>side: "ask"</code> sells YES (long NO at <code>1 − price</code>), fixed-point strings <code>count</code> and <code>price</code>, <code>time_in_force</code>, and <code>self_trade_prevention_type</code>.</td>
+            <td>Paper trading is the default; an optional signed Demo V2 limit-order ticket is available once connected to <code>external-api.demo.kalshi.co</code>.</td>
+            <td><a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create Order V2</a></td>
+          </tr>
+          <tr>
             <td><strong>Public market data</strong></td>
-            <td>The orderbook endpoint states that “no authentication is required”. This site's snapshot job calls <code>GET /series</code>, <code>GET /markets</code>, <code>GET /events/{ticker}</code>, <code>GET /markets/{ticker}</code>, orderbook and candlesticks without credentials.</td>
+            <td>The orderbook and events endpoints require no authentication. This site's snapshot job calls <code>GET /series</code>, <code>GET /events?status=open&amp;with_nested_markets=true</code>, <code>GET /markets</code>, orderbook and candlesticks without credentials.</td>
             <td>Data pipeline uses only unauthenticated endpoints.</td>
-            <td><a href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Orderbook</a></td>
+            <td><a href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events</a></td>
           </tr>
           <tr>
             <td><strong>Orderbook shape</strong></td>
@@ -106,19 +112,19 @@
     <h2 id="metrics">3. Metric definitions (so no number is ambiguous)</h2>
     <div class="table-wrap card">
       <table class="data">
-        <thead><tr><th>Shown on the site</th><th>Definition</th><th>Official field / formula</th></tr></thead>
+        <thead><tr><th>Shown on the site</th><th>Definition</th><th>Official field / formula</th><th>Official source</th></tr></thead>
         <tbody>
-          <tr><td>Volume (ct)</td><td>Number of contracts traded over the market's life.</td><td><code>volume_fp</code></td></tr>
-          <tr><td>24h vol (ct)</td><td>Contracts traded in the last 24 hours.</td><td><code>volume_24h_fp</code></td></tr>
-          <tr><td>Open interest</td><td>Contracts open at the end of the period.</td><td><code>open_interest_fp</code></td></tr>
-          <tr><td>Last price</td><td>Last traded YES price in dollars.</td><td><code>last_price_dollars</code></td></tr>
-          <tr><td>Bid / ask</td><td>Best YES bid; best YES ask = $1.00 − best NO bid.</td><td><code>yes_bid_dollars</code>; derived from <code>no_dollars</code></td></tr>
-          <tr><td>Spread</td><td>Best YES ask − best YES bid.</td><td>derived from <code>orderbook_fp</code></td></tr>
-          <tr><td>Book depth</td><td>Resting contracts on both bid sides at the ten best levels.</td><td>Σ <code>count_fp</code> in <code>yes_dollars</code> + <code>no_dollars</code></td></tr>
-          <tr><td>Est. $ traded</td><td><strong>Estimate only</strong>: contract volume × last price. The public API has no dollar-volume field.</td><td><code>volume_fp × last_price_dollars</code></td></tr>
-          <tr><td>≥ $0.10 move</td><td>Absolute close-to-close change between consecutive candles (or live polls) of at least $0.10 per contract.</td><td>candle <code>yes_ask.close_dollars</code>, else <code>yes_bid.close_dollars</code></td></tr>
-          <tr><td>Model score</td><td>0–100 screen: liquidity 40, spread 20, price band 15, catalyst 15, runway 10. A screen, not a probability.</td><td>see <code>assets/js/core.js → scoreMarket()</code></td></tr>
-          <tr><td>Paper P&amp;L</td><td>(exit − entry) × contracts at the quoted book price; fees excluded.</td><td>simulated, gross</td></tr>
+          <tr><td>Volume (ct)</td><td>Number of contracts traded over the market's life.</td><td><code>volume_fp</code></td><td><a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets</a></td></tr>
+          <tr><td>24h vol (ct)</td><td>Contracts traded in the last 24 hours.</td><td><code>volume_24h_fp</code></td><td><a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets</a></td></tr>
+          <tr><td>Open interest</td><td>Contracts open at the end of the period.</td><td><code>open_interest_fp</code></td><td><a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets</a></td></tr>
+          <tr><td>Last price</td><td>Last traded YES price in dollars.</td><td><code>last_price_dollars</code></td><td><a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets</a></td></tr>
+          <tr><td>Bid / ask</td><td>Best YES bid; best YES ask = $1.00 − best NO bid.</td><td><code>yes_bid_dollars</code>; derived from <code>no_dollars</code></td><td><a href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Orderbook docs</a></td></tr>
+          <tr><td>Spread</td><td>Best YES ask − best YES bid.</td><td>derived from <code>orderbook_fp</code></td><td><a href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Orderbook docs</a></td></tr>
+          <tr><td>Book depth</td><td>Resting contracts on both bid sides at the ten best levels.</td><td>Σ <code>count_fp</code> in <code>yes_dollars</code> + <code>no_dollars</code></td><td><a href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Orderbook docs</a></td></tr>
+          <tr><td>Est. $ traded</td><td><strong>Estimate only</strong>: contract volume × last price. The public API has no dollar-volume field.</td><td><code>volume_fp × last_price_dollars</code></td><td><a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets</a></td></tr>
+          <tr><td>≥ $0.10 move</td><td>Absolute change between consecutive candle marks (or live 20s polls) of at least $0.10 per contract.</td><td><code>price.close_dollars</code> if traded, else closing bid/ask mid, else single quote</td><td><a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Candlesticks</a></td></tr>
+          <tr><td>Model score</td><td>0–100 screen: liquidity 40, spread 20, price band 15, catalyst 15, runway 10. A screen, not a probability.</td><td>see <code>assets/js/core.js → scoreMarket()</code></td><td><a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Market fields</a></td></tr>
+          <tr><td>Paper P&amp;L</td><td>(exit − entry) × contracts at actionable ask/bid; $1.00/$0.00 settlement; fees excluded.</td><td>simulated, gross of fees</td><td><a href="https://docs.kalshi.com/getting_started/market_settlement" target="_blank" rel="noopener noreferrer">Settlement docs</a></td></tr>
         </tbody>
       </table>
     </div>
@@ -147,6 +153,7 @@
           <tr><td>AUD-10</td><td>Paper positions in a market that settled could never be closed, because the settled market leaves the open-market list that the snapshot carries.</td><td><span class="verdict-bad">Found by the new tests and fixed.</span> Settlement reads the market record or the resolution table and records which one answered.</td><td><a href="verification.html#paper">paper fills</a></td></tr>
           <tr><td>AUD-07</td><td>The repository had no tests and no data provenance.</td><td><span class="verdict-ok">Fixed.</span> Each market row carries <code>api_url</code> and <code>field_source</code>; the snapshot records the exact endpoints and generation time.</td><td><a href="assets/data/snapshot.json" target="_blank" rel="noopener noreferrer">snapshot</a></td></tr>
           <tr><td>AUD-08</td><td>GitHub Pages was configured but the site build had no verification step.</td><td><span class="verdict-ok">Fixed.</span> Verification script runs in CI and locally before the pull request; the deploy is confirmed against the live URL.</td><td><a href="https://kanlerxz87-cyber.github.io/Tradebot3/" target="_blank" rel="noopener noreferrer">live site</a></td></tr>
+          <tr><td>AUD-13</td><td>Line-by-line re-audit (2026-11-28) uncovered: 250-series <code>last_updated_ts</code> cap dropping 315M+ contract election events; broken footer links on all 5 category pages; missing <code>/trade-api/v2</code> prefix when signing demo positions/fills; browser chart/backtest still using <code>ask ?? bid</code> instead of <code>candleMark</code>; 1m swing scan truncated to 6h and <code>event_title</code> wiped to <code>null</code>; and <code>PaperAccount</code> ignoring live quotes.</td><td><span class="verdict-ok">Fixed on 2026-11-28.</span> Pipeline now paginates <code>GET /events?status=open&amp;with_nested_markets=true</code> across the full exchange; all 7 defects resolved and pinned by rendered-DOM + module regression checks. See IRREG-36…IRREG-42.</td><td><a href="flagged-for-review.html">IRREG-36…42</a></td></tr>
         </tbody>
       </table>
     </div>
@@ -165,8 +172,8 @@
       volume diverge from the production book — which is exactly why this site never presents demo prices as market prices.</p>
     <div class="table-wrap card">
       <table class="data">
-        <thead><tr><th>Ticker</th><th class="num">Production last</th><th class="num">Demo last</th><th class="num">Production volume (ct)</th><th class="num">Demo volume (ct)</th></tr></thead>
-        <tbody id="demo-spot"><tr><td colspan="5" class="table-empty">Loading…</td></tr></tbody>
+        <thead><tr><th>Ticker</th><th class="num">Production last</th><th class="num">Demo last</th><th class="num">Production volume (ct)</th><th class="num">Demo volume (ct)</th><th>Official sources</th></tr></thead>
+        <tbody id="demo-spot"><tr><td colspan="6" class="table-empty">Loading…</td></tr></tbody>
       </table>
     </div>
 
@@ -188,7 +195,8 @@
     <div class="callout callout-info">
       <strong>Scheduled refresh.</strong> <code>.github/workflows/refresh-data.yml</code> asks for a run every 30 minutes
       (cron <code>*/30 * * * *</code>) and on demand. It executes <code>scripts/fetch_kalshi_data.py</code>, which
-      discovers the five topics' series through <code>GET /series</code>, pulls markets, orderbooks and
+      enumerates the five topics' series via <code>GET /series</code> and scans the full open catalog via
+      <code>GET /events?status=open&amp;limit=200&amp;with_nested_markets=true</code>, pulls orderbooks and
       1-minute/1-hour candles, derives ≥ $0.10 alerts, collects recent settlements, re-audits the legacy claims, checks
       every official link, and commits the result as <code>assets/data/snapshot.json</code>.
       The page you are on reads that file and then polls the same public API for live ticks.
