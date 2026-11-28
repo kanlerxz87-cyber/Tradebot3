@@ -79,48 +79,75 @@ TOPIC_RULES = {
     "gas-prices": {
         "name": "Gas Prices",
         "prefixes": [
-            "KXAAAGAS", "KXGAS", "KXGASOLINE", "KXAAGAS", "KXAAA",
+            "KXAAAGAS", "KXGAS", "KXGASOLINE", "KXAAGAS", "AAAGAS",
+            "GASPRICE", "KXRBOB", "KXRETAILGAS", "KXUSGASCPI",
         ],
-        "keywords": ["gas price", "gasoline", "aaa gas"],
-        "why": "Series ticker prefix KXAAAGAS*/KXGAS*/KXAAA* or title keyword 'gas price'/'gasoline' (AAA fuel-gauge contracts).",
+        "keywords": ["gas price", "gasoline", "aaa gas", "regular gas", "gallon of gas", "retail gas"],
+        "exclude": ["natural gas", "henry hub", "diesel", "coal", "oil rig", "electricity", "lng"],
+        "event_categories": [],
+        "why": "Series ticker prefix KXAAAGAS*/KXGAS*/KXUSGASCPI* or title keyword 'gas price'/'gasoline' (AAA/EIA retail gasoline contracts; excludes natural gas, diesel, coal, electricity).",
     },
     "elections": {
         "name": "Elections",
         "prefixes": [
-            "KXPRES", "KXSENATE", "KXHOUSE", "KXGOV", "KXMAYOR", "KXCONGRESS",
-            "KXCONTROL", "KXELECT", "KXNEXTNATOSECGEN", "KXSPEAKER", "KXSCOTUSNOM",
-            "KXCABINET", "KXIMPEACH", "KXVEEP", "KXPRIM",
+            "KXPRES", "KXSENATE", "KXSENMAJ", "KXHOUSE", "KXGOV", "KXMAYOR",
+            "KXNEWTAIPEIMAYOR", "KXTAIPEIMAYOR", "KXTAICHUNGMAYOR", "KXKAOHSIUNGMAYOR", "KXKEELUNGMAYOR",
+            "KXISRAELPM", "KXFRENCHPRES", "KXUKPM", "KXCANPM", "KXGERCHANC",
+            "KXCONTROL", "CONTROL", "POWER", "KXELECT", "KXELECTION",
+            "KXSPEAKER", "KXLEADERS", "KXVEEP", "KXPRIM",
         ],
-        "keywords": ["election", "senate control", "presidential nomination", "electoral college"],
-        "why": "Series ticker prefix for presidential / Senate / House / gubernatorial / mayoral election contracts, or title keyword 'election'.",
+        "keywords": [
+            "election", "presidential nominee", "presidential nomination", "democratic nominee",
+            "republican nominee", "senate control", "senate majority", "senate seats",
+            "house control", "electoral college", "mayoral", "gubernatorial",
+        ],
+        "exclude": ["testify", "hearing", "subpoena", "oscars", "academy award", "grammy", "emmy"],
+        "event_categories": ["elections"],
+        "why": "Kalshi category 'Elections', series ticker prefix for presidential / Senate / House / gubernatorial / mayoral / parliamentary election contracts, or election title keyword (excludes non-election hearings).",
     },
     "culture": {
         "name": "Culture",
         "prefixes": [
             "KXOSCAR", "KXRT", "KXGAMEAWARDS", "KXGRAMMY", "KXEMMY", "KXGOLDENGLOBE",
-            "KXBOXOFFICE", "KXBILLBOARD", "KXSPOTIFY", "KXTONY", "KXMETGALA", "KXTIME",
-            "KXPERSONOFYEAR", "KXNOBEL", "KXBAFTA", "KXSUPERBOWLHALFTIME",
+            "KXBOXOFFICE", "KXBILLBOARD", "KXSPOTIFY", "KXTOPARTIST", "KXGTA",
+            "KXGOODREADS", "KXNETFLIX", "KXYTVIEWS", "KXWEEKSNUM1",
+            "KXTONY", "KXMETGALA", "KXTIME", "KXPERSONOFYEAR", "KXNOBEL", "KXBAFTA",
+            "KXSUPERBOWLHALFTIME",
         ],
-        "keywords": ["oscar", "grammy", "emmy", "rotten tomatoes", "game awards", "golden globe", "box office"],
-        "why": "Series ticker prefix for awards / box-office / entertainment contracts, or title keyword such as 'oscar', 'grammy', 'box office'.",
+        "keywords": [
+            "oscar", "grammy", "emmy", "rotten tomatoes", "game awards", "golden globe",
+            "box office", "person of the year", "spotify", "billboard 200", "goodreads",
+            "netflix show", "gta vi",
+        ],
+        "exclude": ["election", "president", "senate", "bitcoin", "ethereum", "gas price", "pga tour"],
+        "event_categories": ["entertainment", "culture"],
+        "why": "Kalshi category 'Entertainment'/'Culture', series ticker prefix for awards / film / music / books / gaming contracts, or culture title keyword.",
     },
     "crypto": {
         "name": "Crypto",
         "prefixes": [
             "KXBTC", "KXETH", "KXSOL", "KXXRP", "KXDOGE", "KXCRYPTO", "KXADA",
-            "KXAVAX", "KXLTC", "KXBNB", "KXHYPE", "KXSUI", "KXCRYPTOPRICE",
+            "KXAVAX", "KXLTC", "KXBNB", "KXHYPE", "KXSUI", "KXNEAR", "KXZEC", "KXCRYPTOPRICE",
         ],
-        "keywords": ["bitcoin", "ethereum", "solana", "dogecoin", "ripple", "crypto"],
-        "why": "Series ticker prefix for BTC/ETH/SOL/XRP/DOGE price contracts, or title keyword naming a cryptocurrency.",
+        "keywords": ["bitcoin", "ethereum", "solana", "dogecoin", "ripple", "xrp", "crypto"],
+        "exclude": [],
+        "event_categories": ["crypto"],
+        "why": "Kalshi category 'Crypto', series ticker prefix for BTC/ETH/SOL/XRP/DOGE/crypto contracts, or title keyword naming a cryptocurrency.",
     },
     "golf": {
         "name": "Golf",
         "prefixes": [
-            "KXPGATOUR", "KXGOLF", "KXLPGA", "KXRYDER", "KXPGA", "KXMASTERS",
-            "KXPGAMASTERS",
+            "KXPGATOUR", "KXGOLF", "KXLPGA", "KXRYDER", "KXPGARYDER", "KXPGA",
+            "KXMASTERS", "KXPGAMASTERS", "KXDPWORLDTOUR", "KXLIV",
+            "KXSCOTTIESLAM", "KXBRYSON",
         ],
-        "keywords": ["golf", "pga tour", "ryder cup", "the masters"],
-        "why": "Series ticker prefix KXPGATOUR*/KXGOLF*/KXLPGA*/KXRYDER* or title keyword 'golf'/'PGA Tour'.",
+        "keywords": [
+            "golf", "pga tour", "dp world tour", "liv golf", "ryder cup",
+            "the masters", "lpga",
+        ],
+        "exclude": ["disc golf", "volkswagen"],
+        "event_categories": [],
+        "why": "Series ticker prefix KXPGATOUR*/KXDPWORLDTOUR*/KXGOLF*/KXLPGA*/KXRYDER* or title/tag keyword 'golf'/'PGA Tour'/'DP World Tour'/'LIV Golf'/'Ryder Cup'/'The Masters'.",
     },
 }
 
@@ -144,6 +171,7 @@ KALSHI_TOPIC_PAGE = {
 # reachable ones are published; none is asserted to have caused any price move.
 TOPIC_REFERENCE_LINKS = {
     "gas-prices": [
+        ("Kalshi Oil & Energy (gasoline contracts)", "https://kalshi.com/category/economics/oil-and-energy"),
         ("AAA Daily Fuel Gauge Report", "https://gasprices.aaa.com/"),
         ("U.S. EIA Weekly Petroleum Status Report", "https://www.eia.gov/petroleum/supply/weekly/"),
     ],
@@ -315,15 +343,22 @@ def classify(market: dict):
     series = str(market.get("series_ticker") or ticker_series(market.get("ticker", ""))).upper()
     if market.get("event_ticker") and not series:
         series = str(market["event_ticker"]).split("-")[0].upper()
+    ev_cat = str(market.get("_event_category") or market.get("category") or "").strip().lower()
     haystack = " ".join(
-        str(market.get(k) or "") for k in ("title", "yes_sub_title", "rules_primary")
+        str(market.get(k) or "")
+        for k in ("title", "yes_sub_title", "rules_primary", "_event_title")
     ).lower()
     for topic in TOPIC_ORDER:
         rule = TOPIC_RULES[topic]
+        excludes = rule.get("exclude") or []
+        if excludes and any(ex in haystack for ex in excludes):
+            continue
         if series and any(series.startswith(p) for p in rule["prefixes"]):
-            return topic, f"series prefix {series} matches {rule['prefixes']} group"
+            return topic, f"series prefix {series} matches {topic} prefixes"
         if any(k in haystack for k in rule["keywords"]):
             return topic, f"title/rules keyword match in '{str(market.get('title'))[:80]}'"
+        if ev_cat and ev_cat in (rule.get("event_categories") or []):
+            return topic, f"Kalshi event category '{ev_cat}' maps to {topic}"
     return None, None
 
 
@@ -400,18 +435,24 @@ SERIES_CATEGORIES = [
 ]
 
 
-def classify_series(ticker: str, title: str = "", tags=None):
+def classify_series(ticker: str, title: str = "", tags=None, category: str = ""):
     """Classify a Kalshi *series* into one of the five topics."""
     up = str(ticker or "").upper()
     hay = f"{title or ''} {' '.join(tags or [])}".lower()
+    cat_low = str(category or "").strip().lower()
     for topic in TOPIC_ORDER:
         rule = TOPIC_RULES[topic]
+        excludes = rule.get("exclude") or []
+        if excludes and any(ex in hay for ex in excludes):
+            continue
         for prefix in rule["prefixes"]:
             if up.startswith(prefix):
                 return topic, f"series ticker {up} starts with {prefix}"
         for kw in rule["keywords"]:
             if kw in hay:
                 return topic, f"series title/tags keyword '{kw}'"
+        if cat_low and cat_low in (rule.get("event_categories") or []):
+            return topic, f"Kalshi category '{cat_low}' maps to {topic}"
     return None, None
 
 
@@ -434,14 +475,15 @@ def discover_series(warnings):
         kept = 0
         for item in series:
             ticker = item.get("ticker")
-            topic, rule = classify_series(ticker, item.get("title"), item.get("tags"))
+            item_cat = item.get("category") or category
+            topic, rule = classify_series(ticker, item.get("title"), item.get("tags"), item_cat)
             if topic and ticker:
                 found[ticker] = {
                     "topic": topic,
                     "title": item.get("title"),
                     "last_updated_ts": item.get("last_updated_ts"),
                     "rule": rule,
-                    "category": item.get("category") or category,
+                    "category": item_cat,
                     "settlement_sources": [
                         {"name": s.get("name"), "url": s.get("url")}
                         for s in (item.get("settlement_sources") or [])
@@ -451,6 +493,82 @@ def discover_series(warnings):
         print(f"  series[{category}]: {len(series)} listed, {kept} match a topic")
         time.sleep(0.2)
     return found
+
+
+def scan_events_catalog(series_map, status, warnings, min_close_ts=None, max_pages=80):
+    """Scan Kalshi events with nested markets via GET /events?with_nested_markets=true.
+
+    Unlike per-series market queries capped at max_series_per_topic=250 sorted by
+    series.last_updated_ts (which dropped older multi-hundred-million-contract
+    series such as KXPRESNOMD, KXPRESPERSON, and KXPRESNOMR; see IRREG-42),
+    cursor-paginating GET /events?status=...&limit=200&with_nested_markets=true
+    covers the entire exchange catalog in ~20-35 requests while returning official
+    event metadata alongside nested market records.
+    """
+    params = {
+        "status": status,
+        "limit": 200,
+        "with_nested_markets": "true",
+    }
+    if min_close_ts is not None:
+        params["min_close_ts"] = int(min_close_ts)
+    raw_markets = []
+    event_cache = {}
+    events_seen = 0
+    try:
+        for ev in paginate("/events", params, max_pages=max_pages, page_sleep=0.12):
+            events_seen += 1
+            ev_ticker = ev.get("event_ticker")
+            series_ticker = ev.get("series_ticker") or ticker_series(ev_ticker or "")
+            if ev_ticker:
+                event_cache[ev_ticker] = {
+                    "title": ev.get("title"),
+                    "sub_title": ev.get("sub_title"),
+                    "category": ev.get("category"),
+                    "mutually_exclusive": ev.get("mutually_exclusive"),
+                    "settlement_sources": [
+                        {"name": s.get("name"), "url": s.get("url")}
+                        for s in (ev.get("settlement_sources") or [])
+                    ][:6],
+                    "last_updated_ts": ev.get("last_updated_ts"),
+                }
+            meta = series_map.get(series_ticker)
+            ev_topic = None
+            ev_rule = None
+            # Re-check exclusions against the concrete event title before trusting series_map
+            ev_hay = f"{ev.get('title') or ''} {ev.get('sub_title') or ''}".lower()
+            if meta:
+                cand_topic = meta["topic"]
+                excludes = TOPIC_RULES[cand_topic].get("exclude") or []
+                if not any(ex in ev_hay for ex in excludes):
+                    ev_topic = cand_topic
+                    ev_rule = meta.get("rule")
+            if not ev_topic:
+                ev_topic, ev_rule = classify_series(
+                    series_ticker,
+                    f"{ev.get('title') or ''} {ev.get('sub_title') or ''}",
+                    None,
+                    ev.get("category") or "",
+                )
+            for m in ev.get("markets") or []:
+                m["series_ticker"] = series_ticker
+                m["_event_title"] = ev.get("title")
+                m["_event_category"] = ev.get("category")
+                if ev_topic:
+                    m["_series_meta"] = {
+                        "topic": ev_topic,
+                        "rule": ev_rule,
+                        "settlement_sources": (
+                            event_cache.get(ev_ticker, {}).get("settlement_sources")
+                            or (meta or {}).get("settlement_sources")
+                            or []
+                        ),
+                    }
+                raw_markets.append(m)
+    except ApiError as exc:
+        warnings.append(f"Events catalog scan ({status}) interrupted after {events_seen} events: {exc}")
+    print(f"  events[{status}]: {events_seen} events scanned, {len(raw_markets)} nested markets")
+    return raw_markets, event_cache
 
 
 def markets_for_series(series_map, status, warnings, max_series_per_topic=250, retry_failed=True):
@@ -592,10 +710,20 @@ def select_topics(open_markets, settled_markets, warnings):
     return markets_out, selected_events, by_topic
 
 
-def enrich_events(events, warnings):
+def enrich_events(events, warnings, event_cache=None):
     """Fetch official event metadata (title, settlement sources) per event."""
+    cache = event_cache or {}
     for ev in events:
         ticker = ev["event_ticker"]
+        cached = cache.get(ticker)
+        if cached and cached.get("title"):
+            ev["title"] = cached.get("title")
+            ev["sub_title"] = cached.get("sub_title")
+            ev["category"] = cached.get("category")
+            ev["mutually_exclusive"] = cached.get("mutually_exclusive")
+            ev["settlement_sources"] = cached.get("settlement_sources") or []
+            ev["last_updated_ts"] = cached.get("last_updated_ts")
+            continue
         try:
             data = http_json(f"{PROD_BASE}/events/{urllib.parse.quote(ticker)}?with_nested_markets=false")
             event = data.get("event") or {}
@@ -717,11 +845,13 @@ def fetch_candles(markets, warnings):
             warnings.append(f"Candlesticks failed for {ticker}: {exc}")
             continue
         publish_cutoff = now - CANDLE_PUBLISH_HOURS * 3600
+        m1_full = to_series(m1.get("candlesticks") or [])
+        m["_m1_24h"] = m1_full
         m["candles"] = {
             "window_m1_start_ts": now - CANDLE_LOOKBACK_HOURS * 3600,
             "publish_m1_start_ts": publish_cutoff,
             "window_h1_start_ts": now - 3 * 86400,
-            "m1": [row for row in to_series(m1.get("candlesticks") or []) if (row[0] or 0) >= publish_cutoff],
+            "m1": [row for row in m1_full if (row[0] or 0) >= publish_cutoff],
             "h1": to_series(h1.get("candlesticks") or []),
             "periods": "period_interval=1 (1 minute) and period_interval=60 (1 hour)",
             "source_url": f"{PROD_BASE}/series/{series}/markets/{ticker}/candlesticks",
@@ -765,7 +895,7 @@ def detect_swings(markets, events_by_ticker):
         if not candles:
             continue
         for label, key, step in (("1m", "m1", 60), ("1h", "h1", 3600)):
-            series = candles.get(key) or []
+            series = (m.get("_m1_24h") if key == "m1" and m.get("_m1_24h") is not None else candles.get(key)) or []
             prev = None
             for bar in series:
                 ts, bid, ask, price, vol = (bar + [None] * 5)[:5]
@@ -802,7 +932,7 @@ def detect_swings(markets, events_by_ticker):
                             "event_ticker": m["event_ticker"],
                             "topic": m["topic"],
                             "title": m["title"],
-                            "event_title": ev.get("title"),
+                            "event_title": ev.get("title") or m.get("event_title"),
                             "from_price": prev[1],
                             "to_price": mark,
                             "price_basis": basis,
@@ -836,10 +966,12 @@ def check_reference_links(warnings):
     for topic, links in TOPIC_REFERENCE_LINKS.items():
         rows = []
         for label, url in links:
+            if "kalshi.com/" in url:
+                time.sleep(0.65)
             status, note = http_status(url)
             ok = status is not None and 200 <= status < 400
             if not ok:
-                warnings.append(f"Reference link not reachable ({status}): {url} {note}")
+                warnings.append(f"Reference link not reachable ({status}): {url} {note}".strip())
             rows.append({
                 "label": label,
                 "url": url,
@@ -850,18 +982,43 @@ def check_reference_links(warnings):
     return out
 
 
-def build_resolutions(settled_by_topic, events_by_ticker, limit_per_topic=12, warnings=None):
+def build_resolutions(settled_by_topic, events_by_ticker, limit_per_topic=12, warnings=None, event_cache=None):
     rows = []
+    cache = event_cache or {}
     settled_event_titles = {}
+    seen_tickers = set()
     for topic in TOPIC_ORDER:
         bucket = settled_by_topic.get(topic, [])
         if isinstance(bucket, dict):
             bucket = bucket.get("settled", [])
-        items = [m for m in bucket if m.get("result") in ("yes", "no")]
-        items.sort(key=lambda m: m.get("close_time") or "", reverse=True)
-        for m in items[:limit_per_topic]:
-            ev = events_by_ticker.get(m["event_ticker"], {})
-            if not ev:
+        deduped = []
+        for m in bucket:
+            t = m.get("ticker")
+            if not t or t in seen_tickers or m.get("result") not in ("yes", "no"):
+                continue
+            seen_tickers.add(t)
+            deduped.append(m)
+        deduped.sort(key=lambda m: (m.get("close_time") or "", m.get("volume") or 0), reverse=True)
+        # Cap strikes per event_ticker on pass 1 so a 20-strike daily ladder does not
+        # crowd out other resolved events in the same topic; backfill if sparse.
+        chosen = []
+        overflow = []
+        per_ev_counts = {}
+        for m in deduped:
+            ev_t = m.get("event_ticker") or ""
+            if per_ev_counts.get(ev_t, 0) < 4:
+                chosen.append(m)
+                per_ev_counts[ev_t] = per_ev_counts.get(ev_t, 0) + 1
+            else:
+                overflow.append(m)
+            if len(chosen) >= limit_per_topic:
+                break
+        if len(chosen) < limit_per_topic:
+            chosen.extend(overflow[: limit_per_topic - len(chosen)])
+
+        for m in chosen[:limit_per_topic]:
+            ev = events_by_ticker.get(m["event_ticker"]) or cache.get(m["event_ticker"]) or {}
+            if not ev.get("title"):
                 if m["event_ticker"] not in settled_event_titles and warnings is not None:
                     try:
                         data = http_json(
@@ -938,12 +1095,14 @@ def check_official_links(topics_meta, sample_events, warnings):
     rows = []
 
     def add(kind, label, url):
+        if "kalshi.com/" in url:
+            time.sleep(0.65)
         status, note = http_status(url, timeout=20)
         ok = status is not None and 200 <= status < 400
         if not ok:
             warnings.append(f"Official link not reachable ({status}): {url} {note}".strip())
         rows.append({"kind": kind, "label": label, "url": url, "http_status": status, "reachable": ok})
-        time.sleep(0.05)
+        time.sleep(0.08)
 
     for key, url in SOURCES.items():
         add("kalshi-docs", f"docs.{key}", url)
@@ -1015,6 +1174,7 @@ def refresh_cadence(warnings):
                 "max_gap_hours": round(max(gaps), 2),
                 "min_gap_hours": round(min(gaps), 2),
                 "gaps_under_one_hour": sum(1 for g in gaps if g < 1),
+                "gaps_under_1h": sum(1 for g in gaps if g < 1),
                 "gap_count": len(gaps),
             }
             out["note"] = (
@@ -1141,10 +1301,24 @@ def main():
         n = sum(1 for v in series_map.values() if v["topic"] == topic)
         print(f"  {topic}: {n} matching series")
 
-    print("Fetching open markets for those series ...")
-    raw_open = markets_for_series(series_map, "open", warnings)
+    print("Scanning full Kalshi open events catalog (with nested markets) ...")
+    raw_open_all, event_cache = scan_events_catalog(series_map, "open", warnings, max_pages=80)
+    if not raw_open_all:
+        print("  [fallback] events catalog empty; falling back to per-series open market scan")
+        raw_open_all = markets_for_series(series_map, "open", warnings, max_series_per_topic=1500)
+
+    raw_open = []
+    nested_settled = []
+    for m in raw_open_all:
+        st = (m.get("status") or "").lower()
+        res = (m.get("result") or "").lower()
+        if res in ("yes", "no") or st in ("finalized", "settled"):
+            nested_settled.append(m)
+        elif st in ("active", "open", ""):
+            raw_open.append(m)
+
     open_markets = normalize_all(raw_open, warnings)
-    print(f"  {len(open_markets)} open topic markets after filtering")
+    print(f"  {len(open_markets)} open topic markets after filtering (from {len(raw_open)} open markets scanned)")
 
     stats = {
         "series_discovered": len(series_map),
@@ -1155,22 +1329,33 @@ def main():
     markets, events, _by_topic_open = select_topics(open_markets, [], warnings)
     print(f"Selected {len(markets)} markets across {len(events)} events")
 
-    # Resolutions: pull settled markets only for the series we actually track.
+    # Resolutions: scan recently settled events across the catalog + tracked series.
+    cutoff = datetime.now(timezone.utc) - timedelta(days=SETTLED_LOOKBACK_DAYS)
     tracked_series = sorted({m["series_ticker"] for m in markets})
     resolved_series_map = {t: series_map[t] for t in tracked_series if t in series_map}
-    print(f"Fetching recent settlements for {len(resolved_series_map)} tracked series ...")
-    raw_settled = markets_for_series(resolved_series_map, "settled", warnings)
-    cutoff = datetime.now(timezone.utc) - timedelta(days=SETTLED_LOOKBACK_DAYS)
+    print(f"Fetching recent settlements (catalog + {len(resolved_series_map)} tracked series) ...")
+    raw_settled_catalog, settled_ev_cache = scan_events_catalog(
+        series_map, "settled", warnings, min_close_ts=int(cutoff.timestamp()), max_pages=25
+    )
+    event_cache.update({k: v for k, v in settled_ev_cache.items() if k not in event_cache})
+    raw_settled_series = markets_for_series(resolved_series_map, "settled", warnings)
+    raw_settled = nested_settled + raw_settled_catalog + raw_settled_series
+    seen_settled = set()
     recent_raw = []
     for m in raw_settled:
-        close = m.get("close_time")
-        if close:
-            try:
-                ts = datetime.fromisoformat(close.replace("Z", "+00:00"))
-                if ts < cutoff:
-                    continue
-            except ValueError:
-                pass
+        t = m.get("ticker")
+        if not t or t in seen_settled:
+            continue
+        close = m.get("close_time") or m.get("expected_expiration_time")
+        if not close:
+            continue
+        try:
+            ts = datetime.fromisoformat(str(close).replace("Z", "+00:00"))
+            if ts < cutoff:
+                continue
+        except ValueError:
+            continue
+        seen_settled.add(t)
         recent_raw.append(m)
     settled_markets = normalize_all(recent_raw, warnings)
     stats["settled_markets_scanned"] = len(raw_settled)
@@ -1182,12 +1367,17 @@ def main():
     events_by_ticker = {}
     for ev in events:
         events_by_ticker.setdefault(ev["event_ticker"], ev)
-    enrich_events(events_by_ticker.values(), warnings)
+    enrich_events(events_by_ticker.values(), warnings, event_cache=event_cache)
+
+    for m in markets:
+        m["event_title"] = events_by_ticker.get(m["event_ticker"], {}).get("title")
 
     fetch_candles(markets, warnings)
     fetch_orderbooks(markets, warnings)
     alerts, largest_move = detect_swings(markets, events_by_ticker)
-    resolutions = build_resolutions(by_topic, events_by_ticker, warnings=warnings)
+    for m in markets:
+        m.pop("_m1_24h", None)
+    resolutions = build_resolutions(by_topic, events_by_ticker, warnings=warnings, event_cache=event_cache)
     reference_links = check_reference_links(warnings)
 
     demo_rows = demo_spot_check(markets, warnings) if args.demo_check else []
@@ -1267,7 +1457,11 @@ def main():
         "docs": SOURCES,
         "metrics": {
             "swing_threshold_usd": SWING_THRESHOLD,
-            "swing_definition": "Absolute change between consecutive candle closes (yes ask close when present, else yes bid close) of at least $0.10 per contract.",
+            "swing_definition": (
+                "Absolute change between consecutive candle marks (last trade close when the bar traded, "
+                "else closing bid/ask mid, else closing ask or bid; quote_only=true when neither bar traded) "
+                "of at least $0.10 per contract."
+            ),
             "ranking": "Events are ranked by total official contract volume (sum of volume_fp across tracked markets). Kalshi's public API exposes contract volume, not dollar volume; 'est_dollars_traded' = sum(volume_fp x last_price_dollars) is a clearly-labelled estimate, not an official dollar-volume figure.",
             "volume_field": "volume_fp (contracts)",
             "open_interest_field": "open_interest_fp (contracts)",
