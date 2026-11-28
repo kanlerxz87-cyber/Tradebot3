@@ -244,7 +244,7 @@ scopes claimed below prior to editing any target file.
 | T-32 | Fix Demo API request signing path bug (`/trade-api/v2/portfolio/positions` & `/fills`), add verified Create Order V2 (`POST /trade-api/v2/portfolio/events/orders`) demo execution & structured demo balance/positions/fills rendering, fix `1h` vs `1m` alert source labels, and render official source links on every dynamic table row | `done` | `arena-fefb55e4` | `arena/fefb55e4-tradebot3` | `assets/js/{portfolio,dashboard,category,verification,flagged}.js` |
 | T-33 | Line-by-line HTML & docs verification: ensure every static/dynamic table row links to an official source, remove contradictory RSA-only warning, reconcile candle window & mark-price docs, update Executive Summary, and publish IRREG-36…IRREG-42 on `flagged-for-review.html` | `done` | `arena-fefb55e4` | `arena/fefb55e4-tradebot3` | `index.html`, `portfolio.html`, `verification.html`, `flagged-for-review.html`, `executive-summary.html`, `categories/*.html`, `README.md`, `EXECUTIVE_SUMMARY.md` |
 | T-34 | Expand automated gates (`verify_site.py`, `test_modules.mjs`, `render_pages.mjs`) to verify rendered-DOM links across all 10 pages, source links on every rendered table row, `candleMark`, `20s` timeframe, live top-of-book paper fills, and `/trade-api/v2/...` demo signing paths | `done` | `arena-fefb55e4` | `arena/fefb55e4-tradebot3` | `scripts/{verify_site.py,test_modules.mjs,render_pages.mjs}` |
-| T-35 | Open PR to `main`, merge immediately, verify GitHub Actions live Kalshi snapshot refresh + GitHub Pages deployment, and record PR/merge result in `COORDINATION.md` | `in_progress` | `arena-fefb55e4` | `arena/fefb55e4-tradebot3` | `COORDINATION.md` |
+| T-35 | Open PR to `main`, merge immediately, verify GitHub Actions live Kalshi snapshot refresh + GitHub Pages deployment, and record PR/merge result in `COORDINATION.md` | `done` | `arena-fefb55e4` | `arena/fefb55e4-tradebot3` | `COORDINATION.md` |
 
 ## Session `arena-fefb55e4` — line-by-line audit & verification results (2026-11-28)
 
@@ -270,8 +270,17 @@ scopes claimed below prior to editing any target file.
 
 ### Verification gates passed before PR
 
-- `python3 scripts/verify_site.py`: **0 errors** (171 markets, 40 events, 33 alerts, 36 resolutions, 76 internal links, 75 static table rows with source links, 25 module imports).
+- `python3 scripts/verify_site.py`: **0 errors** (76 internal links, 75 static table rows with source links, 25 module imports).
 - `node scripts/test_modules.mjs`: **114/114 executable assertions passed**.
 - `node scripts/render_pages.mjs`: **10/10 pages booted cleanly in jsdom** with rendered-DOM internal link verification and 100% rendered table-row source-link coverage.
+
+### Merge & deployment record (`arena-fefb55e4`)
+
+- **PR #25:** <https://github.com/kanlerxz87-cyber/Tradebot3/pull/25> — *"Audit & fix live Kalshi pipeline, category 404s, demo signing, chart depth & row-level source links (IRREG-36..42)"*
+  - **Merged into `main`:** `2026-11-28T09:21:49Z`, merge commit `de7a7d7569ef8e34ad8a8cb3846a1e02cecbe198` (`gh pr merge 25 --merge`).
+  - **GitHub Pages deploy:** run `46130118873` reported **`built`** in 22s at `2026-11-28T09:22:13Z`.
+  - **Live CI Kalshi refresh:** run `46130118870` succeeded in **8m37s** (cut from 19m33s–23m28s), scanning **142,421 open markets** across **6,150 series**, recovering `KXPRESNOMD-28` (315.3M contracts), `KXPRESPERSON-28` (112.8M contracts), and `KXPRESNOMR-28` (110.5M contracts), publishing 60 resolutions (12 per topic), passing all 3 CI gates (`verify_site.py`, `114/114` `test_modules.mjs`, `10/10` `render_pages.mjs`), committing `d2c8460`, and deploying via Pages run `46130789196` (`success`).
+- **PR #26 (follow-up topic tightening & merge log):** <https://github.com/kanlerxz87-cyber/Tradebot3/pull/26> — Inspecting all 40 events and 60 resolutions in `d2c8460` caught Kalshi filing macro-scenario `KXCITRINI-28JUL01` under `category: "Elections"` and corporate earnings-call mention `KXEARNINGSMENTIONDE` mentioning “gasoline”; tightened `TOPIC_RULES` in `scripts/fetch_kalshi_data.py` so Elections requires explicit election prefixes/keywords and corporate earnings mentions are excluded, and recorded PR #25's merge/deployment results here.
+
 
 
