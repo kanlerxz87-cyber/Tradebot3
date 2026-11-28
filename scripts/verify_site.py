@@ -53,8 +53,10 @@ REQUIRED = [
     "assets/data/snapshot.json",
     "assets/data/legacy-audit.json",
     "scripts/fetch_kalshi_data.py",
+    "scripts/enrich_snapshot.py",
     "scripts/verify_site.py",
     "scripts/test_modules.mjs",
+    "scripts/render_pages.mjs",
     "assets/data/refresh-history.json",
     ".github/workflows/refresh-data.yml",
     "README.md",
@@ -268,7 +270,7 @@ def check_snapshot():
         err("snapshot.json has no refresh_cadence.requested_cron")
     measured = (cadence.get("measured") or {})
     if measured:
-        for key in ("median_gap_hours", "max_gap_hours", "runs_used", "gap_count"):
+        for key in ("median_gap_hours", "max_gap_hours", "runs_used", "gap_count", "gaps_under_one_hour"):
             if not isinstance(measured.get(key), (int, float)):
                 err(f"refresh_cadence.measured.{key} missing")
         if measured.get("median_gap_hours", 0) < 0:
@@ -284,11 +286,14 @@ def check_snapshot():
 
     # Every published swing must say which price it was measured on, and a move
     # with no trade print must be labelled quote-only (see IRREG-35).
+    events_with_title = {e.get("event_ticker") for e in events if e.get("title")}
     for a in alerts:
         if not a.get("price_basis"):
             err(f"alert {a.get('ticker')} @ {a.get('iso_time')}: no price_basis")
         if "quote_only" not in a:
             err(f"alert {a.get('ticker')} @ {a.get('iso_time')}: quote_only missing")
+        if a.get("event_ticker") in events_with_title and not a.get("event_title"):
+            err(f"alert {a.get('ticker')} @ {a.get('iso_time')}: missing event_title (IRREG-38)")
         if abs(a.get("delta") or 0) + 1e-9 < 0.10:
             err(f"alert {a.get('ticker')} @ {a.get('iso_time')}: delta {a.get('delta')} is below the $0.10 threshold")
 
@@ -346,6 +351,24 @@ def check_removed_modules():
                 err(f"{js.name} still imports removed module {gone}")
 
 
+def check_static_table_sources():
+    """Every static HTML table row (excluding loading/empty placeholders) must carry a source link."""
+    tbody_re = re.compile(r"<tbody[^>]*>(.*?)</tbody>", re.S)
+    tr_re = re.compile(r"<tr[^>]*>(.*?)</tr>", re.S)
+    checked = 0
+    for page in HTML_FILES:
+        rel_page = page.relative_to(ROOT)
+        html = page.read_text(encoding="utf-8")
+        for tbody in tbody_re.findall(html):
+            for row in tr_re.findall(tbody):
+                if "table-empty" in row:
+                    continue
+                checked += 1
+                if "<a " not in row or "href=" not in row:
+                    err(f"{rel_page}: static table row has no source link: {re.sub(r'<[^>]+>', ' ', row).strip()[:80]}")
+    return checked
+
+
 def main():
     print("Tradebot3 site verification")
     check_files()
@@ -355,8 +378,10 @@ def main():
     check_snapshot()
     check_legacy_audit()
     check_removed_modules()
+    static_rows = check_static_table_sources()
 
     print(f"  internal links checked: {links}")
+    print(f"  static table rows with source links: {static_rows}")
     print(f"  module imports checked: {imports}")
     if warnings:
         print(f"\nWarnings ({len(warnings)}):")

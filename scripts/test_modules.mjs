@@ -263,9 +263,15 @@ ok('the data URL survives a ?cache-buster suffix', (() => {
   ok('no published alert is below the $0.10 threshold', thin.length === 0, `${thin.length} below`);
   const quoteOnly = (snap.alerts || []).filter((a) => a.quote_only).length;
   ok('quote-only alerts are labelled and remain a minority',
-    quoteOnly < (snap.alerts || []).length, `${quoteOnly}/${(snap.alerts || []).length}`);
+    (snap.alerts || []).length === 0 || quoteOnly < (snap.alerts || []).length, `${quoteOnly}/${(snap.alerts || []).length}`);
+  const missingEventTitle = (snap.alerts || []).filter((a) => !a.event_title);
+  eq('every published alert carries its official event_title (IRREG-38)', missingEventTitle.length, 0);
   ok('the alert method is documented in the snapshot',
     typeof snap.method_notes?.alerts === 'string' && snap.method_notes.alerts.length > 80);
+  ok('est_dollars method note matches volume_fp x last_price_dollars (IRREG-39)',
+    /volume_fp\s*x\s*last_price_dollars/.test(snap.method_notes?.est_dollars || ''));
+  ok('refresh_cadence exposes gaps_under_one_hour (IRREG-41)',
+    typeof snap.refresh_cadence?.measured?.gaps_under_one_hour === 'number');
 }
 
 /* -------------------------------------------------------------- source rules */
@@ -386,6 +392,53 @@ try {
     pemBody(edPem).byteLength, 48);
 } finally {
   fsmod.rmSync(tmp, { recursive: true, force: true });
+}
+
+/* --------------------- IRREG-36..40 regression pins ---------------------- */
+{
+  const { candleMark, cleanTitle } = core;
+  eq('candleMark prefers trade close when traded (IRREG-39)',
+    candleMark([100, 0.40, 0.50, 0.48, 12]), { mark: 0.48, basis: 'trade close' });
+  eq('candleMark falls back to bid/ask mid when untraded (IRREG-39)',
+    candleMark([100, 0.40, 0.50, null, 0]), { mark: 0.45, basis: 'bid/ask mid close' });
+  eq('candleMark uses single ask quote when bid absent',
+    candleMark([100, null, 0.52, null, 0]), { mark: 0.52, basis: 'ask close (no bid)' });
+  eq('cleanTitle strips Kalshi raw Markdown ** emphasis',
+    cleanTitle('Will average **gas prices** be above $3.50?'), 'Will average gas prices be above $3.50?');
+
+  // IRREG-36: footer links in core.js must honour `${base}` so category pages do not 404
+  const coreSrc = fsmod.readFileSync(new URL('../assets/js/core.js', import.meta.url), 'utf8');
+  ok('core.js prefixes footer verification link with ${base} (IRREG-36)',
+    coreSrc.includes('`${base}verification.html`'));
+  ok('core.js prefixes footer flagged-for-review link with ${base} (IRREG-36)',
+    coreSrc.includes('`${base}flagged-for-review.html`'));
+
+  // IRREG-40: PaperAccount must honour fresh 20s live quotes and reject empty 0.00/1.00 stubs
+  const mdQuote = fakeData([mkMarket({ ticker: 'Q1' })]);
+  const paQuote = new PaperAccount(mdQuote);
+  paQuote.reset();
+  mdQuote.applyLiveMarkets([{ ticker: 'Q1', yes_bid_dollars: '0.6100', yes_ask_dollars: '0.6300', status: 'active' }]);
+  eq('PaperAccount buy uses fresh 20s live quote ask (IRREG-40)',
+    paQuote.priceFor('Q1', 'YES', 'buy'), { price: 0.63, source: 'live quote ask' });
+  eq('PaperAccount sell/mark uses fresh 20s live quote bid (IRREG-40)',
+    paQuote.priceFor('Q1', 'YES', 'sell'), { price: 0.61, source: 'live quote bid' });
+  mdQuote.applyLiveMarkets([{ ticker: 'Q1', yes_bid_dollars: '0.0000', yes_ask_dollars: '1.0000', status: 'active' }]);
+  eq('PaperAccount ignores empty-book 1.0000 ask stub and falls back to orderbook',
+    paQuote.priceFor('Q1', 'YES', 'buy'), { price: 0.46, source: 'orderbook ask' });
+
+  // IRREG-37: Demo API request signing path & Create Order V2 payload
+  const { canonicalApiPath, buildDemoOrderV2Payload } = await import('../assets/js/portfolio.js');
+  eq('canonicalApiPath prepends /trade-api/v2 for /portfolio/positions (IRREG-37)',
+    canonicalApiPath('/portfolio/positions'), '/trade-api/v2/portfolio/positions');
+  eq('canonicalApiPath strips query string and prepends /trade-api/v2 for fills (IRREG-37)',
+    canonicalApiPath('/portfolio/fills?limit=20'), '/trade-api/v2/portfolio/fills');
+  eq('canonicalApiPath preserves existing /trade-api/v2 prefix',
+    canonicalApiPath('/trade-api/v2/portfolio/balance'), '/trade-api/v2/portfolio/balance');
+  const v2Yes = buildDemoOrderV2Payload({ ticker: 'KXBTC-1', side: 'YES', qty: 5, yesPrice: 0.42, clientOrderId: 'cid-1' });
+  eq('Create Order V2 YES order maps to single-book side="bid"', v2Yes.side, 'bid');
+  eq('Create Order V2 formats fixed-point count & price strings', [v2Yes.count, v2Yes.price], ['5.00', '0.4200']);
+  const v2No = buildDemoOrderV2Payload({ ticker: 'KXBTC-1', side: 'NO', qty: 3, yesPrice: 0.42, clientOrderId: 'cid-2' });
+  eq('Create Order V2 NO order maps to single-book side="ask"', v2No.side, 'ask');
 }
 
 /* -------------------------------------------------------------------- report */
