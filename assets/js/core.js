@@ -142,6 +142,40 @@ export function fmtClock(value) {
   });
 }
 
+export function fmtClockHm(value) {
+  const t = parseTs(value);
+  if (!Number.isFinite(t)) return '—';
+  return new Date(t).toLocaleTimeString('en-US', {
+    timeZone: 'UTC',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+}
+
+/**
+ * Strip literal Markdown bold asterisks (e.g. "Will average **gas prices**...")
+ * that Kalshi's API embeds in some market titles, without altering snapshot JSON.
+ */
+export function cleanTitle(str) {
+  return String(str ?? '').replace(/\*\*([^*]+)\*\*/g, '$1').trim();
+}
+
+/**
+ * Canonical single-basis candle mark price matching scripts/fetch_kalshi_data.py
+ * and scripts/enrich_snapshot.py (`mark_price`).
+ * Bar tuple: [end_period_ts, yes_bid_close, yes_ask_close, trade_close, volume]
+ */
+export function candleMark(bar) {
+  if (!Array.isArray(bar)) return { mark: null, basis: null };
+  const [, bid, ask, trade] = bar;
+  if (isNum(trade)) return { mark: trade, basis: 'trade close' };
+  if (isNum(bid) && isNum(ask)) {
+    return { mark: Math.round(((bid + ask) / 2) * 10000) / 10000, basis: 'bid/ask mid close' };
+  }
+  if (isNum(ask)) return { mark: ask, basis: 'ask close (no bid)' };
+  if (isNum(bid)) return { mark: bid, basis: 'bid close (no ask)' };
+  return { mark: null, basis: null };
+}
+
 export function fmtDate(value) {
   const t = parseTs(value);
   if (!Number.isFinite(t)) return '—';
@@ -286,9 +320,9 @@ export function initChrome({ active = '', base = '' } = {}) {
         el('div', {}, el('strong', { text: 'Tradebot3' }), ' — independent research dashboard for Kalshi markets.'),
         el('div', { class: 'tiny', style: 'margin-top:4px' },
           'Market data: official Kalshi Trade API v2 (public, unauthenticated). Not affiliated with Kalshi. ',
-          el('a', { href: 'verification.html', text: 'Sources & verification' }),
+          el('a', { href: `${base}verification.html`, text: 'Sources & verification' }),
           ' · ',
-          el('a', { href: 'flagged-for-review.html', text: 'Flagged for review' }),
+          el('a', { href: `${base}flagged-for-review.html`, text: 'Flagged for review' }),
         ),
       ),
       el('div', { class: 'tiny' },

@@ -11,7 +11,7 @@
  *   • live tick — detected by this browser while polling the official API.
  */
 
-import { el, fmtClock, fmtDelta, fmtPrice, esc, timeAgo, scoreMarket, SITE, TOPICS } from './core.js';
+import { el, fmtClock, fmtDelta, fmtPrice, esc, cleanTitle, timeAgo, scoreMarket, SITE, TOPICS } from './core.js';
 
 export class AlertFeed {
   constructor({ container, counter, mode = 'all', data, onSelect = null, limit = 120 }) {
@@ -115,6 +115,9 @@ export class AlertFeed {
     if (alert.kalshi_url || market?.kalshi_url) {
       links.push(`<a href="${esc(alert.kalshi_url || market.kalshi_url)}" target="_blank" rel="noopener noreferrer">Kalshi</a>`);
     }
+    if (alert.candles_url) {
+      links.push(`<a href="${esc(alert.candles_url)}" target="_blank" rel="noopener noreferrer">Candles API</a>`);
+    }
     const refs = this.data.snapshot?.topics?.[alert.topic]?.reference_links || [];
     for (const ref of refs.filter((r) => r.reachable).slice(0, 2)) {
       links.push(`<a href="${esc(ref.url)}" target="_blank" rel="noopener noreferrer">${esc(ref.label)}</a>`);
@@ -128,7 +131,7 @@ export class AlertFeed {
     node.innerHTML = `
       <div class="time" title="${esc(new Date(alert.ts).toISOString())}">${fmtClock(alert.ts)}</div>
       <div>
-        <div class="msg-title">${esc(eventTitle || alert.title || alert.ticker)}</div>
+        <div class="msg-title">${esc(cleanTitle(eventTitle || alert.title || alert.ticker))}</div>
         <div class="msg-meta">
           ${market?.subtitle ? `${esc(market.subtitle)} · ` : ''}
           ${esc(TOPICS[alert.topic]?.name || alert.topic)}

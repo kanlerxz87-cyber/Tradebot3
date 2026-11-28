@@ -9,7 +9,7 @@
  *      the snapshot — it never fabricates prices.
  */
 
-import { SITE, TOPIC_ORDER, parseTs, isNum } from './core.js';
+import { SITE, TOPIC_ORDER, parseTs, isNum, candleMark } from './core.js';
 
 export const TIMEFRAMES = [
   { id: '1m', label: '1 min', seconds: 60, source: 'm1' },
@@ -188,12 +188,28 @@ export class MarketData {
   /** Quote shown on the dashboard, with the source of each side labelled. */
   quoteFor(market) {
     if (!market) return { bid: null, ask: null, source: 'none' };
-    const live = isNum(market.yes_bid) || isNum(market.yes_ask);
-    return {
-      bid: isNum(market.yes_bid) ? market.yes_bid : market.orderbook?.best_yes_bid ?? null,
-      ask: isNum(market.yes_ask) ? market.yes_ask : market.orderbook?.best_yes_ask ?? null,
-      source: live ? 'live quote (20s poll)' : market.orderbook ? 'orderbook snapshot' : 'last trade',
-    };
+    if (market._liveQuoteAt && (isNum(market.yes_bid) || isNum(market.yes_ask))) {
+      return {
+        bid: isNum(market.yes_bid) ? market.yes_bid : null,
+        ask: isNum(market.yes_ask) ? market.yes_ask : null,
+        source: 'live quote (20s poll)',
+      };
+    }
+    if (market.orderbook && (isNum(market.orderbook.best_yes_bid) || isNum(market.orderbook.best_yes_ask))) {
+      return {
+        bid: market.orderbook.best_yes_bid ?? null,
+        ask: market.orderbook.best_yes_ask ?? null,
+        source: 'orderbook snapshot',
+      };
+    }
+    if (isNum(market.yes_bid) || isNum(market.yes_ask)) {
+      return {
+        bid: isNum(market.yes_bid) ? market.yes_bid : null,
+        ask: isNum(market.yes_ask) ? market.yes_ask : null,
+        source: 'snapshot quote (GET /markets)',
+      };
+    }
+    return { bid: null, ask: null, source: 'last trade' };
   }
 
   /**
@@ -210,11 +226,11 @@ export class MarketData {
     const bucketMs = tf.seconds * 1000;
     const buckets = new Map();
     for (const bar of source || []) {
-      const [ts, bid, ask, price, vol] = bar;
+      const [ts, , , , vol] = bar;
       if (!ts) continue;
       const t = ts * 1000;
       const key = Math.floor(t / bucketMs) * bucketMs;
-      const mark = isNum(ask) ? ask : isNum(bid) ? bid : price;
+      const { mark } = candleMark(bar);
       if (!isNum(mark)) continue;
       const cur = buckets.get(key);
       if (!cur) {
@@ -237,7 +253,7 @@ export class MarketData {
   }
 
   /** Second-level series built only from browser ticks (clearly labelled). */
-  liveSeries(ticker, windowSeconds = 120) {
+  liveSeries(ticker, windowSeconds = 300) {
     const ticks = (this.ticks.get(ticker) || []).filter((t) => Date.now() - t.t <= windowSeconds * 1000);
     return ticks.map((t) => ({ t: t.t, price: t.price }));
   }
@@ -247,11 +263,9 @@ export class MarketData {
     if (!market?.candles?.m1?.length) return null;
     const bars = market.candles.m1;
     for (let i = bars.length - 1; i > 0; i -= 1) {
-      const [, bidA, askA] = bars[i];
-      const [, bidB, askB] = bars[i - 1];
-      const a = isNum(askA) ? askA : bidA;
-      const b = isNum(askB) ? askB : bidB;
-      if (isNum(a) && isNum(b) && Math.abs(a - b) >= SITE.swingThreshold) {
+      const a = candleMark(bars[i]).mark;
+      const b = candleMark(bars[i - 1]).mark;
+      if (isNum(a) && isNum(b) && Math.abs(a - b) + 1e-9 >= SITE.swingThreshold) {
         return { ts: bars[i][0] * 1000, from: b, to: a, delta: Math.round((a - b) * 10000) / 10000 };
       }
     }
@@ -333,12 +347,15 @@ export class MarketData {
       market.yes_ask = numOrNull(row.yes_ask_dollars);
       market.no_bid = numOrNull(row.no_bid_dollars);
       market.no_ask = numOrNull(row.no_ask_dollars);
-      market.last_price = numOrNull(row.last_price_dollars);
+      market.yes_bid_size = numOrNull(row.yes_bid_size_fp) ?? market.yes_bid_size;
+      market.yes_ask_size = numOrNull(row.yes_ask_size_fp) ?? market.yes_ask_size;
+      market.last_price = numOrNull(row.last_price_dollars) ?? market.last_price;
       market.volume = numOrNull(row.volume_fp) ?? market.volume;
       market.volume_24h = numOrNull(row.volume_24h_fp) ?? market.volume_24h;
       market.open_interest = numOrNull(row.open_interest_fp) ?? market.open_interest;
       market.result = row.result || market.result;
       market.status = row.status || market.status;
+      market._liveQuoteAt = Date.now();
 
       const next = this.bestPrice(market);
       if (!isNum(next)) continue;

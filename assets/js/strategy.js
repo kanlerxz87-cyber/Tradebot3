@@ -2,12 +2,12 @@
  * Tradebot3 — strategy definitions and candle backtester.
  *
  * The backtester runs only on official Kalshi candle data included in the
- * snapshot (1-minute bars, ~2 hours per market) and is explicit that the sample
- * is short. It reports counts, P&L, hit rate and drawdown; it does not claim a
- * predictive edge.
+ * snapshot (1-minute bars, ~6 hours published per market) and is explicit that
+ * the sample is short. It reports counts, P&L, hit rate and drawdown; it does
+ * not claim a predictive edge.
  */
 
-import { SITE, scoreMarket, isNum } from './core.js';
+import { SITE, scoreMarket, isNum, candleMark } from './core.js';
 
 export const STRATEGIES = [
   {
@@ -66,7 +66,7 @@ export function backtest(data, strategy, { markets = null } = {}) {
 
   for (const market of universe) {
     const bars = market.candles.m1;
-    const marks = bars.map(([, bid, ask]) => (isNum(ask) ? ask : isNum(bid) ? bid : null));
+    const marks = bars.map((bar) => candleMark(bar).mark);
     if (strategy.rule === 'longshot') {
       for (let i = 0; i < marks.length - 1; i += 1) {
         const entry = marks[i];
@@ -135,6 +135,7 @@ function makeTrade({ market, side, entry, exit, at, strategy, kind }) {
     pnl: round2(pnl),
     roi: round2((pnl / (entry * contracts)) * 100),
     market_url: market.kalshi_url,
+    api_url: market.api_url || `${SITE.apiBase}/markets/${encodeURIComponent(market.ticker)}`,
   };
 }
 
@@ -171,7 +172,7 @@ export function summarise(trades, strategy) {
     avgRoi: trades.length ? trades.reduce((s, t) => s + t.roi, 0) / trades.length : null,
     maxDrawdown: round2(maxDd),
     byTopic: [...byTopic.values()].map((g) => ({ ...g, pnl: round2(g.pnl) })),
-    sample_note: 'Backtested on the 1-minute candle window in this snapshot (~2 hours per market).',
+    sample_note: 'Backtested on the published 1-minute candle window in this snapshot (~6 hours per market).',
   };
 }
 
