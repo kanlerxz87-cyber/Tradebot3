@@ -16,8 +16,8 @@
       <div>
         <h1>Executive summary</h1>
         <div class="sub">
-          What this project tracks, how the numbers are produced, what the audit of the previous build found, and what
-          should happen next. Prepared 2026-11-22 (UTC).
+          What this project tracks, how the numbers are produced, what the line-by-line audit found, and what
+          should happen next. Updated 2026-11-28 (UTC).
         </div>
       </div>
       <div class="pill-row">
@@ -45,12 +45,16 @@
     <h2>2. Verified API architecture</h2>
     <ul class="tight">
       <li><strong>Market data — production, unauthenticated.</strong> <code>https://external-api.kalshi.com/trade-api/v2</code>
-        (recommended host) for <code>/series</code>, <code>/markets</code>, <code>/events/{ticker}</code>, orderbooks and
-        candlesticks. Source: <a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener noreferrer">API environments</a>.</li>
-      <li><strong>Demo account — optional, read-only.</strong>
-        <code>https://external-api.demo.kalshi.co/trade-api/v2</code> for <code>GET /portfolio/balance</code>, signed in the
-        browser with RSA-PSS. Source: <a href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">Demo environment</a>,
-        <a href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener noreferrer">API keys</a>.</li>
+        (recommended host) for <code>/series</code>, <code>/events?status=open&amp;with_nested_markets=true</code>,
+        <code>/markets</code>, orderbooks and candlesticks. Source:
+        <a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener noreferrer">API environments</a>.</li>
+      <li><strong>Demo account — optional, mock-funds only.</strong>
+        <code>https://external-api.demo.kalshi.co/trade-api/v2</code> for signed <code>GET /portfolio/balance|positions|fills</code>
+        and optional <code>POST /portfolio/events/orders</code> (Create Order V2), signed in browser memory with
+        <strong>Ed25519</strong> or <strong>RSA-PSS</strong> (PKCS#8 or PKCS#1 wrapped). Sources:
+        <a href="https://docs.kalshi.com/getting_started/demo_env" target="_blank" rel="noopener noreferrer">Demo environment</a>,
+        <a href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener noreferrer">API keys</a>,
+        <a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create Order V2</a>.</li>
       <li><strong>Orderbooks</strong> return bids only; implied asks come from the $1.00 binary reciprocal
         (<code>YES ask = 1 − best NO bid</code>). Source:
         <a href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Orderbook responses</a>.</li>
@@ -65,35 +69,38 @@
     <ol>
       <li><strong>Highest-dollar live events.</strong> Events are ranked by official contract volume with a clearly labelled
         dollar estimate; each row links to the Kalshi event page and the raw API record.</li>
-      <li><strong>Two live alert chats.</strong> One feed shows every ≥ $0.10 move detected from Kalshi's 1-minute candles
-        and from live polls; the second shows only moves whose market also passes a transparent 0–100 screen
+      <li><strong>Two live alert chats.</strong> One feed shows every ≥ $0.10 move detected from Kalshi's 1-minute (24h)
+        and 1-hour (72h) candles (single-basis mark) and from live 20s polls; the second shows only moves whose market also passes a transparent 0–100 screen
         (liquidity 40, spread 20, price band 15, catalyst 15, runway 10).</li>
-      <li><strong>Chart with jump markers.</strong> X axis is time (live seconds, 1m, 5m, 15m, 1h, 6h, 1d), Y axis is the
-        contract price in dollars. Every ≥ $0.10 move is plotted; clicking a marker opens the Kalshi event page and the
+      <li><strong>Chart with jump markers &amp; Y-axis depth.</strong> X axis is time (<code>20s · sec</code> live ticks, 1m, 5m, 15m, 1h, 6h, 1d), Y axis is the
+        contract price in dollars with resting bid/ask contract depth bars along the right axis. Every ≥ $0.10 move is plotted; clicking a marker opens the Kalshi event page, candlestick API and the
         topic's official primary sources, labelled as candidates rather than causes.</li>
       <li><strong>Liquidity ladder.</strong> Resting contracts and dollar value at each of the ten best levels per side, with
         implied asks, spread and depth totals. Clicking a level loads that size into the ticket.</li>
       <li><strong>Resolution tracking.</strong> Open events are followed until Kalshi publishes <code>result</code> and
         <code>settlement_value_dollars</code>; the resolution tables record YES/NO outcomes, settlement value and volume,
         and open paper positions settle automatically at $1.00 or $0.00.</li>
-      <li><strong>Paper portfolio and strategy lab.</strong> $10,000 simulated account with fills at real book prices, trade
-        categorisation, P&amp;L by category/topic/side, an equity curve, four strategy backtests on real candles, and an
-        optional live auto-trader that reacts to ≥ $0.10 alerts.</li>
+      <li><strong>Paper portfolio, custom strategy builder and optional demo integration.</strong> $10,000 simulated account
+        with fills at actionable live/orderbook prices, trade categorisation, P&amp;L by category/topic/side, an equity curve,
+        built-in and custom strategy backtests on real 6h 1-minute candles, live auto-trade on ≥ $0.10 alerts, and optional
+        in-memory Kalshi demo signing.</li>
     </ol>
 
     <h2>4. Data pipeline and verification</h2>
     <p>
       A GitHub Actions workflow (<code>.github/workflows/refresh-data.yml</code>) is scheduled every 30 minutes
-      (<code>*/30 * * * *</code>). It discovers the five topics' series through <code>GET /series</code>, fetches
-      markets, orderbooks and candles, derives swing alerts, collects recent settlements, re-checks the previous
-      dataset's 29 claims against the live API, HTTP-checks every official link it publishes, and commits a compact
-      <code>assets/data/snapshot.json</code>. The site reads that file and then polls the public API every 20 seconds
-      for live ticks. <code>scripts/verify_site.py</code> and <code>scripts/test_modules.mjs</code> (96 assertions on the
-      model, paper fills, settlement, backtests and demo signing) run before every publish.
+      (<code>*/30 * * * *</code>). It enumerates the five topics' series via <code>GET /series</code> and scans the entire
+      open exchange catalog via <code>GET /events?status=open&amp;limit=200&amp;with_nested_markets=true</code> (so older
+      multi-100M-contract series are never dropped), fetches orderbooks and candles, derives swing alerts, collects recent
+      settlements, re-checks the previous dataset's 29 claims against the live API, HTTP-checks every official link it
+      publishes, and commits a compact <code>assets/data/snapshot.json</code>. The site reads that file and then polls the
+      public API every 20 seconds for live ticks. <code>scripts/verify_site.py</code>, <code>scripts/test_modules.mjs</code>
+      and <code>scripts/render_pages.mjs</code> (including rendered-DOM link and table-row source checks across all 10 pages)
+      run before every publish.
     </p>
-    <div class="callout callout-warn" style="margin-top:10px">
-      <strong>Cadence, measured.</strong> GitHub throttles scheduled workflows: the 14 runs recorded between
-      2026-11-22T16:34Z and 2026-11-27T10:40Z were a median <strong>8.8 hours</strong> apart (max 12.0 h, none under
+    <div class="callout callout-warn" style="margin-top:10px" id="exec-cadence">
+      <strong>Cadence, measured.</strong> GitHub throttles scheduled workflows: across the 16 runs recorded between
+      2026-11-22T16:34Z and 2026-11-28T02:52Z, the median gap was <strong>8.79 hours</strong> (max 11.96 h, none under
       1 h). Source: <a href="assets/data/refresh-history.json" target="_blank" rel="noopener noreferrer">refresh-history.json</a>,
       written by the workflow. The dashboard shows the snapshot's age so a stale snapshot is labelled, not hidden.
     </div>
@@ -116,9 +123,9 @@
     <ul class="tight">
       <li><strong>No authenticated streaming in the browser</strong> — 20-second polling, not tick-by-tick. A server relay is the fix.</li>
       <li><strong>CORS is undocumented</strong> — live polling may be blocked on GitHub Pages; the UI reports the actual state and falls back to the snapshot.</li>
-      <li><strong>Demo ≠ production</strong> — measured divergence is published; demo is used only for a read-only balance check.</li>
+      <li><strong>Demo ≠ production</strong> — measured divergence is published; demo is isolated to optional mock-funds account checks/orders.</li>
       <li><strong>Contract volume, not dollar volume</strong> — the dollar column is an estimate.</li>
-      <li><strong>Small samples</strong> — roughly two hours of 1-minute candles per market; backtests are illustrative, gross of fees.</li>
+      <li><strong>Small samples</strong> — 6 hours of published 1-minute candles per market; backtests are illustrative, gross of fees.</li>
     </ul>
 
     <h2>7. Recommendations</h2>
@@ -154,6 +161,12 @@
         <span>${fmtNum(s.markets_published || 0)} markets · ${fmtNum(s.events_published || 0)} events · ${fmtNum(s.alerts_published || 0)} ≥$0.10 alerts · ${fmtNum(s.resolutions_published || 0)} settlements</span>
         <span class="sep">|</span>
         <a href="assets/data/snapshot.json" target="_blank" rel="noopener noreferrer">raw data</a>`;
+      const m = snap.refresh_cadence?.measured;
+      const cad = qs('#exec-cadence');
+      if (m && cad) {
+        const under1h = m.gaps_under_one_hour ?? m.gaps_under_1h ?? 0;
+        cad.innerHTML = `<strong>Cadence, measured.</strong> GitHub throttles scheduled workflows: across the ${fmtNum(m.runs_used)} runs recorded between ${esc(fmtDateTime(m.first_run))} and ${esc(fmtDateTime(m.last_run))} UTC, the median gap was <strong>${m.median_gap_hours} hours</strong> (max ${m.max_gap_hours} h, ${fmtNum(under1h)} of ${fmtNum(m.gap_count)} under 1 h). Source: <a href="assets/data/refresh-history.json" target="_blank" rel="noopener noreferrer">refresh-history.json</a>.`;
+      }
     } catch {
       qs('#exec-status').textContent = 'Snapshot not available yet.';
     }

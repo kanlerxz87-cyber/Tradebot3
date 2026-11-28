@@ -79,10 +79,11 @@ async function load() {
       <td class="num">${price(r.prod_last_price)}</td>
       <td class="num">${price(r.demo_last_price)}</td>
       <td class="num">${fmtContracts(r.prod_volume)}</td>
-      <td class="num">${fmtContracts(r.demo_volume)}</td></tr>`).join('')
-      : '<tr><td colspan="5" class="table-empty">No spot check in this refresh.</td></tr>';
+      <td class="num">${fmtContracts(r.demo_volume)}</td>
+      <td class="tiny"><a href="https://external-api.kalshi.com/trade-api/v2/markets/${encodeURIComponent(r.ticker)}" target="_blank" rel="noopener noreferrer">prod API</a> · <a href="https://external-api.demo.kalshi.co/trade-api/v2/markets/${encodeURIComponent(r.ticker)}" target="_blank" rel="noopener noreferrer">demo API</a></td></tr>`).join('')
+      : '<tr><td colspan="6" class="table-empty">No spot check in this refresh.</td></tr>';
   } catch {
-    qs('#demo-body').innerHTML = '<tr><td colspan="5" class="table-empty">Snapshot unavailable.</td></tr>';
+    qs('#demo-body').innerHTML = '<tr><td colspan="6" class="table-empty">Snapshot unavailable.</td></tr>';
   }
 }
 

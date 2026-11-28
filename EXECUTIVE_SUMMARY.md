@@ -1,6 +1,6 @@
 # Executive Summary — Tradebot3 Kalshi Live-Event Dashboard
 
-**Date:** 2026-11-27 (UTC)
+**Date:** 2026-11-28 (UTC)
 **Repository:** `kanlerxz87-cyber/Tradebot3`
 **Live site:** https://kanlerxz87-cyber.github.io/Tradebot3/
 **Full page version:** [`executive-summary.html`](executive-summary.html) on the site.
@@ -8,12 +8,14 @@
 ## What this is
 
 A static GitHub Pages dashboard fed by an automated data pipeline
-(`scripts/fetch_kalshi_data.py`, scheduled every 30 minutes by GitHub Actions)
-that publishes only values returned by Kalshi's official public Trade API into
+(`scripts/fetch_kalshi_data.py` + `scripts/enrich_snapshot.py`, scheduled every
+30 minutes by GitHub Actions) that scans the full open Kalshi catalog via
+`GET /events?status=open&limit=200&with_nested_markets=true` and publishes only
+values returned by Kalshi's official public Trade API into
 `assets/data/snapshot.json`. No market number on the site is hard-coded.
 
-**Measured, not assumed.** GitHub Actions delivered 14 runs between
-2026-11-22T16:34Z and 2026-11-27T10:40Z — a **median gap of 8.8 hours**, not 30
+**Measured, not assumed.** GitHub Actions delivered 16 runs between
+2026-11-22T16:34Z and 2026-11-28T02:52Z — a **median gap of 8.79 hours**, not 30
 minutes (`assets/data/refresh-history.json`, rendered on `verification.html` §8).
 The dashboard therefore shows the snapshot's age (fresh < 2 h, aging < 8 h, else
 stale) instead of describing every number as live.
@@ -38,14 +40,20 @@ top 8 events per topic (by official contract volume `volume_fp`) with up to
 
 ## Features
 
-- Dual scrolling alert feeds for ≥ $0.10 close-to-close swings detected from
-  official 1-minute/1-hour candlesticks (all events, plus a model-score filter).
-- Interactive price chart (seconds/minutes/hours windows) and orderbook
-  liquidity ladder from the official orderbook endpoint.
-- Resolution tracking: settled markets recorded with YES/NO result.
-- Paper portfolio and strategy lab (simulated trades only, browser-local),
-  plus a read-only signed demo panel (`GET /portfolio/balance|positions|fills`).
-  No order placement is shipped (IRREG-12).
+- Dual scrolling alert feeds for ≥ $0.10 swings detected from official 24h
+  1-minute and 72h 1-hour candlesticks on a unified single-basis mark (all
+  events, plus a model-score filter).
+- Interactive price chart (`20s · sec` live ticks, `1m`/`5m`/`15m` minutes,
+  `1h`/`6h`/`1d` hours) with right-edge contract liquidity depth bars on the
+  Y-axis, ≥ $0.10 jump markers with candidate primary-source links, and a full
+  orderbook liquidity ladder.
+- Resolution tracking: settled markets recorded with official YES/NO result and
+  `settlement_value_dollars`; paper positions auto-settle at $1.00 or $0.00.
+- Paper portfolio, custom strategy builder by trade category, and strategy lab
+  (simulated trades by default, browser-local), plus an optional in-memory
+  signed Kalshi demo panel (`GET /portfolio/balance|positions|fills` and
+  `POST /portfolio/events/orders` V2 mock-funds orders, supporting both Ed25519
+  and RSA-PSS keys).
 - Verification and Flagged-for-Review pages: every row links to an official
   source; the previous 29-row catalogue was audited against the live API
   (3 of 29 tickers exist) and is published for review, never reused.
@@ -71,4 +79,4 @@ measured and published). A browser cannot open an authenticated Kalshi
 WebSocket, so live updates are labelled REST polling. The scheduled refresh is
 delivered far less often than its cron asks, so freshness is displayed rather
 than promised. Full irregularity list: `COORDINATION.md` (IRREG-01…IRREG-12 and
-IRREG-26…IRREG-35) and the Flagged for Review page.
+IRREG-26…IRREG-42) and the Flagged for Review page.

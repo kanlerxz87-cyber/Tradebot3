@@ -5,7 +5,7 @@
 
 import {
   SITE, TOPICS, initChrome, el, qs, qsa, toast, fmtUsd, fmtContracts, fmtPrice, fmtDelta,
-  fmtNum, fmtDateTime, fmtDate, fmtClock, timeAgo, esc, isNum,
+  fmtNum, fmtDateTime, fmtDate, fmtClock, timeAgo, esc, cleanTitle, isNum,
 } from './core.js';
 import { MarketData, TIMEFRAMES } from './market-data.js';
 import { PriceChart } from './chart.js';
@@ -26,7 +26,6 @@ async function boot() {
   initChrome({ active: topicId, base: '../' });
   if (!topic) return;
   document.title = `${topic.name} — Tradebot3 Kalshi dashboard`;
-  const catLink = qs('#topic-kalshi-link');;
   qs('#topic-title').textContent = topic.name;
   qs('#topic-blurb').textContent = topic.blurb;
 
@@ -141,7 +140,7 @@ function renderTable(markets) {
     const header = el('tr');
     header.style.background = '#f8fafc';
     header.innerHTML = `<td colspan="10" style="padding:7px 10px">
-      <strong>${esc(ev.title || eventTicker)}</strong>
+      <strong>${esc(cleanTitle(ev.title || eventTicker))}</strong>
       <span class="tiny">· ${esc(eventTicker)} · ${list.length} tracked markets · ${fmtContracts(list.reduce((s, m) => s + (m.volume || 0), 0))} contracts</span>
       <a class="tiny" style="margin-left:6px" href="${esc(ev.kalshi_url || `https://kalshi.com/events/${eventTicker}`)}" target="_blank" rel="noopener noreferrer">open on Kalshi ↗</a>
     </td>`;
@@ -155,7 +154,7 @@ function renderTable(markets) {
         ? `<span class="badge badge-${String(m.result).toLowerCase()}">${esc(String(m.result).toUpperCase())}</span>`
         : `<span class="badge badge-open">${esc(m.status || 'open')}</span>`;
       tr.innerHTML = `
-        <td class="title"><a class="row-link" href="${esc(m.kalshi_url)}" target="_blank" rel="noopener noreferrer">${esc(m.title || m.ticker)}</a>
+        <td class="title"><a class="row-link" href="${esc(m.kalshi_url)}" target="_blank" rel="noopener noreferrer">${esc(cleanTitle(m.title || m.ticker))}</a>
           <div class="ticker">${esc(m.subtitle || '')}</div></td>
         <td class="num">${fmtPrice(price)}</td>
         <td class="num">${fmtPrice(ob?.best_yes_bid ?? m.yes_bid)} / ${fmtPrice(ob?.best_yes_ask ?? m.yes_ask)}</td>
@@ -184,12 +183,12 @@ function renderResolutions() {
     const tr = el('tr');
     tr.innerHTML = `
       <td>${esc(fmtDate(r.close_time))}</td>
-      <td class="title"><a class="row-link" href="${esc(r.kalshi_url)}" target="_blank" rel="noopener noreferrer">${esc(r.title)}</a>
+      <td class="title"><a class="row-link" href="${esc(r.kalshi_url)}" target="_blank" rel="noopener noreferrer">${esc(cleanTitle(r.title))}</a>
         <div class="ticker">${esc(r.ticker)}</div></td>
       <td><span class="badge badge-${String(r.result).toLowerCase() === 'yes' ? 'yes' : 'no'}">${esc(r.result)}</span></td>
       <td class="num">${isNum(r.settlement_value) ? `$${r.settlement_value.toFixed(2)}` : '—'}</td>
       <td class="num">${fmtContracts(r.volume)}</td>
-      <td class="tiny"><a href="${esc(r.source_url)}" target="_blank" rel="noopener noreferrer">API record</a></td>`;
+      <td class="tiny"><a href="${esc(r.kalshi_url)}" target="_blank" rel="noopener noreferrer">Kalshi</a> · <a href="${esc(r.source_url)}" target="_blank" rel="noopener noreferrer">API</a></td>`;
     body.append(tr);
   }
 }
@@ -200,7 +199,7 @@ function renderChartSelect(markets) {
   for (const m of markets) {
     select.append(el('option', {
       value: m.ticker,
-      text: `${(m.title || m.ticker).slice(0, 80)}${m.candles ? '' : ' (no candles)'}`,
+      text: `${cleanTitle(m.title || m.ticker).slice(0, 80)}${m.candles ? '' : ' (no candles)'}`,
     }));
   }
   if (state.selected) select.value = state.selected;
@@ -210,7 +209,8 @@ function renderChartSelect(markets) {
   });
 
   const tfHost = qs('#chart-tf');
-  const frames = [{ id: 'live', label: 'Live · sec' }, ...TIMEFRAMES.map((t) => ({ id: t.id, label: t.label }))];
+  tfHost.innerHTML = '';
+  const frames = [{ id: 'live', label: '20s · sec' }, ...TIMEFRAMES.map((t) => ({ id: t.id, label: t.label }))];
   for (const frame of frames) {
     const btn = el('button', { type: 'button', text: frame.label, 'aria-pressed': String(frame.id === state.timeframe) });
     btn.addEventListener('click', () => {
@@ -244,9 +244,14 @@ function drawChart() {
     ts: typeof a.ts === 'number' ? a.ts * 1000 : Date.parse(a.iso_time),
     catalyst_links: refs.map((r) => ({ label: r.label, url: r.url })),
   }));
+  const unit = state.timeframe === 'live'
+    ? 'seconds'
+    : (state.timeframe === '1h' || state.timeframe === '6h' || state.timeframe === '1d') ? 'hours' : 'minutes';
   chart.setData({
     series: series.length ? series : fallback,
     markers,
+    orderbook: market.orderbook || null,
+    unit,
     label: `${market.ticker} · ${state.timeframe}`,
     priceLabel: `${market.ticker} · ${state.timeframe}`,
   });
@@ -260,7 +265,7 @@ function drawChart() {
       <span class="tiny">closes ${esc(fmtDateTime(market.close_time))}</span>
       <span class="tiny"><a href="${esc(market.kalshi_url)}" target="_blank" rel="noopener noreferrer">Kalshi</a> · <a href="${esc(market.api_url)}" target="_blank" rel="noopener noreferrer">API</a></span>
     </div>
-    <div class="small" style="margin-top:4px">${esc(market.title || '')}</div>`;
+    <div class="small" style="margin-top:4px">${esc(cleanTitle(market.title || ''))}</div>`;
 
   renderOrderbook(qs('#orderbook-panel'), market);
   const moves = data.alerts().filter((a) => a.ticker === market.ticker).slice(0, 5);
@@ -276,7 +281,7 @@ function bindTicket() {
   const select = qs('#qt-market');
   const markets = data.marketsFor(topicId).slice().sort((a, b) => (b.volume || 0) - (a.volume || 0));
   for (const m of markets) {
-    select.append(el('option', { value: m.ticker, text: `${(m.title || m.ticker).slice(0, 70)}` }));
+    select.append(el('option', { value: m.ticker, text: `${cleanTitle(m.title || m.ticker).slice(0, 70)}` }));
   }
   if (state.selected) select.value = state.selected;
   const strategy = qs('#qt-strategy');
@@ -325,7 +330,7 @@ function initFeeds() {
   const alerts = data.alerts().filter((a) => a.topic === topicId).map((a) => ({
     ...a,
     ts: typeof a.ts === 'number' ? a.ts * 1000 : Date.parse(a.iso_time),
-    source_note: 'official 1m candles',
+    source_note: String(a.detected_from || '').includes('(1h)') ? 'official 1h candles' : 'official 1m candles',
     catalyst_links: (data.snapshot?.topics?.[topicId]?.reference_links || []).filter((r) => r.reachable),
   }));
   feedAll.addMany(alerts);

@@ -101,9 +101,9 @@
           </tr>
           <tr>
             <td>IRREG-12</td><td><span class="badge badge-neutral">Low</span></td>
-            <td>Kalshi's fee schedule is not reproduced on this site.</td>
-            <td>Paper P&amp;L is gross and labelled as such. The demo connection is read-only; no unverified order schema is shipped.</td>
-            <td><a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create order</a></td>
+            <td>Kalshi's per-series fee multiplier and rounding accumulator are not simulated in paper P&amp;L.</td>
+            <td>Paper P&amp;L is gross of fees and labelled as such. Demo fills read actual <code>fee_cost</code> from <code>GET /portfolio/fills</code>, and optional demo orders use the verified Create Order V2 schema.</td>
+            <td><a href="https://docs.kalshi.com/getting_started/fee_rounding" target="_blank" rel="noopener noreferrer">Fee rounding</a> · <a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create Order V2</a></td>
           </tr>
           <tr>
             <td>IRREG-26</td><td><span class="badge badge-down">High</span></td>
@@ -150,7 +150,7 @@
           <tr>
             <td>IRREG-35</td><td><span class="badge badge-warn">Medium</span></td>
             <td><strong>The ≥$0.10 alert feed did not say which price it measured.</strong> A candle was marked at the ask when an ask existed and at the bid otherwise, so two consecutive closes could be measured on different sides of the book. Spot-checking the published rows against Kalshi's own 1-minute candles for <code>KXAAAGASM-26NOV30-3.50</code>: the 10:16Z row reproduces exactly (close 0.55 → 0.68 = +$0.13) but <em>both</em> bars had <code>volume_fp = 0.00</code>, i.e. no trade printed — the move comes from quotes alone. The 09:59Z row (−$0.15) also reproduces (0.66 → 0.51) and <em>does</em> carry 1,672 contracts of volume.</td>
-            <td>The rule is now explicit and reproducible: a candle is priced at its last trade close if the bar traded, else the mid of its closing bid and ask, else the one quote that exists — one basis per bar. Each alert publishes <code>price_basis</code> and a <code>quote_only</code> flag, both are rendered as badges in the feed, and the rule is written into <code>snapshot.method_notes.alerts</code>. Quote-only moves are labelled, not deleted. In the current snapshot (2026-11-27T19:56Z) 70 moves are published: 65 are trade closes, 5 are bid/ask mids and 1 is quote-only, the 19:21Z +$0.10 move on <code>KXAAAGASW-26NOV30-3.5000</code> (candle mids 0.75 → 0.85 with <code>volume_fp = 0.00</code> in both bars).</td>
+            <td>The rule is now explicit and reproducible: a candle is priced at its last trade close if the bar traded, else the mid of its closing bid and ask, else the one quote that exists — one basis per bar. Each alert publishes <code>price_basis</code> and a <code>quote_only</code> flag, both are rendered as badges in the feed, and the rule is written into <code>snapshot.method_notes.alerts</code>. Quote-only moves are labelled, not deleted (see live counts in <a href="assets/data/snapshot.json" target="_blank" rel="noopener noreferrer">snapshot.json</a>).</td>
             <td><a href="https://external-api.kalshi.com/trade-api/v2/series/KXAAAGASM/markets/KXAAAGASM-26NOV30-3.50/candlesticks?start_ts=1795773900&amp;end_ts=1795775400&amp;period_interval=1" target="_blank" rel="noopener noreferrer">candles, spot-check 1</a> · <a href="https://external-api.kalshi.com/trade-api/v2/series/KXAAAGASM/markets/KXAAAGASM-26NOV30-3.50/candlesticks?start_ts=1795773480&amp;end_ts=1795773780&amp;period_interval=1" target="_blank" rel="noopener noreferrer">candles, spot-check 2</a> · <a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">candlestick docs</a></td>
           </tr>
           <tr>
@@ -164,6 +164,48 @@
             <td>Legacy audit summary said “problem: only 3 of 29 resolve”, but most of the “missing” tickers are Kalshi <em>event</em> tickers (for example <code>KXAAAGASMAX-26DEC31</code> is a real event whose markets do exist). Reporting them as absent overstated the problem.</td>
             <td>The audit now reports three outcomes separately — market found, event-only, absent — and says which one applies per row. The claimed market-level prices/volumes are still not reusable for event-only rows.</td>
             <td><a href="https://external-api.kalshi.com/trade-api/v2/events/KXAAAGASMAX-26DEC31" target="_blank" rel="noopener noreferrer">event record</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-36</td><td><span class="badge badge-down">High</span></td>
+            <td><strong>Footer links on all five category pages returned 404.</strong> <code>initChrome({ base })</code> in <code>assets/js/core.js</code> prefixed header navigation with <code>../</code> on <code>categories/*.html</code>, but hardcoded <code>verification.html</code> and <code>flagged-for-review.html</code> in the footer without <code>${base}</code>, pointing to non-existent <code>categories/verification.html</code> and <code>categories/flagged-for-review.html</code>.</td>
+            <td>Fixed in <code>assets/js/core.js</code> (<code>${base}verification.html</code>, <code>${base}flagged-for-review.html</code>) and pinned by a rendered-DOM link check in <code>scripts/render_pages.mjs</code> across all 10 pages.</td>
+            <td><a href="assets/js/core.js" target="_blank" rel="noopener noreferrer">core.js</a> · <a href="scripts/render_pages.mjs" target="_blank" rel="noopener noreferrer">render_pages.mjs</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-37</td><td><span class="badge badge-down">High</span></td>
+            <td><strong>Demo API positions &amp; fills signed the wrong request path (guaranteed HTTP 401), and page copy contradicted Web Crypto Ed25519 support.</strong> <code>loadDemoResource()</code> signed <code>/portfolio/positions</code> and <code>/portfolio/fills</code> instead of <code>/trade-api/v2/portfolio/positions</code> and <code>/trade-api/v2/portfolio/fills</code>; meanwhile <code>portfolio.html</code> still warned “RSA only” and cited <code>POST /portfolio/orders</code> instead of V2 <code>POST /trade-api/v2/portfolio/events/orders</code>.</td>
+            <td>Added <code>canonicalApiPath()</code> so every demo request signs the full <code>/trade-api/v2/...</code> path from root (query stripped), reconciled Ed25519 + RSA-PSS docs across all pages, and wired the verified single-book Create Order V2 schema for optional mock-funds demo orders.</td>
+            <td><a href="https://docs.kalshi.com/getting_started/api_environments#request-signing" target="_blank" rel="noopener noreferrer">Request signing</a> · <a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create Order V2</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-38</td><td><span class="badge badge-warn">Medium</span></td>
+            <td><strong>1-minute swing scan was truncated to 6h before detection, and <code>enrich_snapshot.py</code> wiped <code>event_title</code> to <code>null</code> on all alerts.</strong> <code>fetch_candles()</code> trimmed <code>m1</code> to <code>CANDLE_PUBLISH_HOURS = 6</code> before <code>detect_swings()</code> ran despite advertising a 24h 1m window, while <code>reclassify_alerts()</code> read <code>m.get("event_title")</code> (unset) and overwrote every alert's <code>event_title</code> with <code>null</code>.</td>
+            <td><code>detect_swings()</code> now scans the full 24h 1m series before trimming published bars to 6h; <code>event_title</code> is populated on all 171 markets and 100% of alerts; and candle window copy (24h 1m + 72h 1h detection; 6h 1m + 72h 1h published) is reconciled everywhere.</td>
+            <td><a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Candlestick docs</a> · <a href="assets/data/snapshot.json" target="_blank" rel="noopener noreferrer">snapshot.json</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-39</td><td><span class="badge badge-warn">Medium</span></td>
+            <td><strong>Browser chart, backtester, and method notes disagreed with the pipeline's mark-price and dollar-estimate formulas.</strong> <code>market-data.js</code> and <code>strategy.js</code> still marked bars at <code>ask ?? bid</code> instead of <code>trade close → bid/ask mid → single quote</code>, and <code>enrich_snapshot.py</code> described <code>est_dollars</code> as “24h volume × price” when the code computes lifetime <code>volume_fp × last_price_dollars</code>.</td>
+            <td>Exported canonical <code>candleMark()</code> in <code>core.js</code> and applied it across <code>candlesFor()</code>, <code>swingFor()</code>, and <code>backtest()</code>; corrected <code>metrics.swing_definition</code>, <code>method_notes.est_dollars</code>, chart legends, and metric tables.</td>
+            <td><a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets</a> · <a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Get Market Candlesticks</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-40</td><td><span class="badge badge-warn">Medium</span></td>
+            <td><strong><code>PaperAccount.priceFor()</code> ignored live 20s quotes and <code>GET /markets</code> top-of-book quotes.</strong> Contrary to <code>verification.html</code> §5, paper fills only inspected <code>market.orderbook</code> (static and absent on 91 of 171 markets) before falling back to <code>last_price</code>.</td>
+            <td>Updated <code>priceFor()</code> to use actionable live 20s quotes (<code>0 &lt; p &lt; 1</code>) first, then orderbook snapshot, then actionable <code>GET /markets</code> quotes, then <code>last_price</code>, recording the exact <code>entry_source</code>/<code>exit_source</code>.</td>
+            <td><a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets quotes</a> · <a href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Orderbook docs</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-41</td><td><span class="badge badge-neutral">Low</span></td>
+            <td><strong><code>refresh_cadence</code> key mismatch rendered “—” on Verification, workflow recorded run history after enrichment, and back-to-back <code>kalshi.com</code> checks self-throttled (HTTP 429).</strong> <code>enrich_snapshot.py</code> wrote <code>gaps_under_1h</code> while <code>verification.js</code> read <code>gaps_under_one_hour</code>.</td>
+            <td>Unified both keys, moved <code>refresh-history.json</code> update before <code>enrich_snapshot.py</code> in CI, paced <code>kalshi.com</code> checks, and labelled HTTP 429 responses explicitly as <code>throttled (429)</code>.</td>
+            <td><a href="assets/data/refresh-history.json" target="_blank" rel="noopener noreferrer">refresh-history.json</a> · <a href="https://docs.kalshi.com/getting_started/rate_limits" target="_blank" rel="noopener noreferrer">Rate limits</a></td>
+          </tr>
+          <tr>
+            <td>IRREG-42</td><td><span class="badge badge-down">High</span></td>
+            <td><strong>Per-series truncation at <code>max_series_per_topic = 250</code> sorted by <code>series.last_updated_ts</code> dropped Kalshi's largest Election events.</strong> Because <code>series.last_updated_ts</code> reflects series metadata edits rather than trading volume, long-running multi-100M-contract events (<code>KXPRESNOMD-28</code> 315M+ ct, <code>KXPRESPERSON-28</code> 112M+ ct, <code>KXPRESNOMR-28</code> 110M+ ct) were excluded before ranking while 1,041 per-series calls took 19.5 minutes, and broad prefix <code>KXCONGRESS</code> admitted non-election hearing markets (<code>KXCONGRESSTESTIFY</code>).</td>
+            <td>Replaced open discovery with full-catalog cursor pagination on <code>GET /events?status=open&amp;limit=200&amp;with_nested_markets=true</code> (scanning every open event on Kalshi with zero 250-series cap) and tightened 5-topic exclusion rules.</td>
+            <td><a href="https://docs.kalshi.com/api-reference/events/get-events" target="_blank" rel="noopener noreferrer">Get Events API</a> · <a href="https://external-api.kalshi.com/trade-api/v2/events/KXPRESNOMD-28" target="_blank" rel="noopener noreferrer">KXPRESNOMD-28</a> · <a href="https://external-api.kalshi.com/trade-api/v2/events/KXPRESPERSON-28" target="_blank" rel="noopener noreferrer">KXPRESPERSON-28</a></td>
           </tr>
         </tbody>
       </table>
@@ -197,9 +239,9 @@
         <thead><tr><th>Value</th><th>Why it is blank / unverified</th><th>Source that would settle it</th></tr></thead>
         <tbody>
           <tr><td>Dollar volume (official)</td><td>Kalshi's public API does not publish a dollar-volume field; only contracts. The “Est. $ traded” column is our arithmetic, not Kalshi's number.</td><td><a href="https://docs.kalshi.com/api-reference/market/get-markets" target="_blank" rel="noopener noreferrer">Get Markets schema</a></td></tr>
-          <tr><td>Trading fees in P&amp;L</td><td>The fee schedule is not reproduced from an official page in his project, so P&amp;L is gross.</td><td><a href="https://docs.kalshi.com/" target="_blank" rel="noopener noreferrer">Kalshi docs</a></td></tr>
-          <tr><td>Demo order execution</td><td>Order placement needs a verified request schema and a browser route to the demo API; neither could be exercised here.</td><td><a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create Order V2</a></td></tr>
-          <tr><td>Cause of a price jump</td><td>No official source states why a contract repriced. Charts show the move and list candidate primary sources without asserting causality.</td><td>—</td></tr>
+          <tr><td>Trading fees in P&amp;L</td><td>Per-series fee multipliers and rounding rebates are not simulated in this project, so paper P&amp;L is shown gross of fees.</td><td><a href="https://docs.kalshi.com/getting_started/fee_rounding" target="_blank" rel="noopener noreferrer">Fee rounding</a></td></tr>
+          <tr><td>Automated live execution without keys</td><td>A static GitHub Pages build holds no credentials; default strategy testing uses the local paper account, while optional mock-funds demo orders require pasting your own demo key in memory and browser CORS access.</td><td><a href="https://docs.kalshi.com/api-reference/orders/create-order-v2" target="_blank" rel="noopener noreferrer">Create Order V2</a></td></tr>
+          <tr><td>Cause of a price jump</td><td>Kalshi candlestick and trade schemas carry prices, quantities and timestamps only — never news or causal attributions. Charts show the move and list candidate primary sources without asserting causality.</td><td><a href="https://docs.kalshi.com/api-reference/market/get-market-candlesticks" target="_blank" rel="noopener noreferrer">Get Market Candlesticks</a></td></tr>
           <tr><td>Browser CORS behaviour</td><td>Not documented by Kalshi and not testable from the build environment; the live badge reports what actually happens in your browser.</td><td><a href="https://docs.kalshi.com/getting_started/api_environments" target="_blank" rel="noopener noreferrer">API environments</a></td></tr>
           <tr><td>Resting liquidity for markets with no book</td><td>The orderbook snapshot only covers tracked markets at refresh time; absence of a book is shown as blank, not zero.</td><td><a href="https://docs.kalshi.com/getting_started/orderbook_responses" target="_blank" rel="noopener noreferrer">Orderbook</a></td></tr>
         </tbody>
@@ -210,8 +252,8 @@
     <p class="small">Same ticker, both environments, same refresh. This is why the dashboard never presents demo prices as production prices.</p>
     <div class="table-wrap card">
       <table class="data">
-        <thead><tr><th>Ticker (linked to Kalshi)</th><th class="num">Production last</th><th class="num">Demo last</th><th class="num">Production volume (ct)</th><th class="num">Demo volume (ct)</th></tr></thead>
-        <tbody id="demo-body"><tr><td colspan="5" class="table-empty">Loading…</td></tr></tbody>
+        <thead><tr><th>Ticker (linked to Kalshi)</th><th class="num">Production last</th><th class="num">Demo last</th><th class="num">Production volume (ct)</th><th class="num">Demo volume (ct)</th><th>Official sources</th></tr></thead>
+        <tbody id="demo-body"><tr><td colspan="6" class="table-empty">Loading…</td></tr></tbody>
       </table>
     </div>
   </main>

@@ -98,8 +98,8 @@
         <div id="chat-all" class="chat-feed" role="log" aria-live="polite" aria-label="All ≥ $0.10 price swing alerts"></div>
         <div class="card-body" style="padding:8px 14px 12px">
           <div class="card-note">
-            Detected from official Kalshi 1-minute candles over a 24-hour window (close-to-close) plus live browser ticks.
-            Threshold: absolute move ≥ $0.10 per contract, either direction.
+            Detected from official Kalshi 1-minute (24h window) and 1-hour (72h window) candles plus live 20s browser ticks.
+            Threshold: absolute move ≥ $0.10 per contract, either direction, on a single per-bar mark basis.
           </div>
         </div>
       </div>
@@ -137,10 +137,10 @@
               <div id="chart-popover" class="marker-popover"></div>
             </div>
             <div class="chart-legend">
-              <span class="key"><span class="dot" style="background:#0f766e"></span>YES price (ask close, else bid close)</span>
+              <span class="key"><span class="dot" style="background:#0f766e"></span>YES mark (trade close, else bid/ask mid)</span>
               <span class="key"><span class="dot" style="background:#047857"></span>≥$0.10 up move</span>
               <span class="key"><span class="dot" style="background:#b91c1c"></span>≥$0.10 down move</span>
-              <span class="key">click a marker for links</span>
+              <span class="key">right-edge bars: resting book depth · click marker for links</span>
             </div>
             <div id="chart-catalysts" class="catalyst-box" style="margin-top:10px"></div>
           </div>
@@ -231,7 +231,7 @@
         <div class="table-wrap">
           <table class="data">
             <thead>
-              <tr><th>Settled</th><th>Event / market</th><th>Topic</th><th>Result</th><th class="num">Settlement</th><th class="num">Volume (ct)</th></tr>
+              <tr><th>Settled</th><th>Event / market</th><th>Topic</th><th>Result</th><th class="num">Settlement</th><th class="num">Volume (ct)</th><th>Source</th></tr>
             </thead>
             <tbody id="resolutions-table-body"></tbody>
           </table>

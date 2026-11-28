@@ -66,7 +66,11 @@ async function load() {
         <td>${esc(r.label || '')}</td>
         <td class="tiny"><a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">${esc(r.url)}</a></td>
         <td class="num">${r.http_status === null ? '<span class="tiny">no response</span>' : esc(r.http_status)}</td>
-        <td>${r.reachable ? '<span class="badge badge-up">yes</span>' : '<span class="badge badge-down">no</span>'}</td>
+        <td>${r.reachable
+          ? '<span class="badge badge-up">yes</span>'
+          : r.http_status === 429
+            ? '<span class="badge badge-warn" title="kalshi.com throttled unauthenticated runner burst">throttled (429)</span>'
+            : '<span class="badge badge-down">no</span>'}</td>
       </tr>`).join('');
     }
   }
@@ -75,10 +79,11 @@ async function load() {
   const cbox = qs('#cadence-box');
   if (cbox) {
     const m = cadence?.measured;
+    const under1h = m ? (m.gaps_under_one_hour ?? m.gaps_under_1h ?? 0) : 0;
     cbox.innerHTML = m
       ? `Measured over <strong>${fmtNum(m.runs_used)}</strong> runs (${esc(fmtDateTime(m.first_run))} → ${esc(fmtDateTime(m.last_run))} UTC):
          median gap <strong>${m.median_gap_hours}h</strong>, mean ${m.mean_gap_hours}h, max ${m.max_gap_hours}h,
-         min ${m.min_gap_hours}h; runs closer together than one hour: ${fmtNum(m.gaps_under_one_hour)} of ${fmtNum(m.gap_count)}.
+         min ${m.min_gap_hours}h; runs closer together than one hour: ${fmtNum(under1h)} of ${fmtNum(m.gap_count)}.
          <div class="tiny" style="margin-top:4px">Source: <a href="assets/data/refresh-history.json" target="_blank" rel="noopener noreferrer">refresh-history.json</a> — written by the workflow itself.</div>`
       : `No measured cadence yet${cadence?.note ? ` — ${esc(cadence.note)}` : ''}.`;
   }
@@ -91,7 +96,8 @@ async function load() {
         <td class="num">${r.prod_last_price === null ? '—' : fmtUsd(r.prod_last_price, 4)}</td>
         <td class="num">${r.demo_last_price === null ? '—' : fmtUsd(r.demo_last_price, 4)}</td>
         <td class="num">${fmtContracts(r.prod_volume)}</td>
-        <td class="num">${fmtContracts(r.demo_volume)}</td></tr>`).join('');
+        <td class="num">${fmtContracts(r.demo_volume)}</td>
+        <td class="tiny"><a href="https://external-api.kalshi.com/trade-api/v2/markets/${encodeURIComponent(r.ticker)}" target="_blank" rel="noopener noreferrer">prod API</a> · <a href="https://external-api.demo.kalshi.co/trade-api/v2/markets/${encodeURIComponent(r.ticker)}" target="_blank" rel="noopener noreferrer">demo API</a></td></tr>`).join('');
     }
   }
 }

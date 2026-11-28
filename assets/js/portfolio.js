@@ -5,7 +5,7 @@
 
 import {
   SITE, TOPICS, TOPIC_ORDER, initChrome, el, qs, qsa, toast,
-  fmtUsd, fmtContracts, fmtPrice, fmtDelta, fmtNum, fmtDateTime, fmtDate, esc, isNum, scoreMarket, loadJson, saveJson,
+  fmtUsd, fmtContracts, fmtPrice, fmtDelta, fmtNum, fmtDateTime, fmtDate, esc, cleanTitle, isNum, scoreMarket, loadJson, saveJson,
 } from './core.js';
 import { MarketData } from './market-data.js';
 import { PaperAccount, equitySeries, STARTING_CASH } from './paper.js';
@@ -15,8 +15,13 @@ import { shouldAutoTrade } from './alerts.js';
 const data = new MarketData();
 let account;
 let autoConfig = loadJson('tradebot3.autotrade', { enabled: false, strategy: 'model', topic: 'all' });
+let customStrategies = loadJson('tradebot3.customStrategies', []);
 let logFilter = { topic: 'all', strategy: 'all' };
 const backtestCache = new Map();
+
+function allStrategies() {
+  return [...STRATEGIES, ...(Array.isArray(customStrategies) ? customStrategies : [])];
+}
 
 async function boot() {
   initChrome({ active: 'portfolio.html' });
@@ -155,13 +160,15 @@ function renderPositions() {
   const marked = account.marked();
   body.innerHTML = '';
   if (!marked.length) {
-    body.innerHTML = '<tr><td colspan="9" class="table-empty">No open positions. Use the ticket or a strategy to open one.</td></tr>';
+    body.innerHTML = '<tr><td colspan="10" class="table-empty">No open positions. Use the ticket or a strategy to open one.</td></tr>';
     return;
   }
   for (const p of marked) {
+    const kalshiUrl = p.market_url || `https://kalshi.com/events/${encodeURIComponent(p.event_ticker || p.ticker)}`;
+    const apiUrl = p.api_url || `${SITE.apiBase}/markets/${encodeURIComponent(p.ticker)}`;
     const tr = el('tr');
     tr.innerHTML = `
-      <td class="title">${esc((p.event_title || p.title || p.ticker).slice(0, 64))}
+      <td class="title"><a class="row-link" href="${esc(kalshiUrl)}" target="_blank" rel="noopener noreferrer">${esc(cleanTitle(p.event_title || p.title || p.ticker).slice(0, 64))}</a>
         <div class="ticker">${esc(p.ticker)}</div></td>
       <td>${badge(p.topic)}</td>
       <td><span class="badge badge-${p.side === 'YES' ? 'yes' : 'no'}">${p.side}</span></td>
@@ -170,6 +177,7 @@ function renderPositions() {
       <td class="num">${fmtPrice(p.mark)}</td>
       <td class="num" style="color:${p.pnl >= 0 ? 'var(--up)' : 'var(--down)'}">${fmtDelta(p.pnl)}</td>
       <td class="num">${p.roi_pct >= 0 ? '+' : ''}${p.roi_pct.toFixed(1)}%</td>
+      <td class="tiny"><a href="${esc(kalshiUrl)}" target="_blank" rel="noopener noreferrer">Kalshi</a> · <a href="${esc(apiUrl)}" target="_blank" rel="noopener noreferrer">API</a></td>
       <td><button class="btn btn-sm" data-close="${esc(p.id)}">Close</button></td>`;
     body.append(tr);
   }
@@ -192,14 +200,16 @@ function renderTrades() {
   ));
   body.innerHTML = '';
   if (!trades.length) {
-    body.innerHTML = '<tr><td colspan="10" class="table-empty">No closed trades match the filter.</td></tr>';
+    body.innerHTML = '<tr><td colspan="11" class="table-empty">No closed trades match the filter.</td></tr>';
     return;
   }
   for (const t of trades.slice(0, 200)) {
+    const kalshiUrl = t.market_url || `https://kalshi.com/events/${encodeURIComponent(t.event_ticker || t.ticker)}`;
+    const apiUrl = t.api_url || `${SITE.apiBase}/markets/${encodeURIComponent(t.ticker)}`;
     const tr = el('tr');
     tr.innerHTML = `
       <td>${esc(fmtDateTime(t.closed_at))}</td>
-      <td class="title">${esc((t.event_title || t.title || t.ticker).slice(0, 60))}<div class="ticker">${esc(t.ticker)}</div></td>
+      <td class="title"><a class="row-link" href="${esc(kalshiUrl)}" target="_blank" rel="noopener noreferrer">${esc(cleanTitle(t.event_title || t.title || t.ticker).slice(0, 60))}</a><div class="ticker">${esc(t.ticker)}</div></td>
       <td>${badge(t.topic)}</td>
       <td>${esc(t.category || t.strategy || '—')}</td>
       <td><span class="badge badge-${t.side === 'YES' ? 'yes' : 'no'}">${t.side}</span></td>
@@ -207,7 +217,8 @@ function renderTrades() {
       <td class="num">${fmtPrice(t.entry)} → ${fmtPrice(t.exit)}</td>
       <td class="num" style="color:${t.pnl >= 0 ? 'var(--up)' : 'var(--down)'}">${fmtDelta(t.pnl)}</td>
       <td class="num">${t.roi_pct >= 0 ? '+' : ''}${t.roi_pct.toFixed(1)}%</td>
-      <td class="tiny">${esc(t.close_reason || '')}</td>`;
+      <td class="tiny">${esc(t.close_reason || '')}</td>
+      <td class="tiny"><a href="${esc(kalshiUrl)}" target="_blank" rel="noopener noreferrer">Kalshi</a> · <a href="${esc(apiUrl)}" target="_blank" rel="noopener noreferrer">API</a></td>`;
     body.append(tr);
   }
 }
@@ -229,8 +240,14 @@ function fillAnalytics(sel, rows, label) {
   }
   for (const r of rows) {
     const tr = el('tr');
-    const name = r.key === 'YES' || r.key === 'NO' ? `<span class="badge badge-${r.key.toLowerCase()}">${r.key}</span>`
-      : r.key === 'Manual' ? 'Manual' : esc(TOPICS[r.key]?.name || r.key);
+    let name;
+    if (r.key === 'YES' || r.key === 'NO') {
+      name = `<a href="verification.html" title="Paper settlement &amp; side rules"><span class="badge badge-${r.key.toLowerCase()}">${r.key}</span></a>`;
+    } else if (TOPICS[r.key]) {
+      name = `<a href="${esc(TOPICS[r.key].kalshiCategory)}" target="_blank" rel="noopener noreferrer">${esc(TOPICS[r.key].name)}</a>`;
+    } else {
+      name = `<a href="verification.html" title="Paper fill &amp; category rules">${esc(r.key)}</a>`;
+    }
     tr.innerHTML = `
       <td>${name}</td>
       <td class="num">${fmtNum(r.count)}</td>
@@ -253,12 +270,12 @@ function buildTicket() {
   for (const topic of TOPIC_ORDER) {
     const group = el('optgroup', { label: TOPICS[topic].name });
     for (const m of data.marketsFor(topic).sort((a, b) => (b.volume || 0) - (a.volume || 0))) {
-      group.append(el('option', { value: m.ticker, text: `${(m.event_title || m.title || m.ticker).slice(0, 70)} · ${m.subtitle || ''}` }));
+      group.append(el('option', { value: m.ticker, text: `${cleanTitle(m.event_title || m.title || m.ticker).slice(0, 70)} · ${m.subtitle || ''}` }));
     }
     select.append(group);
   }
   const category = qs('#pf-category');
-  for (const name of ['Manual', 'Swing Mean-Reversion', 'Momentum Breakout', 'High-ROI Model', 'News Catalyst', 'Spread Capture']) {
+  for (const name of ['Manual', 'Swing Mean-Reversion', 'Momentum Breakout', 'High-ROI Model', 'News Catalyst', 'Longshot Value', 'Spread Capture']) {
     category.append(el('option', { value: name, text: name }));
   }
   const preview = () => {
@@ -320,7 +337,7 @@ function buildFilters() {
 
   const stratSel = qs('#log-filter-strategy');
   stratSel.append(el('option', { value: 'all', text: 'All categories' }));
-  for (const s of ['Manual', 'Swing Mean-Reversion', 'Momentum Breakout', 'High-ROI Model', 'News Catalyst', 'Spread Capture']) {
+  for (const s of ['Manual', 'Swing Mean-Reversion', 'Momentum Breakout', 'High-ROI Model', 'News Catalyst', 'Longshot Value', 'Spread Capture']) {
     stratSel.append(el('option', { value: s, text: s }));
   }
   stratSel.addEventListener('change', () => { logFilter.strategy = stratSel.value; renderTrades(); });
@@ -331,33 +348,90 @@ function buildFilters() {
 function buildLab() {
   const host = qs('#lab-grid');
   host.innerHTML = '';
-  for (const strat of STRATEGIES) {
+  const list = allStrategies();
+  for (const strat of list) {
     const card = el('div', { class: 'card' });
     card.style.boxShadow = 'none';
     card.innerHTML = `
       <div class="card-head" style="padding:9px 12px">
         <h3>${esc(strat.name)}</h3>
-        <label class="switch"><input type="checkbox" data-strat="${strat.id}" ${strat.enabled ? 'checked' : ''}> enabled</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <label class="switch"><input type="checkbox" data-strat="${esc(strat.id)}" ${strat.enabled ? 'checked' : ''}> enabled</label>
+          ${strat.custom ? `<button type="button" class="btn btn-sm btn-ghost" data-del-strat="${esc(strat.id)}" title="Delete custom strategy">✕</button>` : ''}
+        </div>
       </div>
       <div class="card-body" style="padding:10px 12px">
         <div class="small">${esc(strat.description)}</div>
+        <div class="tiny" style="margin-top:3px">Category: <strong>${esc(strat.category)}</strong>${strat.topicFilter && strat.topicFilter !== 'all' ? ` · Topic: <strong>${esc(TOPICS[strat.topicFilter]?.name || strat.topicFilter)}</strong>` : ''}</div>
         <div class="hr"></div>
-        <div id="lab-${strat.id}"><div class="small">Running backtest on official 1-minute candles…</div></div>
+        <div id="lab-${esc(strat.id)}"><div class="small">Running backtest on official 1-minute candles…</div></div>
       </div>`;
     host.append(card);
     qsa(`[data-strat="${strat.id}"]`).forEach((cb) => cb.addEventListener('change', () => {
       strat.enabled = cb.checked;
+      if (strat.custom) saveJson('tradebot3.customStrategies', customStrategies);
+    }));
+    qsa(`[data-del-strat="${strat.id}"]`).forEach((btn) => btn.addEventListener('click', () => {
+      customStrategies = customStrategies.filter((s) => s.id !== strat.id);
+      saveJson('tradebot3.customStrategies', customStrategies);
+      backtestCache.delete(strat.id);
+      buildLab();
+      renderAutoPanel();
     }));
   }
-  setTimeout(runBacktests, 60);
+  bindCustomStrategyForm();
+  setTimeout(runBacktests, 40);
+}
+
+function bindCustomStrategyForm() {
+  const form = qs('#custom-strat-form');
+  if (!form || form.dataset.bound) return;
+  form.dataset.bound = '1';
+  form.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const name = qs('#cs-name').value.trim();
+    const category = qs('#cs-category').value;
+    const rule = qs('#cs-rule').value;
+    const topicFilter = qs('#cs-topic').value;
+    const minSwing = Math.max(0.05, Number(qs('#cs-swing').value || 0.10));
+    const holdBars = Math.max(1, Math.floor(Number(qs('#cs-hold').value || 5)));
+    const stake = Math.max(10, Number(qs('#cs-stake').value || 100));
+    if (!name) return;
+    const strat = {
+      id: `custom_${Date.now().toString(36)}`,
+      name,
+      category,
+      rule,
+      topicFilter,
+      minSwing,
+      maxPrice: 0.15,
+      minScore: SITE.modelThreshold,
+      holdBars,
+      stake,
+      enabled: true,
+      custom: true,
+      description: `Custom ${category} rule (${rule}): ≥ $${minSwing.toFixed(2)} trigger, hold ${holdBars}m, $${stake} stake.`,
+    };
+    customStrategies.push(strat);
+    saveJson('tradebot3.customStrategies', customStrategies);
+    qs('#cs-name').value = '';
+    buildLab();
+    renderAutoPanel();
+    toast(`Created & backtested strategy "${name}"`, 'ok');
+  });
 }
 
 function runBacktests() {
-  for (const strat of STRATEGIES) {
+  for (const strat of allStrategies()) {
     const host = qs(`#lab-${strat.id}`);
     if (!host) continue;
     const key = `${strat.id}`;
-    if (!backtestCache.has(key)) backtestCache.set(key, backtest(data, strat));
+    if (!backtestCache.has(key)) {
+      const pool = strat.topicFilter && strat.topicFilter !== 'all'
+        ? data.marketsFor(strat.topicFilter)
+        : data.markets;
+      backtestCache.set(key, backtest(data, strat, { markets: pool }));
+    }
     const { stats } = backtestCache.get(key);
     host.innerHTML = `
       <div class="ob-summary" style="grid-template-columns:repeat(2,1fr)">
@@ -374,13 +448,14 @@ function runBacktests() {
 function renderAutoPanel() {
   const enabled = qs('#auto-enabled');
   const select = qs('#auto-strategy');
-  if (!select.options.length) {
-    for (const s of STRATEGIES) select.append(el('option', { value: s.id, text: s.name }));
-  }
+  const list = allStrategies();
+  select.innerHTML = '';
+  for (const s of list) select.append(el('option', { value: s.id, text: s.name }));
+  if (!list.some((s) => s.id === autoConfig.strategy)) autoConfig.strategy = list[0]?.id || 'model';
   enabled.checked = !!autoConfig.enabled;
   select.value = autoConfig.strategy;
   qs('#auto-status').textContent = autoConfig.enabled
-    ? `Auto-trade ON — ${STRATEGIES.find((s) => s.id === autoConfig.strategy)?.name}`
+    ? `Auto-trade ON — ${list.find((s) => s.id === autoConfig.strategy)?.name}`
     : 'Auto-trade OFF';
   enabled.onchange = () => {
     autoConfig.enabled = enabled.checked;
@@ -396,7 +471,7 @@ function renderAutoPanel() {
 
 function onLiveAlert(alert) {
   if (!autoConfig.enabled) return;
-  const strat = STRATEGIES.find((s) => s.id === autoConfig.strategy);
+  const strat = allStrategies().find((s) => s.id === autoConfig.strategy);
   const market = data.byTicker.get(alert.ticker);
   if (!strat || !market) return;
   const score = scoreMarket(market, { recentSwing: alert });
@@ -425,18 +500,69 @@ function onLiveAlert(alert) {
 const DEMO_KEY = 'tradebot3.demo.keyid';
 let demoSession = null; // { keyId, pem } held in memory only, never persisted
 
+/**
+ * Kalshi request signing requires the full API path from host root (`/trade-api/v2/...`)
+ * with any query string stripped:
+ * https://docs.kalshi.com/getting_started/api_environments#request-signing
+ */
+export function canonicalApiPath(pathWithQuery) {
+  const [rawPath] = String(pathWithQuery || '').split('?');
+  const normalized = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
+  return normalized.startsWith('/trade-api/v2') ? normalized : `/trade-api/v2${normalized}`;
+}
+
+/**
+ * Build a Create Order V2 request body per official docs:
+ * https://docs.kalshi.com/api-reference/orders/create-order-v2
+ * Single-book convention on event markets:
+ *   side = "bid" buys YES at `yesPrice`
+ *   side = "ask" sells YES at `yesPrice` (economically long NO at `1 - yesPrice`)
+ */
+export function buildDemoOrderV2Payload({ ticker, side = 'YES', qty = 1, yesPrice = 0.50, clientOrderId = '' }) {
+  const id = clientOrderId || `tb3-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const clampedPrice = Math.min(0.99, Math.max(0.01, Number(yesPrice)));
+  return {
+    ticker: String(ticker || '').trim(),
+    client_order_id: id,
+    side: side === 'NO' ? 'ask' : 'bid',
+    count: Math.max(1, Math.floor(Number(qty) || 1)).toFixed(2),
+    price: clampedPrice.toFixed(4),
+    time_in_force: 'good_till_canceled',
+    self_trade_prevention_type: 'taker_at_cross',
+    post_only: false,
+    cancel_order_on_pause: false,
+    reduce_only: false,
+    subaccount: 0,
+  };
+}
+
 function restoreDemoForm() {
   const keyId = localStorage.getItem(DEMO_KEY);
   if (keyId) qs('#demo-keyid').value = keyId;
+  const demoTicker = qs('#demo-order-ticker');
+  if (demoTicker) {
+    for (const topic of TOPIC_ORDER) {
+      const group = el('optgroup', { label: TOPICS[topic].name });
+      for (const m of data.marketsFor(topic).sort((a, b) => (b.volume || 0) - (a.volume || 0))) {
+        group.append(el('option', { value: m.ticker, text: `${m.ticker} · ${cleanTitle(m.title || '').slice(0, 52)}` }));
+      }
+      demoTicker.append(group);
+    }
+  }
   qs('#demo-connect').addEventListener('click', connectDemo);
-  qs('#demo-positions').addEventListener('click', () => loadDemoResource('/portfolio/positions'));
+  qs('#demo-positions').addEventListener('click', () => loadDemoResource('/portfolio/positions?count_filter=position,total_traded&limit=50'));
   qs('#demo-fills').addEventListener('click', () => loadDemoResource('/portfolio/fills?limit=20'));
+  qs('#demo-order-form')?.addEventListener('submit', submitDemoOrder);
   qs('#demo-clear').addEventListener('click', () => {
     qs('#demo-pem').value = '';
     demoSession = null;
     qs('#demo-data').style.display = 'none';
+    const structured = qs('#demo-structured');
+    if (structured) structured.innerHTML = '';
     qs('#demo-positions').disabled = true;
     qs('#demo-fills').disabled = true;
+    const orderBtn = qs('#demo-order-submit');
+    if (orderBtn) orderBtn.disabled = true;
     localStorage.removeItem(DEMO_KEY);
     qs('#demo-status').innerHTML = 'Cleared. The private key was never stored.';
   });
@@ -543,31 +669,69 @@ async function connectDemo() {
   }
   status.innerHTML = 'Detecting the key type and signing a test request…';
   try {
-    const path = '/trade-api/v2/portfolio/balance';
+    const path = canonicalApiPath('/portfolio/balance');
     const { headers, keyType } = await signDemoRequest(keyId, pem, 'GET', path);
     localStorage.setItem(DEMO_KEY, keyId);
     const res = await fetch(`${SITE.demoApiBase}/portfolio/balance`, { headers });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const body = await res.json();
     // GET /portfolio/balance documents `balance` in cents plus `balance_dollars`
-    // (docs.kalshi.com/api-reference/portfolio/get-balance). Prefer the dollar
-    // string Kalshi returns; fall back to cents only when it is absent.
+    // and `portfolio_value` in cents (docs.kalshi.com/api-reference/portfolio/get-balance).
     const balanceDollars = body?.balance_dollars !== undefined ? Number(body.balance_dollars) : null;
     const balanceCents = body?.balance ?? body?.portfolio_balance;
+    const pvCents = body?.portfolio_value;
     demoSession = { keyId, pem };
     qs('#demo-positions').disabled = false;
     qs('#demo-fills').disabled = false;
+    const orderBtn = qs('#demo-order-submit');
+    if (orderBtn) orderBtn.disabled = false;
     const balanceText = isNum(balanceDollars)
       ? fmtUsd(balanceDollars)
-      : isNum(balanceCents) ? `${fmtUsd(balanceCents / 100)} (converted from the cents field)` : esc(JSON.stringify(body).slice(0, 120));
-    status.innerHTML = `<span class="status-ok">Connected to Kalshi demo.</span> Balance ${balanceText}
-      <div class="tiny">Read-only check via GET /portfolio/balance. Signature: ${esc(keyType)}. Signing followed docs.kalshi.com/getting_started/api_keys (path without query, timestamp in ms).</div>`;
+      : isNum(balanceCents) ? `${fmtUsd(balanceCents / 100)} (from cents field)` : esc(JSON.stringify(body).slice(0, 120));
+    const pvText = isNum(pvCents) ? ` · Portfolio value ${fmtUsd(pvCents / 100)}` : '';
+    status.innerHTML = `<span class="status-ok">Connected to Kalshi demo.</span> Balance ${balanceText}${pvText}
+      <div class="tiny">Signed <code>GET ${esc(path)}</code> with ${esc(keyType)} per <a href="https://docs.kalshi.com/getting_started/api_keys" target="_blank" rel="noopener noreferrer">API Keys docs</a>.</div>`;
     qs('#demo-pem').value = '';
   } catch (err) {
     const hint = /Failed to fetch|NetworkError|load failed/i.test(err.message)
       ? 'The browser could not reach the demo API — most likely CORS. This does not affect the paper account.'
       : 'Check the Key ID/PEM pair and that the key was created in the demo environment (keys are not shared with production).';
     status.innerHTML = `<span class="status-err">Could not verify: ${esc(err.message)}</span><div class="tiny">${hint}</div>`;
+  }
+}
+
+function renderDemoStructured(pathWithQuery, body) {
+  const host = qs('#demo-structured');
+  if (!host) return;
+  if (pathWithQuery.startsWith('/portfolio/positions') && Array.isArray(body?.market_positions)) {
+    const rows = body.market_positions;
+    host.innerHTML = rows.length
+      ? `<div class="table-wrap" style="margin-top:8px"><table class="data"><thead><tr><th>Ticker</th><th class="num">Position (fp)</th><th class="num">Total traded</th><th class="num">Realised P&amp;L</th><th>Source</th></tr></thead><tbody>${
+        rows.slice(0, 25).map((r) => `<tr>
+          <td class="ticker">${esc(r.ticker || '')}</td>
+          <td class="num">${esc(r.position_fp ?? r.position ?? '0')}</td>
+          <td class="num">${esc(r.total_traded_dollars ?? r.total_traded ?? '—')}</td>
+          <td class="num">${esc(r.realized_pnl_dollars ?? r.realized_pnl ?? '—')}</td>
+          <td class="tiny"><a href="https://external-api.demo.kalshi.co/trade-api/v2/markets/${encodeURIComponent(r.ticker || '')}" target="_blank" rel="noopener noreferrer">demo API</a></td>
+        </tr>`).join('')
+      }</tbody></table></div>`
+      : '<div class="small" style="margin-top:8px">Demo account returned 0 unsettled market positions.</div>';
+    return;
+  }
+  if (pathWithQuery.startsWith('/portfolio/fills') && Array.isArray(body?.fills)) {
+    const rows = body.fills;
+    host.innerHTML = rows.length
+      ? `<div class="table-wrap" style="margin-top:8px"><table class="data"><thead><tr><th>Ticker</th><th>Outcome / book</th><th class="num">Count</th><th class="num">YES price</th><th class="num">Fee</th><th>Source</th></tr></thead><tbody>${
+        rows.slice(0, 25).map((f) => `<tr>
+          <td class="ticker">${esc(f.ticker || f.market_ticker || '')}</td>
+          <td>${esc((f.outcome_side || f.side || '').toUpperCase())} <span class="tiny">(${esc(f.book_side || f.action || '')})</span></td>
+          <td class="num">${esc(f.count_fp ?? f.count ?? '—')}</td>
+          <td class="num">$${esc(f.yes_price_dollars ?? '—')}</td>
+          <td class="num">$${esc(f.fee_cost ?? '0')}</td>
+          <td class="tiny"><a href="https://external-api.demo.kalshi.co/trade-api/v2/markets/${encodeURIComponent(f.ticker || f.market_ticker || '')}" target="_blank" rel="noopener noreferrer">demo API</a></td>
+        </tr>`).join('')
+      }</tbody></table></div>`
+      : '<div class="small" style="margin-top:8px">Demo account returned 0 recent fills.</div>';
   }
 }
 
@@ -578,18 +742,57 @@ async function loadDemoResource(pathWithQuery) {
     status.innerHTML = '<span class="status-err">Verify the demo connection first.</span>';
     return;
   }
-  const [pathOnly] = pathWithQuery.split('?');
+  const signPath = canonicalApiPath(pathWithQuery);
   try {
-    const { headers } = await signDemoRequest(demoSession.keyId, demoSession.pem, 'GET', pathOnly);
+    const { headers } = await signDemoRequest(demoSession.keyId, demoSession.pem, 'GET', signPath);
     const res = await fetch(`${SITE.demoApiBase}${pathWithQuery}`, { headers });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const body = await res.json();
+    renderDemoStructured(pathWithQuery, body);
     out.textContent = JSON.stringify(body, null, 2).slice(0, 6000);
     out.style.display = 'block';
-    status.innerHTML = `<span class="status-ok">Loaded</span> GET ${esc(pathWithQuery)} <span class="tiny">— raw response shown; field names are Kalshi's, nothing is inferred.</span>`;
+    status.innerHTML = `<span class="status-ok">Loaded</span> <code>GET ${esc(signPath)}</code> <span class="tiny">— structured summary &amp; raw Kalshi response shown below.</span>`;
   } catch (err) {
     status.innerHTML = `<span class="status-err">Request failed: ${esc(err.message)}</span><div class="tiny">Likely browser CORS on the demo host, or an expired/invalid signature.</div>`;
   }
 }
 
-boot();
+async function submitDemoOrder(ev) {
+  ev.preventDefault();
+  const status = qs('#demo-order-status');
+  if (!demoSession) {
+    status.innerHTML = '<span class="status-err">Connect your Kalshi demo API key above before placing a demo order.</span>';
+    return;
+  }
+  const ticker = qs('#demo-order-ticker').value;
+  const side = qs('#demo-order-side').value;
+  const qty = Number(qs('#demo-order-qty').value || 1);
+  const yesPrice = Number(qs('#demo-order-price').value || 0.50);
+  const payload = buildDemoOrderV2Payload({ ticker, side, qty, yesPrice });
+  const signPath = canonicalApiPath('/portfolio/events/orders');
+  status.innerHTML = `Signing <code>POST ${esc(signPath)}</code>…`;
+  try {
+    const { headers } = await signDemoRequest(demoSession.keyId, demoSession.pem, 'POST', signPath);
+    const res = await fetch(`${SITE.demoApiBase}/portfolio/events/orders`, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const text = await res.text();
+    let parsed = null;
+    try { parsed = text ? JSON.parse(text) : {}; } catch { parsed = { raw: text }; }
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${parsed?.code || parsed?.message || text.slice(0, 140)}`);
+    status.innerHTML = `<span class="status-ok">Demo V2 order accepted (HTTP ${res.status}):</span> order_id <code>${esc(parsed.order_id || '—')}</code> · filled ${esc(parsed.fill_count || '0')} · remaining ${esc(parsed.remaining_count || '0')}`;
+    const out = qs('#demo-data');
+    out.textContent = JSON.stringify({ request: payload, response: parsed }, null, 2);
+    out.style.display = 'block';
+  } catch (err) {
+    status.innerHTML = `<span class="status-err">Demo order failed: ${esc(err.message)}</span> <span class="tiny">(Mock-funds demo endpoint only; check CORS, shard balance, or price grid.)</span>`;
+  }
+}
+
+export { wrapPkcs1AsPkcs8, signDemoRequest };
+
+if (qs('#pf-kpis')) {
+  boot();
+}
